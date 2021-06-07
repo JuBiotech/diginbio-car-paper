@@ -516,3 +516,5 @@ MigrationBackup/
 # End of https://www.toptal.com/developers/gitignore/api/vscode,python,jupyternotebooks,visualstudio
 
 *.vscode/settings.json
+data/*
+!data/*zip
