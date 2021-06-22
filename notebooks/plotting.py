@@ -1,10 +1,78 @@
 import arviz
 import calibr8
 import copy
+import fastprogress
+import io
 import pymc3
 import numpy
+import os
+from PIL import Image
+from typing import Any, Callable, Iterable
 from matplotlib import cm, pyplot
-from dibecs_contrib import visualization
+
+
+def plot_gif(
+    fn_plot: Callable[[Any], None],
+    fp_out: os.PathLike,
+    *,
+    data: Iterable[Any],
+    fps: int = 3,
+    delay_frames: int = 3,
+    close: bool = True,
+) -> os.PathLike:
+    """Create an animated GIF from matplotlib figures.
+
+    Contributors
+    ------------
+    Michael Osthege <m.osthege@fz-juelich.de>
+
+    Parameters
+    ----------
+    fn_plot : callable
+        A function that takes an element from `data` and creates or updates a current figure.
+        Its return value does not matter, but if the same figure is updated
+        instead of creating new ones, `close=False` should be set.
+    fp_out : path-like
+        File name or path for the output.
+        See `imageio.get_writer` for possible options other than `*.gif`.
+    data : iterable
+        An interable over elements that can be passed to `fn_plot`.
+    fps : int
+        Frames per second for the output.
+    delay_frames : int
+        Number of frames to append at the end of the GIF.
+    close : bool
+        If `True` (default) the current matplotlib Figure is closed after every frame.
+
+    Returns
+    -------
+    fp_out : path-like
+        The result file path.
+        Use `IPython.display.Image(fp_out)` to display GIFs in Jupyter notebooks.
+    """
+    frames = []
+    for dat in fastprogress.progress_bar(data):
+        fn_plot(dat)
+        fig = pyplot.gcf()
+        with io.BytesIO() as buf:
+            # Need the frame without transparency, because it destroys the GIF quality !!
+            # Because of https://github.com/matplotlib/matplotlib/issues/14339 PNG always becomes
+            # 4-channel, even if transparent=False. Therefore we can just as well skip the compression.
+            pyplot.savefig(buf, format="raw", facecolor="w")
+            buf.seek(0)
+            frame = numpy.frombuffer(buf.getvalue(), dtype="uint8").reshape(
+                *fig.canvas.get_width_height()[::-1], 4
+            )
+            # Because `facecolor="w"` was set, we can cut the alpha channel away.
+            frames.append(Image.fromarray(frame[..., :3], "RGB").quantize())
+            if close:
+                pyplot.close()
+    # Repeat the last frame for a delay effect
+    frames += [frames[-1]] * delay_frames
+    frames[0].save(
+        fp_out, save_all=True, append_images=frames[1:], duration=1000 / fps, loop=0
+    )
+    return fp_out
 
 
 def plot_calibration_biomass_observations(df_layout, df_A600):
@@ -105,7 +173,7 @@ def plot_reaction_well(idata, rwell):
         samples=posterior.X.sel(reaction_well=rwell).values.T,
         plot_samples=False,
         fill_alpha=None,
-        palette=visualization.transparentify(cm.Greens)
+        palette=cm.Greens
     )
     ax.set(
         title="biomass change",
@@ -120,7 +188,7 @@ def plot_reaction_well(idata, rwell):
         samples=posterior.A360_of_X.sel(reaction_well=rwell).values.T,
         plot_samples=False,
         fill_alpha=None,
-        palette=visualization.transparentify(cm.Greens)
+        palette=cm.Greens
     )
     pymc3.gp.util.plot_gp_dist(
         ax=ax,
@@ -128,7 +196,7 @@ def plot_reaction_well(idata, rwell):
         samples=posterior.A360_of_P.sel(reaction_well=rwell).values.T,
         plot_samples=False,
         fill_alpha=None,
-        palette=visualization.transparentify(cm.Blues)
+        palette=cm.Blues
     )
     pymc3.gp.util.plot_gp_dist(
         ax=ax,
@@ -136,7 +204,7 @@ def plot_reaction_well(idata, rwell):
         samples=posterior.A360.sel(reaction_well=rwell).values.T,
         plot_samples=False,
         fill_alpha=None,
-        palette=visualization.transparentify(cm.Reds)
+        palette=cm.Reds
     )
     ax.scatter(
         idata.constant_data.time.values,
@@ -163,7 +231,7 @@ def plot_reaction_well(idata, rwell):
         samples=posterior.P.sel(reaction_well=rwell).values.T,
         plot_samples=False,
         fill_alpha=None,
-        palette=visualization.transparentify(cm.Blues)
+        palette=cm.Blues
     )
     ax.set(
         title="production",
