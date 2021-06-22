@@ -99,10 +99,7 @@ def plot_calibration_biomass_observations(df_layout, df_A600):
 def plot_cmodel(cm_600):
     cm_600 = copy.deepcopy(cm_600)
 
-    fig, axs = pyplot.subplots(ncols=3, figsize=(12, 4))
-    cm_600.cal_independent = numpy.insert(cm_600.cal_independent, 0, 0.001)
-    cm_600.cal_dependent = numpy.insert(cm_600.cal_dependent, 0, None)
-    calibr8.plot_model(cm_600, fig=fig, axs=axs)
+    fig, axs = calibr8.plot_model(cm_600, band_xlim=(0.001, None))
     axs[0].set(
         ylabel="$A_\mathrm{600\ nm}$   [a.u.]",
         xlabel="relative biomass   [-]",
@@ -113,14 +110,12 @@ def plot_cmodel(cm_600):
         ylabel="",
         xlabel="relative biomass   [-]",
         ylim=(0, 0.7),
-        xlim=(0.9, 1.5),
+        xlim=(0.9, 1.4),
     )
     axs[2].set(
         ylabel="residual",
         xlabel="relative biomass   [-]",
-        xlim=(0.9, 1.5),
     )
-    fig.tight_layout()
     pyplot.show()
     return
 
