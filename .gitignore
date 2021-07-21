@@ -518,3 +518,5 @@ MigrationBackup/
 *.vscode/settings.json
 data/*
 !data/*zip
+*.gif
+*.json
