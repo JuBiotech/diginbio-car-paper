@@ -97,8 +97,6 @@ def plot_calibration_biomass_observations(df_layout, df_A600):
 
 
 def plot_cmodel(cm_600):
-    cm_600 = copy.deepcopy(cm_600)
-
     fig, axs = calibr8.plot_model(cm_600, band_xlim=(0.001, None))
     axs[0].set(
         ylabel="$A_\mathrm{600\ nm}$   [a.u.]",
