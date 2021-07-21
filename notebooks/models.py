@@ -2,6 +2,7 @@ import calibr8
 import aesara.tensor as at
 import pymc3
 import numpy
+import murefi
 
 
 class LinearBiomassAbsorbanceModel(calibr8.BasePolynomialModelT):
@@ -9,7 +10,31 @@ class LinearBiomassAbsorbanceModel(calibr8.BasePolynomialModelT):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=0, theta_names=["intercept", "slope", "sigma", "df"])
 
 
-def build_model(df_layout, df_A360, df_A600, cm_600, calibration_wells, reaction_wells):
+class MichaelisMentenModel(murefi.BaseODEModel):
+    def __init__(self):
+        self.guesses = dict(S_0=5, P_0=0, v_max=0.1, K_S=1)
+        self.bounds = dict(
+            S_0=(1, 20),
+            P_0=(0, 10),
+            v_max=(0.0001, 5),
+            K_S=(0.01, 10),
+        )
+        super().__init__(
+            independent_keys=['S', 'P'],
+            parameter_names=["S_0", "P_0", "v_max", "K_S"],
+        )
+
+    def dydt(self, y, t, theta):
+        S, P = y
+        v_max, K_S = theta
+
+        dPdt = v_max * S / (K_S + S)
+        return [
+            -dPdt,
+            dPdt,
+        ]
+
+
 
     with pymc3.Model(coords={
         "calibration_well": calibration_wells.values,
