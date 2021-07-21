@@ -152,23 +152,30 @@ def build_model(
         time_actual = time + time_delay
 
         if kind == "mass action":
-            reaction_half_time = pymc3.HalfNormal("reaction_half_time", 2, dims=R)
-            tau = reaction_half_time / numpy.log(2)
-            P_yield = pymc3.Deterministic(
-                "P_yield",
-                (1 - at.exp(-time_actual[:, None] / tau[None, :])),
+            k = pymc3.HalfNormal("k_mM_per_h", sd=1.5, dims=R)
+            P = pymc3.Deterministic(
+                "P",
+                S0 * (1 - at.exp(-time_actual[:, None] * k[None, :])),
                 dims=(S, R),
             )
-            P = pymc3.Deterministic("P", S0 * P_yield, dims=(S, R))
         elif kind == "michaelis menten":
             model = MichaelisMentenModel()
+
+            # Create a template replicate with the same sizes as the data
             template = murefi.Replicate()
             n_timesteps = len(pmodel.coords["sampling_cycle"])
-            template["P"] = murefi.Timeseries(numpy.arange(n_timesteps), [None]*n_timesteps, independent_key="P", dependent_key="P")
+            # Circumvent an isinstance check. See https://github.com/JuBiotech/murefi/issues/2
+            template["P"] = murefi.Timeseries(
+                numpy.arange(n_timesteps),
+                [None] * n_timesteps,
+                independent_key="P",
+                dependent_key="P"
+            )
             template["P"].t = time_actual
+
             P0 = 0
             KS = pymc3.HalfNormal("KS", sd=1)
-            vmax = pymc3.Lognormal("vmax", mu=numpy.log(1), sd=1, dims=R)
+            vmax = pymc3.Lognormal("vmax_mM_per_h", mu=numpy.log(1), sd=1, dims=R)
             P = []
             for r, rwell in enumerate(reaction_wells):
                 pred = model.predict_replicate(

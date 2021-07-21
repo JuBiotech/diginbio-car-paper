@@ -234,8 +234,17 @@ def plot_reaction_well(idata, rwell):
 
 
     ax = axs[1, 1]
+    if "k_mM_per_h" in idata.posterior:
+        metric = "k_mM_per_h"
+        ylabel = "initial reaction rate   [mM/h]"
+    elif "vmax" in idata.posterior:
+        metric = "vmax_mM_per_h"
+        ylabel = "$v_{max}$   [mM/h]"
+    else:
+        raise NotImplementedError(f"Did not find a known performance metric in the posterior.")
+
     violins = ax.violinplot(
-        dataset=posterior.reaction_half_time.T,
+        dataset=posterior[metric].T,
         showextrema=False,
         positions=numpy.arange(len(posterior.reaction_well)),
     )
@@ -244,11 +253,11 @@ def plot_reaction_well(idata, rwell):
         violin.set_facecolor(color)
         violin.set_edgecolor(color)
     ax.set(
-        title="reaction performance",
-        ylabel="time to 50 % yield   [h]",
+        title="performance metric",
+        ylabel=ylabel,
         xlabel="reaction well",
         xticks=numpy.arange(len(posterior.reaction_well)),
         xticklabels=posterior.reaction_well.values,
-        ylim=(0, 1.5),
+        ylim=(0, None),
     )
     #pyplot.show()
