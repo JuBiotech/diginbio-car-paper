@@ -230,6 +230,7 @@ def plot_reaction_well(idata, rwell):
         title="production",
         ylabel="reaction product   [mM]",
         xlabel="time   [h]",
+        ylim=(0, None),
     )
 
 
@@ -260,4 +261,4 @@ def plot_reaction_well(idata, rwell):
         xticklabels=posterior.reaction_well.values,
         ylim=(0, None),
     )
-    #pyplot.show()
+    return
