@@ -5,7 +5,7 @@ Why?
 Because we can.
 
 ```bash
-conda create -n CARenv -c conda-forge "python=3.8" libpython mkl-service m2w64-toolchain numba python-graphviz scipy jupyter openpyxyl
+conda create -n CARenv -c conda-forge "python=3.8" libpython mkl-service m2w64-toolchain numba python-graphviz scipy jupyter openpyxl
 conda activate CARenv
 pip install git+https://github.com/pymc-devs/pymc3.git@main
 pip install calibr8 robotools
