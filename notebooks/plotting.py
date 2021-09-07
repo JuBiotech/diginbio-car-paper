@@ -4,6 +4,7 @@ import copy
 import fastprogress
 import io
 import pymc3
+import scipy
 import numpy
 import os
 from PIL import Image
@@ -153,26 +154,36 @@ def plot_A360_relationships(df_layout, df_A360, df_rel_biomass, calibration_well
     pyplot.show()
 
 
-def plot_reaction_well(idata, rwell):
+def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:calibr8.CalibrationModel=None):
     posterior = idata.posterior.stack(sample=("chain", "draw"))
 
     fig, axs = pyplot.subplots(ncols=2, nrows=2, figsize=(12, 8))
     fig.suptitle(f"reaction well {rwell}")
 
     ax = axs[0,0]
-    pymc3.gp.util.plot_gp_dist(
-        ax=ax,
-        x=idata.constant_data.time.values,
-        samples=posterior.X.sel(reaction_well=rwell).values.T,
-        plot_samples=False,
-        fill_alpha=None,
-        palette=cm.Greens
+    if cm_600 is not None:
+        loc, scale, df = cm_600.predict_dependent(posterior.X.sel(reaction_well=rwell).values.T)
+        pymc3.gp.util.plot_gp_dist(
+            ax=ax,
+            x=idata.constant_data.time.values,
+            samples=scipy.stats.t.rvs(loc=loc, scale=scale, df=df),
+            plot_samples=False,
+            fill_alpha=None,
+            palette=cm.Greens,
+        )
+        ax.fill_between([], [], color="green", label="posterior predictive")
+    rw = list(idata.posterior.reaction_well).index(rwell)
+    ax.scatter(
+        idata.constant_data.time.values,
+        idata.constant_data.obs_A600.sel(reaction_well=rw).values,
+        marker="x", color="black",
+        label="observations"
     )
     ax.set(
-        title="biomass change",
-        ylabel="posterior(X)   [relative]",
-        ylim=(0, None)
+        title="A600 contributions",
+        ylabel="$A_{600\ nm}$   [a.u.]",
     )
+    ax.legend(frameon=False, loc="upper left")
 
     ax = axs[0,1]
     pymc3.gp.util.plot_gp_dist(
@@ -212,7 +223,7 @@ def plot_reaction_well(idata, rwell):
     )
     ax.legend(handles=[
         ax.scatter([], [], color="black", marker="x", label="observed"),
-        ax.fill_between([], [], [], color="red", label="predicted (sum)"),
+        ax.fill_between([], [], [], color="red", label="posterior (sum)"),
         ax.fill_between([], [], [], color="green", label="biomass"),
         ax.fill_between([], [], [], color="blue", label="product"),
     ], loc="upper left", frameon=False)
@@ -261,4 +272,6 @@ def plot_reaction_well(idata, rwell):
         xticklabels=posterior.reaction_well.values,
         ylim=(0, None),
     )
+    for ax, ylim in zip(axs.flatten(), numpy.array(ylims).flatten()):
+        ax.set_ylim(0, ylim)
     return
