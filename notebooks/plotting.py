@@ -139,7 +139,7 @@ def plot_A360_relationships(df_layout, df_A360, df_rel_biomass, calibration_well
     for t in df_A360.index:
         ax.scatter(
             df_rel_biomass.loc[t],
-            df_A360.loc[t, calibration_wells] - df_A360.loc[0, calibration_wells],
+            df_A360.loc[t, calibration_wells] - df_A360.iloc[0][calibration_wells],
             label=f"t={t:.3f}"
         )
     ax.set(
