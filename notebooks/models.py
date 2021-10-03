@@ -1,4 +1,5 @@
 import logging
+from typing import Dict, Sequence
 import pandas
 import calibr8
 import aesara.tensor as at
@@ -36,6 +37,17 @@ class MichaelisMentenModel(murefi.BaseODEModel):
             -dPdt,
             dPdt,
         ]
+
+
+def _add_or_assert_coords(
+    coords: Dict[str, Sequence], pmodel: pymc3.Model
+):
+    """Ensures that the coords are available in the model."""
+    for cname, cvalues in coords.items():
+        if cname in pmodel.coords:
+            numpy.testing.assert_array_equal(pmodel.coords[cname], cvalues)
+        else:
+            pmodel.add_coord(name=cname, values=cvalues)
 
 
 def build_model(
@@ -85,11 +97,15 @@ def build_model(
     R = "reaction_well"
     S = "sampling_cycle"
 
-    with pymc3.Model(coords={
+    # Register coordinates with the model
+    pmodel = pymc3.modelcontext(None)
+    _add_or_assert_coords({
         C: calibration_wells,
         R: reaction_wells,
         S: numpy.arange(len(df_A600)),
-    }) as pmodel:
+    }, pmodel)
+
+    with pmodel:
         ################ CALIBRATION MODEL ################
         # This part of the model describes the data-generating process of the absorbances in CALIBRATION wells.
         # We need to include this in the model, because we don't have separate biomass/A360 and biomass/A600 calibrations.
