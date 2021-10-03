@@ -162,7 +162,7 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
 
     ax = axs[0,0]
     if cm_600 is not None:
-        loc, scale, df = cm_600.predict_dependent(posterior.X.sel(reaction_well=rwell).values.T)
+        loc, scale, df = cm_600.predict_dependent(posterior.X.sel(well=rwell).values.T)
         pymc3.gp.util.plot_gp_dist(
             ax=ax,
             x=idata.constant_data.time.values,
@@ -172,10 +172,10 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
             palette=cm.Greens,
         )
         ax.fill_between([], [], color="green", label="posterior predictive")
-    rw = list(idata.posterior.reaction_well).index(rwell)
+    rw = list(idata.posterior.well).index(rwell)
     ax.scatter(
         idata.constant_data.time.values,
-        idata.constant_data.obs_A600.sel(reaction_well=rw).values,
+        idata.constant_data.obs_A600.sel(well=rw).values,
         marker="x", color="black",
         label="observations"
     )
@@ -189,7 +189,7 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
     pymc3.gp.util.plot_gp_dist(
         ax=ax,
         x=idata.constant_data.time.values,
-        samples=posterior.A360_of_X.sel(reaction_well=rwell).values.T,
+        samples=posterior.A360_of_X.sel(well=rwell).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Greens
@@ -197,7 +197,7 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
     pymc3.gp.util.plot_gp_dist(
         ax=ax,
         x=idata.constant_data.time.values,
-        samples=posterior.A360_of_P.sel(reaction_well=rwell).values.T,
+        samples=posterior.A360_of_P.sel(well=rwell).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Blues
@@ -205,7 +205,7 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
     pymc3.gp.util.plot_gp_dist(
         ax=ax,
         x=idata.constant_data.time.values,
-        samples=posterior.A360.sel(reaction_well=rwell).values.T,
+        samples=posterior.A360.sel(well=rwell).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Reds
@@ -213,7 +213,7 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
     ax.scatter(
         idata.constant_data.time.values,
         idata.constant_data.obs_A360.sel(
-            reaction_well=list(idata.posterior.reaction_well).index(rwell)
+            well=list(idata.posterior.well).index(rwell)
         ).values,
         color="black", marker="x"
     )
@@ -232,7 +232,7 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
     pymc3.gp.util.plot_gp_dist(
         ax=ax,
         x=idata.constant_data.time.values,
-        samples=posterior.P.sel(reaction_well=rwell).values.T,
+        samples=posterior.P.sel(well=rwell).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Blues
