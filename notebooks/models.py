@@ -1,12 +1,13 @@
 import aesara
 import logging
-from typing import Dict, Sequence
+from typing import Dict, Sequence, Union
 import pandas
 import calibr8
 import aesara.tensor as at
 import pymc3
 import numpy
 import murefi
+
 
 _log = logging.getLogger(__file__)
 
@@ -40,6 +41,16 @@ class MichaelisMentenModel(murefi.BaseODEModel):
         ]
 
 
+def tidy_coords(
+    raw_coords: Dict[str, Sequence[Union[str, int]]]
+) -> Dict[str, numpy.ndarray]:
+    """Creates a coords dictionary with sorted unique coordinate values."""
+    coords = {}
+    for dname, rawvals in raw_coords.items():
+        coords[dname] = numpy.unique(rawvals)
+    return coords
+
+
 def _add_or_assert_coords(
     coords: Dict[str, Sequence], pmodel: pymc3.Model
 ):
@@ -53,11 +64,11 @@ def _add_or_assert_coords(
 
 def build_model(
     df_layout: pandas.DataFrame,
+    df_time: pandas.DataFrame,
     df_A360: pandas.DataFrame,
     df_A600: pandas.DataFrame,
     cm_600: calibr8.CalibrationModel,
     *,
-    reaction_wells: Sequence[str],
     kind: str,
 ):
     """Constructs the full model for the analysis of one biotransformation experiment.
@@ -87,46 +98,52 @@ def build_model(
         - "mass action"
         - "michaelis menten"
     """
+    pmodel = pymc3.modelcontext(None)
 
-    # Name of dimensions in the model:
-    W = "well"
-    R = "reaction_well"
-    S = "sampling_cycle"
+    assert numpy.array_equal(df_time.index, df_layout.index)
+    assert numpy.array_equal(df_A360.index, df_layout.index)
+    assert numpy.array_equal(df_A600.index, df_layout.index)
 
-    wells = df_layout.index.to_numpy()
+    coords = tidy_coords({
+        "run": df_layout.run.astype(str),
+        "replicate_id": df_layout.index.to_numpy().astype(str),
+        #"reactor": df_layout.reactor.astype(str),
+        "group": df_layout["group"].astype(str),
+        "cycle": df_time.columns.to_numpy(),
+        "reaction": df_layout[df_layout["product"].isna()].index.to_numpy().astype(str),
+    })
+    _add_or_assert_coords(coords, pmodel)
 
     # Masking and slicing helper variables
-    mask_RinW = numpy.isin(wells, reaction_wells)
-    obs_A360 = df_A360[wells].to_numpy()
-    obs_A600 = df_A600[wells].to_numpy()
+    replicates = list(coords["replicate_id"])
+    mask_RinRID = numpy.isin(coords["replicate_id"], coords["reaction"])
+    assert len(mask_RinRID) == len(df_layout)
+    assert sum(mask_RinRID) == len(coords["reaction"])
+
+    obs_A360 = df_A360.loc[replicates].to_numpy()
+    obs_A600 = df_A600.loc[replicates].to_numpy()
     mask_numericA360 = ~numpy.isnan(obs_A360)
     mask_numericA600 = ~numpy.isnan(obs_A360)
 
-    _log.info("Constructing model for %i wells out of which %i are reaction wells.", len(wells), len(reaction_wells))
-
-    # Register coordinates with the model
-    pmodel = pymc3.modelcontext(None)
-    _add_or_assert_coords({
-        W: wells,
-        R: reaction_wells,
-        S: numpy.arange(len(df_A600)),
-    }, pmodel)
-
+    _log.info("Constructing model for %i wells out of which %i are reaction wells.", len(df_layout), len(coords["reaction"]))
     with pmodel:
         ################ PROCESS MODEL ################
         # The data is ultimately generated from some biomass and product concentrations.
-        # We don't know the biomasses in the wells (W) and they change over time (S):
-        X = pymc3.Lognormal("X", mu=0, sd=0.1, dims=(S, W))
+        # We don't know the biomasses in the wells (replicate_id) and they change over time (cycle):
+        # TODO: consider biomass prior information from the df_layout
+        X = pymc3.Lognormal("X", mu=0, sd=0.1, dims=("replicate_id", "cycle"))
 
         # The initial substrate concentration is 👇 µM,
         # but we wouldn't be surprised if it was    ~10 % 👇 off.
         S0 = pymc3.Lognormal("S0", mu=numpy.log(2.5), sd=0.1)
 
         # But we have data for the product concentration:
-        P0 = pymc3.Data("P0", df_layout.loc[wells, "product"], dims=W)
+        P0 = pymc3.Data("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
 
         # The product concentration will be a function of the time ⌚.
-        time = pymc3.Data("time", df_A600.index.values, dims=S)
+        # Because all kinetics have the same length we can work with a time matrix.
+        time = pymc3.Data("time", df_time.loc[replicates], dims=("replicate_id", "cycle"))
+
         # Instead of modeling an initial product concentration, we can model a time delay
         # since the actual start of the reaction. This way the total amount of substrate/product
         # is preserved and it's a little easier to encode prior knowledge.
@@ -135,11 +152,11 @@ def build_model(
         time_actual = time + time_delay
 
         if kind == "mass action":
-            k = pymc3.HalfNormal("k_mM_per_h", sd=1.5, dims=R)
+            k = pymc3.HalfNormal("k_mM_per_h", sd=1.5, dims="reaction")
             P_in_R = pymc3.Deterministic(
                 "P_in_R",
-                S0 * (1 - at.exp(-time_actual[:, None] * k[None, :])),
-                dims=(S, R),
+                S0 * (1 - at.exp(-time_actual[mask_RinRID] * k[:, None])),
+                dims=("reaction", "cycle"),
             )
         elif kind == "michaelis menten":
             model = MichaelisMentenModel()
@@ -172,12 +189,13 @@ def build_model(
 
         # Combine fixed & variable P into one tensor
         P = at.empty(
-            shape=(pmodel.dim_lengths[S], pmodel.dim_lengths[W]),
+            shape=(pmodel.dim_lengths["replicate_id"], pmodel.dim_lengths["cycle"]),
             dtype=aesara.config.floatX
         )
-        P = at.set_subtensor(P[:, mask_RinW], P_in_R)
-        P = at.set_subtensor(P[:, ~mask_RinW], P0[None, ~mask_RinW])
-        P = pymc3.Deterministic("P", P, dims=(S, W))
+
+        P = at.set_subtensor(P[mask_RinRID, :], P_in_R)
+        P = at.set_subtensor(P[~mask_RinRID, :], P0[~mask_RinRID, None])
+        P = pymc3.Deterministic("P", P, dims=("replicate_id", "cycle"))
 
         ################ OBSERVATION MODEL ############
         # The absorbance at 360 nm depends on input/response relationships that we don't know.
@@ -192,24 +210,25 @@ def build_model(
         σ_A360 = 0.05
 
         # The absorbance at 360 nm can be predicted as a function of the concentrations (X_cal, P_cal) and slope parameters.
-        A360_of_X = pymc3.Deterministic("A360_of_X", A360_per_X * X, dims=(S, W))
+        A360_of_X = pymc3.Deterministic("A360_of_X", A360_per_X * X, dims=("replicate_id", "cycle"))
+
         A360_of_P = pymc3.Deterministic(
             "A360_of_P",
             P * A360_per_P,
-            dims=(S, W)
+            dims=("replicate_id", "cycle")
         )
         A360 = pymc3.Deterministic(
             "A360",
             A360_of_X + A360_of_P,
-            dims=(S, W)
+            dims=("replicate_id", "cycle")
         )
         
         # connect with observations
-        pymc3.Data("obs_A360", obs_A360, dims=(S, W))
+        pymc3.Data("obs_A360", obs_A360, dims=("replicate_id", "cycle"))
         obs = pymc3.Data("obs_A360_notnan", obs_A360[mask_numericA360])
         L_A360 = pymc3.Normal("L_of_A360", mu=A360[mask_numericA360], sd=σ_A360, observed=obs)
 
-        pymc3.Data("obs_A600", obs_A600, dims=(S, W))
+        pymc3.Data("obs_A600", obs_A600, dims=("replicate_id", "cycle"))
         obs = pymc3.Data("obs_A600_notnan", obs_A600[mask_numericA600])
         L_cal_A600 = cm_600.loglikelihood(
             x=X[mask_numericA600],
