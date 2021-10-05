@@ -76,16 +76,16 @@ def plot_gif(
     return fp_out
 
 
-def plot_calibration_biomass_observations(df_layout, df_A600):
+def plot_calibration_biomass_observations(df_layout, df_A600, df_time):
     fig, ax = pyplot.subplots()
 
     ax.set_title("product inhibits biomass growth\nbut just a bit")
     groups = list(df_layout.sort_values("product").groupby("product"))
     for g, (concentration, df) in enumerate(groups):
-        wells = list(df.index)
+        rids = list(df.index)
         color = cm.autumn(0.1 + g / len(groups))
         label = f"{concentration} mM"
-        ax.plot(df_A600.index, df_A600[wells], color=color)
+        ax.plot(df_time.loc[rids].T, df_A600.loc[rids].T, color=color)
         ax.plot([], [], color=color, label=label)
     ax.legend(frameon=False)
     ax.set(
@@ -119,14 +119,15 @@ def plot_cmodel(cm_600):
     return
 
 
-def plot_A360_relationships(df_layout, df_A360, df_rel_biomass, calibration_wells):
+def plot_A360_relationships(df_layout, df_time, df_A360, df_rel_biomass, calibration_rids):
     fig, axs = pyplot.subplots(ncols=2, figsize=(8, 4))
 
     ax = axs[0]
-    for t in df_A360.index:
+    for c in df_A360.columns:
+        t = df_time.loc[calibration_rids, c][0]
         ax.scatter(
-            df_layout.loc[calibration_wells, "product"],
-            df_A360.loc[t, calibration_wells],
+            df_layout.loc[calibration_rids, "product"],
+            df_A360.loc[calibration_rids, c],
             label=f"t={t:.3f}"
         )
     ax.set(
@@ -137,10 +138,11 @@ def plot_A360_relationships(df_layout, df_A360, df_rel_biomass, calibration_well
     ax.legend(loc="upper left")
 
     ax = axs[1]
-    for t in df_A360.index:
+    for c in df_A360.columns:
+        t = df_time.loc[calibration_rids, c][0]
         ax.scatter(
-            df_rel_biomass.loc[t],
-            df_A360.loc[t, calibration_wells] - df_A360.iloc[0][calibration_wells],
+            df_rel_biomass.loc[calibration_rids, c],
+            df_A360.loc[calibration_rids, c] - df_A360.loc[calibration_rids, 0],
             label=f"t={t:.3f}"
         )
     ax.set(
