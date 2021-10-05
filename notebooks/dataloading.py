@@ -1,4 +1,5 @@
 import hagelkorn
+import logging
 import numpy
 import pandas
 import pathlib
@@ -6,6 +7,7 @@ from robotools.transform import make_well_array
 
 
 DP_DATA = pathlib.Path("..") / "data"
+_log = logging.getLogger(__file__)
 
 
 def fetch_file(fp):
@@ -30,14 +32,39 @@ def hagelhash(obj, digits:int=5) -> str:
     return "".join(rng.choice(alphabet, size=digits))
 
 
-def get_layout():
-    df_layout = pandas.read_excel(DP_DATA / "WellDescription.xlsx").rename(columns={
-        "Well": "well",
-        "Content": "content",
-        "Product, mM": "product",
+def get_layout(fp: str) -> pandas.DataFrame:
+    """Loads and validates an experiment layout.
+    
+    Parameters
+    ----------
+    fp : path-like
+        Path to the XLSX file.
+        May be relative to the data folder.
+
+    Returns
+    -------
+    df_layout : pandas.DataFrame
+        Layout table with unique culture ID on the index.
+    """
+    df_layout = pandas.read_excel(fetch_file(fp))
+
+    # Check that is has all required columns
+    cols = set(df_layout.columns)
+    expected = {"run", "assay_well", "group", "product"}
+    if not cols.issuperset(expected):
+        raise ValueError(f"Missing columns from the layout table: {expected - cols}")
+
+    # Index it by replicate_id column or generate it
+    if not "replicate_id" in cols:
+        _log.warning("No 'replicate_id' column found. Generating hagelhashes from run+assay_well.")
+        df_layout["replicate_id"] = [
+            hagelhash(str(row.run) + str(row.assay_well))
+            for row in df_layout.itertuples()
+        ]
+    df_layout.set_index("replicate_id", inplace=True)
+    df_layout = df_layout.astype({
+        "run": str,
     })
-    df_layout["well"] = make_well_array(R=8, C=12).flatten("C")
-    df_layout = df_layout.set_index("well")
     return df_layout
 
 
