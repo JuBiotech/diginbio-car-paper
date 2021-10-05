@@ -1,3 +1,4 @@
+import hagelkorn
 import numpy
 import pandas
 import pathlib
@@ -5,6 +6,13 @@ from robotools.transform import make_well_array
 
 
 DP_DATA = pathlib.Path("..") / "data"
+
+
+def hagelhash(obj, digits:int=5) -> str:
+    """Deterministically calculates a random hagelkorn-style hash of an object."""
+    rng = numpy.random.RandomState(hash(obj) % (2**32 - 1))
+    alphabet = tuple(hagelkorn.core.DEFAULT_ALPHABET)
+    return "".join(rng.choice(alphabet, size=digits))
 
 
 def get_layout():
