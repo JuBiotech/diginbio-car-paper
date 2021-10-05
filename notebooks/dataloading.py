@@ -3,7 +3,7 @@ import logging
 import numpy
 import pandas
 import pathlib
-from robotools.transform import make_well_array
+from typing import Dict, Tuple
 
 
 DP_DATA = pathlib.Path("..") / "data"
@@ -81,3 +81,29 @@ def read_absorbances(fp) -> pandas.DataFrame:
     })
     df["time_hours"] = (df.index - df.index[0]) / 3600
     return df.set_index("time_hours")
+
+
+def vectorize_observations(
+    df_layout: pandas.DataFrame,
+    observations: Dict[str, Dict[str, pandas.DataFrame]],
+):
+    common = dict(
+        index=pandas.Index(df_layout.index.to_numpy(), name="replicate_id"),
+        columns=pandas.Index(numpy.arange(len(tuple(observations.values())[0][0])), name="cycle"),
+    )
+    result_time = pandas.DataFrame(**common)
+    result_360 = pandas.DataFrame(**common)
+    result_600 = pandas.DataFrame(**common)
+    for run, (df360, df600) in observations.items():
+        time = df360.index.to_numpy()
+        if not numpy.array_equal(df600.index.to_numpy(), time):
+            raise ValueError(f"Time vectors for 360 and 600 nm absorbances in run {run} don't match.")
+        for row in df_layout[df_layout.run == run].itertuples():
+            rid = row.Index
+            result_time.loc[rid] = time
+            result_360.loc[rid] = df360[row.assay_well].to_numpy()
+            result_600.loc[rid] = df600[row.assay_well].to_numpy()
+    result_time = result_time.astype(float)
+    result_360 = result_360.astype(float)
+    result_600 = result_600.astype(float)
+    return result_time, result_360, result_600
