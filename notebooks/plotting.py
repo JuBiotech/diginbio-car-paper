@@ -156,28 +156,29 @@ def plot_A360_relationships(df_layout, df_time, df_A360, df_rel_biomass, calibra
     pyplot.show()
 
 
-def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:calibr8.CalibrationModel=None):
+def plot_reaction(idata, rid, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:calibr8.CalibrationModel=None):
     posterior = idata.posterior.stack(sample=("chain", "draw"))
+    time = idata.constant_data.time.sel(replicate_id=rid).values
 
     fig, axs = pyplot.subplots(ncols=2, nrows=2, figsize=(12, 8))
-    fig.suptitle(f"reaction well {rwell}")
+    fig.suptitle(f"reaction {rid}")
 
     ax = axs[0,0]
     if cm_600 is not None:
-        loc, scale, df = cm_600.predict_dependent(posterior.X.sel(well=rwell).values.T)
+        loc, scale, df = cm_600.predict_dependent(posterior.X.sel(replicate_id=rid).values.T)
         pymc3.gp.util.plot_gp_dist(
             ax=ax,
-            x=idata.constant_data.time.values,
+            x=time,
             samples=scipy.stats.t.rvs(loc=loc, scale=scale, df=df),
             plot_samples=False,
             fill_alpha=None,
             palette=cm.Greens,
         )
         ax.fill_between([], [], color="green", label="posterior predictive")
-    rw = list(idata.posterior.well).index(rwell)
+    rw = list(idata.posterior.replicate_id).index(rid)
     ax.scatter(
-        idata.constant_data.time.values,
-        idata.constant_data.obs_A600.sel(well=rw).values,
+        time,
+        idata.constant_data.obs_A600.sel(replicate_id=rw).values,
         marker="x", color="black",
         label="observations"
     )
@@ -190,32 +191,32 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
     ax = axs[0,1]
     pymc3.gp.util.plot_gp_dist(
         ax=ax,
-        x=idata.constant_data.time.values,
-        samples=posterior.A360_of_X.sel(well=rwell).values.T,
+        x=time,
+        samples=posterior.A360_of_X.sel(replicate_id=rid).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Greens
     )
     pymc3.gp.util.plot_gp_dist(
         ax=ax,
-        x=idata.constant_data.time.values,
-        samples=posterior.A360_of_P.sel(well=rwell).values.T,
+        x=time,
+        samples=posterior.A360_of_P.sel(replicate_id=rid).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Blues
     )
     pymc3.gp.util.plot_gp_dist(
         ax=ax,
-        x=idata.constant_data.time.values,
-        samples=posterior.A360.sel(well=rwell).values.T,
+        x=time,
+        samples=posterior.A360.sel(replicate_id=rid).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Reds
     )
     ax.scatter(
-        idata.constant_data.time.values,
+        time,
         idata.constant_data.obs_A360.sel(
-            well=list(idata.posterior.well).index(rwell)
+            replicate_id=list(idata.posterior.replicate_id).index(rid)
         ).values,
         color="black", marker="x"
     )
@@ -233,8 +234,8 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
     ax = axs[1, 0]
     pymc3.gp.util.plot_gp_dist(
         ax=ax,
-        x=idata.constant_data.time.values,
-        samples=posterior.P.sel(well=rwell).values.T,
+        x=time,
+        samples=posterior.P.sel(replicate_id=rid).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Blues
@@ -260,20 +261,21 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
     violins = ax.violinplot(
         dataset=posterior[metric].T,
         showextrema=False,
-        positions=numpy.arange(len(posterior.reaction_well)),
+        positions=numpy.arange(len(posterior.reaction)),
     )
     for i, violin in enumerate(violins['bodies']):
-        color = "blue" if posterior.reaction_well[i] == rwell else "grey"
+        color = "blue" if posterior.reaction[i] == rid else "grey"
         violin.set_facecolor(color)
         violin.set_edgecolor(color)
     ax.set(
         title="performance metric",
         ylabel=ylabel,
-        xlabel="reaction well",
-        xticks=numpy.arange(len(posterior.reaction_well)),
-        xticklabels=posterior.reaction_well.values,
+        xlabel="replicate id",
+        xticks=numpy.arange(len(posterior.reaction)),
+        xticklabels=posterior.reaction.values,
         ylim=(0, None),
     )
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
     for ax, ylim in zip(axs.flatten(), numpy.array(ylims).flatten()):
         ax.set_ylim(0, ylim)
     return
