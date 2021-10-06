@@ -57,10 +57,10 @@ def get_layout(fp: str) -> pandas.DataFrame:
     # Index it by replicate_id column or generate it
     if not "replicate_id" in cols:
         _log.warning("No 'replicate_id' column found. Generating hagelhashes from run+assay_well.")
-        df_layout["replicate_id"] = [
-            hagelhash(str(row.run) + str(row.assay_well))
-            for row in df_layout.itertuples()
-        ]
+        df_layout["replicate_id"] = None
+    for row in df_layout.itertuples():
+        if pandas.isna(row.replicate_id):
+            df_layout.loc[row.Index, "replicate_id"] = hagelhash(str(row.run) + str(row.assay_well))
     df_layout.set_index("replicate_id", inplace=True)
     df_layout = df_layout.astype({
         "run": str,
