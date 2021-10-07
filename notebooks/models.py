@@ -108,7 +108,7 @@ def build_model(
         "run": df_layout.run.astype(str),
         "replicate_id": df_layout.index.to_numpy().astype(str),
         #"reactor": df_layout.reactor.astype(str),
-        "group": df_layout["group"].astype(str),
+        "group": df_layout[pandas.isna(df_layout["product"])]["group"].astype(str),
         "cycle": df_time.columns.to_numpy(),
         "reaction": df_layout[df_layout["product"].isna()].index.to_numpy().astype(str),
     })
@@ -131,7 +131,7 @@ def build_model(
         # The data is ultimately generated from some biomass and product concentrations.
         # We don't know the biomasses in the wells (replicate_id) and they change over time (cycle):
         # TODO: consider biomass prior information from the df_layout
-        X = pymc3.Lognormal("X", mu=0, sd=0.1, dims=("replicate_id", "cycle"))
+        X = pymc3.Lognormal("X", mu=0, sd=0.3, dims=("replicate_id", "cycle"))
 
         # The initial substrate concentration is 👇 µM,
         # but we wouldn't be surprised if it was    ~10 % 👇 off.
@@ -152,10 +152,15 @@ def build_model(
         time_actual = time + time_delay
 
         if kind == "mass action":
-            k = pymc3.HalfNormal("k_mM_per_h", sd=1.5, dims="reaction")
+            k_group = pymc3.HalfNormal("k_group", sd=1.5, dims="group")
+            igroup_by_reaction = [
+                list(coords["group"]).index(df_layout.loc[rid, "group"])
+                for rid in coords["reaction"]
+            ]
+            k_reaction = pymc3.Lognormal("k_reaction", mu=at.log(k_group[igroup_by_reaction]), sd=0.1, dims="reaction")
             P_in_R = pymc3.Deterministic(
                 "P_in_R",
-                S0 * (1 - at.exp(-time_actual[mask_RinRID] * k[:, None])),
+                S0 * (1 - at.exp(-time_actual[mask_RinRID] * k_reaction[:, None])),
                 dims=("reaction", "cycle"),
             )
         elif kind == "michaelis menten":

@@ -175,6 +175,7 @@ def plot_reaction(idata, rid, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:calibr8.
             palette=cm.Greens,
         )
         ax.fill_between([], [], color="green", label="posterior predictive")
+    # 👇 workaround for https://github.com/pymc-devs/pymc/issues/5046
     rw = list(idata.posterior.replicate_id).index(rid)
     ax.scatter(
         time,
@@ -215,9 +216,7 @@ def plot_reaction(idata, rid, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:calibr8.
     )
     ax.scatter(
         time,
-        idata.constant_data.obs_A360.sel(
-            replicate_id=list(idata.posterior.replicate_id).index(rid)
-        ).values,
+        idata.constant_data.obs_A360.sel(replicate_id=rid).values,
         color="black", marker="x"
     )
     ax.set(
@@ -255,6 +254,9 @@ def plot_reaction(idata, rid, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:calibr8.
     elif "vmax" in idata.posterior:
         metric = "vmax_mM_per_h"
         ylabel = "$v_{max}$   [mM/h]"
+    elif "k_reaction" in idata.posterior:
+        metric = "k_reaction"
+        ylabel = "initial reaction rate   [mM/h]"
     else:
         raise NotImplementedError(f"Did not find a known performance metric in the posterior.")
 
