@@ -70,6 +70,7 @@ def build_model(
     cm_600: calibr8.CalibrationModel,
     *,
     kind: str,
+    design_cols: Sequence[str],
 ):
     """Constructs the full model for the analysis of one biotransformation experiment.
 
@@ -97,6 +98,8 @@ def build_model(
         Which product formation model to apply. One of:
         - "mass action"
         - "michaelis menten"
+    design_cols : array-like
+        Names of columns that describe the experimental design.
     """
     pmodel = pymc3.modelcontext(None)
 
@@ -111,6 +114,7 @@ def build_model(
         "cycle": df_time.columns.to_numpy(),
         "reaction": df_layout[df_layout["product"].isna()].index.to_numpy().astype(str),
         "design_id": df_layout[~df_layout["design_id"].isna()].design_id.astype(str),
+        "design_dim": design_cols,
     })
     _add_or_assert_coords(coords, pmodel)
 
@@ -133,9 +137,16 @@ def build_model(
         list(coords["design_id"]).index(df_layout.loc[rid, "design_id"])
         for rid in coords["reaction"]
     ]
+    pymc3.Data("irun_by_reaction", irun_by_reaction, dims="reaction")
+    pymc3.Data("idesign_by_reaction", idesign_by_reaction, dims="reaction")
 
     _log.info("Constructing model for %i wells out of which %i are reaction wells.", len(df_layout), len(coords["reaction"]))
     with pmodel:
+        X_design = pymc3.Data(
+            "X_design",
+            df_layout.set_index("design_id")[coords["design_dim"]].dropna().drop_duplicates().sort_index().to_numpy(),
+            dims=("design_id", "design_dim")
+        )
         ################ PROCESS MODEL ################
         # The data is ultimately generated from some biomass and product concentrations.
         # We don't know the biomasses in the wells (replicate_id) and they change over time (cycle):
