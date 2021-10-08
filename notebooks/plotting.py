@@ -3,12 +3,15 @@ import calibr8
 import copy
 import fastprogress
 import io
+import mpl_toolkits
+import pandas
 import pymc3
 import scipy
 import numpy
 import os
+import xarray
 from PIL import Image
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Dict, Iterable
 from matplotlib import cm, pyplot
 
 
@@ -280,4 +283,37 @@ def plot_reaction(idata, rid, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:calibr8.
     ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
     for ax, ylim in zip(axs.flatten(), numpy.array(ylims).flatten()):
         ax.set_ylim(0, ylim)
+    return
+
+
+def plot_reactor_positions(data: Dict[str, xarray.Dataset], df_layout: pandas.DataFrame):
+    fig, axs = pyplot.subplots(ncols=len(data), figsize=(8, 6 * len(data)), dpi=200)
+
+    for i, (run, ds) in enumerate(data.items()):
+        arr = numpy.zeros((8, 6))
+        for rid in ds.reaction.values:
+            reactor = df_layout.loc[rid, "reactor"]
+            r = "ABCDEFGH".index(reactor[0])
+            c = int(reactor[1:]) - 1
+            arr[r, c] = numpy.median(ds.sel(reaction=rid))
+        
+        ax = axs[i]
+        im = ax.imshow(arr, vmin=0.7, vmax=1.3)
+        # Draw a colorbar that matches the height of the image
+        divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
+        cbar_kw = dict(
+            mappable=im,
+            ax=ax,
+            cax=divider.append_axes("right", size="5%", pad=0.05),
+        )
+        cbar = ax.figure.colorbar(**cbar_kw)
+        cbar.ax.set_ylabel("$k_{reactor} / k_{group}$", rotation=-90, va="bottom")
+        ax.set_yticks(numpy.arange(8))
+        ax.set_yticklabels("ABCDEFGH")
+        ax.set_xticks(numpy.arange(6))
+        ax.set_xticklabels([1,2,3,4,5,6])
+
+        ax.set_title(run)
+    fig.tight_layout()
+    pyplot.show()
     return

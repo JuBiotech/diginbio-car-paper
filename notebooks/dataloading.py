@@ -50,7 +50,7 @@ def get_layout(fp: str) -> pandas.DataFrame:
 
     # Check that is has all required columns
     cols = set(df_layout.columns)
-    expected = {"run", "assay_well", "group", "product"}
+    expected = {"run", "reactor", "assay_well", "group", "product"}
     if not cols.issuperset(expected):
         raise ValueError(f"Missing columns from the layout table: {expected - cols}")
 
