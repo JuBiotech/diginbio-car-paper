@@ -11,7 +11,7 @@ import numpy
 import os
 import xarray
 from PIL import Image
-from typing import Any, Callable, Dict, Iterable
+from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 from matplotlib import cm, pyplot
 
 
@@ -165,6 +165,7 @@ def plot_reaction(
     *,
     ylims=((1.0, 2.5), (2.8, 1.8)),
     cm_600:calibr8.CalibrationModel=None,
+    reaction_order: Optional[Sequence[str]]=None,
 ):
     # 👇 workaround for https://github.com/pymc-devs/pymc/issues/5046
     def get_constant_data(data, dname, cval):
@@ -172,6 +173,10 @@ def plot_reaction(
             cval = list(idata.posterior[dname].values).index(cval)
         dat = data.sel({dname: cval}).values
         return dat
+
+    if reaction_order is None:
+        reaction_order = idata.posterior.reaction.values
+    reaction_order = list(reaction_order)
 
     posterior = idata.posterior.stack(sample=("chain", "draw"))
     time = get_constant_data(idata.constant_data.time, "replicate_id", rid)
@@ -276,20 +281,20 @@ def plot_reaction(
         raise NotImplementedError(f"Did not find a known performance metric in the posterior.")
 
     violins = ax.violinplot(
-        dataset=posterior[metric].T,
+        dataset=posterior[metric].sel(reaction=reaction_order).T,
         showextrema=False,
-        positions=numpy.arange(len(posterior.reaction)),
+        positions=numpy.arange(len(reaction_order)),
     )
     for i, violin in enumerate(violins['bodies']):
-        color = "blue" if posterior.reaction[i] == rid else "grey"
+        color = "blue" if reaction_order[i] == rid else "grey"
         violin.set_facecolor(color)
         violin.set_edgecolor(color)
     ax.set(
         title="performance metric",
         ylabel=ylabel,
         xlabel="replicate id",
-        xticks=numpy.arange(len(posterior.reaction)),
-        xticklabels=posterior.reaction.values,
+        xticks=numpy.arange(len(reaction_order)),
+        xticklabels=reaction_order,
         ylim=(0, None),
     )
     ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
