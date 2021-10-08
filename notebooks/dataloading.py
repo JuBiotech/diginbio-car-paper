@@ -3,7 +3,7 @@ import logging
 import numpy
 import pandas
 import pathlib
-from typing import Dict, Tuple
+from typing import Dict, Sequence
 
 
 DP_DATA = pathlib.Path("..") / "data"
@@ -32,7 +32,7 @@ def hagelhash(obj, digits:int=5) -> str:
     return "".join(rng.choice(alphabet, size=digits))
 
 
-def get_layout(fp: str) -> pandas.DataFrame:
+def get_layout(fp: str, design_cols: Sequence[str]) -> pandas.DataFrame:
     """Loads and validates an experiment layout.
     
     Parameters
@@ -40,6 +40,9 @@ def get_layout(fp: str) -> pandas.DataFrame:
     fp : path-like
         Path to the XLSX file.
         May be relative to the data folder.
+    design_cols : array-like
+        Names of columns that describe the experimental design.
+        For example: ["pH", "glucose", "iptg"].
 
     Returns
     -------
@@ -50,9 +53,23 @@ def get_layout(fp: str) -> pandas.DataFrame:
 
     # Check that is has all required columns
     cols = set(df_layout.columns)
-    expected = {"run", "reactor", "assay_well", "group", "product"}
+    expected = {"run", "reactor", "assay_well", "product", *design_cols}
     if not cols.issuperset(expected):
         raise ValueError(f"Missing columns from the layout table: {expected - cols}")
+
+    # Remove rows where design information is incomplete
+    idrop = [
+        i
+        for i, row in df_layout.iterrows()
+        if numpy.isnan(row["product"]) and not all(row[design_cols].notna())
+    ]
+    if any(idrop):
+        _log.warning(
+            "%i rows were dropped because a product concentration was unknown AND information in columns %s was incomplete.",
+            len(idrop),
+            design_cols
+        )
+        df_layout = df_layout.drop(idrop)
 
     # Index it by replicate_id column or generate it
     if not "replicate_id" in cols:
@@ -65,6 +82,16 @@ def get_layout(fp: str) -> pandas.DataFrame:
     df_layout = df_layout.astype({
         "run": str,
     })
+
+    # Create unique identifiers for the experiment designs
+    design_ids = []
+    for _, row in df_layout[design_cols].iterrows():
+        vals = tuple([row[d] for d in design_cols])
+        if all(~numpy.isnan(vals)):
+            design_ids.append(hagelhash(vals))
+        else:
+            design_ids.append(None)
+    df_layout["design_id"] = design_ids
     return df_layout
 
 

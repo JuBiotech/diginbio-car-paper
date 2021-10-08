@@ -108,9 +108,9 @@ def build_model(
         "run": df_layout.run.astype(str),
         "replicate_id": df_layout.index.to_numpy().astype(str),
         "reactor": df_layout.reactor.astype(str),
-        "group": df_layout[pandas.isna(df_layout["product"])]["group"].astype(str),
         "cycle": df_time.columns.to_numpy(),
         "reaction": df_layout[df_layout["product"].isna()].index.to_numpy().astype(str),
+        "design_id": df_layout[~df_layout["design_id"].isna()].design_id.astype(str),
     })
     _add_or_assert_coords(coords, pmodel)
 
@@ -124,6 +124,15 @@ def build_model(
     obs_A600 = df_A600.loc[replicates].to_numpy()
     mask_numericA360 = ~numpy.isnan(obs_A360)
     mask_numericA600 = ~numpy.isnan(obs_A360)
+
+    irun_by_reaction = [
+        list(coords["run"]).index(df_layout.loc[rid, "run"])
+        for rid in coords["reaction"]
+    ]
+    idesign_by_reaction = [
+        list(coords["design_id"]).index(df_layout.loc[rid, "design_id"])
+        for rid in coords["reaction"]
+    ]
 
     _log.info("Constructing model for %i wells out of which %i are reaction wells.", len(df_layout), len(coords["reaction"]))
     with pmodel:
@@ -152,12 +161,19 @@ def build_model(
         time_actual = time + time_delay
 
         if kind == "mass action":
-            k_group = pymc3.HalfNormal("k_group", sd=1.5, dims="group")
-            igroup_by_reaction = [
-                list(coords["group"]).index(df_layout.loc[rid, "group"])
-                for rid in coords["reaction"]
-            ]
-            k_reaction = pymc3.Lognormal("k_reaction", mu=at.log(k_group[igroup_by_reaction]), sd=0.1, dims="reaction")
+            k_design = pymc3.HalfNormal("k_design", sd=1.5, dims="design_id")
+
+            run_effect = pymc3.Lognormal("run_effect", mu=0, sd=0.1, dims="run")
+            k_reaction = pymc3.Lognormal(
+                "k_reaction",
+                mu=at.log([
+                    run_effect[irun] * k_design[idesign]
+                    for irun, idesign in zip(irun_by_reaction, idesign_by_reaction)
+                ]),
+                sd=0.1,
+                dims="reaction"
+            )
+
             P_in_R = pymc3.Deterministic(
                 "P_in_R",
                 S0 * (1 - at.exp(-time_actual[mask_RinRID] * k_reaction[:, None])),
