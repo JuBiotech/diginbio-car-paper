@@ -181,8 +181,22 @@ def plot_reaction(
     posterior = idata.posterior.stack(sample=("chain", "draw"))
     time = get_constant_data(idata.constant_data.time, "replicate_id", rid)
 
-    fig, axs = pyplot.subplots(ncols=2, nrows=2, figsize=(12, 8))
-    fig.suptitle(f"reaction {rid}")
+    fig, axs = pyplot.subplots(ncols=2, nrows=2, figsize=(16, 8))
+    title = f"reaction {rid}"
+    if "X_design" in idata.constant_data:
+        replicates = list(posterior.replicate_id.values)
+        idesign = int(idata.constant_data.idesign_by_reaction.values[replicates.index(rid)])
+        did = idata.posterior.design_id.values[idesign]
+        title += f"\ndesign {did}"
+        design_dict = {
+            dc : float(idata.constant_data.X_design.sel(
+                design_id=idesign,
+                design_dim=dc,
+            ))
+            for dc in idata.constant_data.design_dim.values
+        }
+        title += "\n" + ", ".join([f"{k}={v}" for k, v in design_dict.items()])
+    fig.suptitle(title)
 
     ax = axs[0,0]
     if cm_600 is not None:
