@@ -159,9 +159,22 @@ def plot_A360_relationships(df_layout, df_time, df_A360, df_rel_biomass, calibra
     pyplot.show()
 
 
-def plot_reaction(idata, rid, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:calibr8.CalibrationModel=None):
+def plot_reaction(
+    idata,
+    rid,
+    *,
+    ylims=((1.0, 2.5), (2.8, 1.8)),
+    cm_600:calibr8.CalibrationModel=None,
+):
+    # 👇 workaround for https://github.com/pymc-devs/pymc/issues/5046
+    def get_constant_data(data, dname, cval):
+        if not cval in tuple(data[dname].values):
+            cval = list(idata.posterior[dname].values).index(cval)
+        dat = data.sel({dname: cval}).values
+        return dat
+
     posterior = idata.posterior.stack(sample=("chain", "draw"))
-    time = idata.constant_data.time.sel(replicate_id=rid).values
+    time = get_constant_data(idata.constant_data.time, "replicate_id", rid)
 
     fig, axs = pyplot.subplots(ncols=2, nrows=2, figsize=(12, 8))
     fig.suptitle(f"reaction {rid}")
@@ -178,11 +191,10 @@ def plot_reaction(idata, rid, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:calibr8.
             palette=cm.Greens,
         )
         ax.fill_between([], [], color="green", label="posterior predictive")
-    # 👇 workaround for https://github.com/pymc-devs/pymc/issues/5046
-    rw = list(idata.posterior.replicate_id).index(rid)
+
     ax.scatter(
         time,
-        idata.constant_data.obs_A600.sel(replicate_id=rw).values,
+        get_constant_data(idata.constant_data.obs_A600, "replicate_id", rid),
         marker="x", color="black",
         label="observations"
     )
@@ -219,7 +231,7 @@ def plot_reaction(idata, rid, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:calibr8.
     )
     ax.scatter(
         time,
-        idata.constant_data.obs_A360.sel(replicate_id=rid).values,
+        get_constant_data(idata.constant_data.obs_A360, "replicate_id", rid),
         color="black", marker="x"
     )
     ax.set(
