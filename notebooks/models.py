@@ -157,8 +157,41 @@ def build_model(
     time_delay = pm.HalfNormal("time_delay", sd=0.1)
     time_actual = time + time_delay
 
-    if kind == "mass action":
-        k_design = pymc3.HalfNormal("k_design", sd=1.5, dims="design_id")
+    if "mass action" in kind:
+        if kind == "mass action":
+            k_design = pm.HalfNormal("k_design", sd=1.5, dims="design_id")
+        elif kind == "GP mass action":
+            # Build a GP model of the underlying k, based on glucose and IPTG alone
+            BOUNDS = [
+                (-2, 3),   # log(iptg)
+                (0, 1.6),  # log(glucose)
+            ]
+            D = len(BOUNDS)
+            span = numpy.ptp(BOUNDS, axis=1)
+            ls = pm.Lognormal('ls', mu=numpy.log(span/2), sd=0.5, dims="design_dim")
+
+            # The reaction rate k must be strictly positive. So our GP must describe log(k).
+            # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
+            # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
+            scaling = pm.Lognormal('scaling', mu=numpy.log(0.7), sd=0.2)
+
+            # the literature describes RFFs only for 0 mean !!!
+            mean_func = pm.gp.mean.Zero()
+            cov_func = scaling**2 * pm.gp.cov.ExpQuad(
+                input_dim=D,
+                ls=ls
+            )
+            gp = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+
+            # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
+            log_k_design = gp.prior(
+                "log_k_design",
+                X=X_design,
+                shape=int(pmodel.dim_lengths["design_id"].eval())
+            )
+            k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
+        else:
+            raise NotImplementedError(f"Unknown mass action model flavor '{kind}'.")
 
         run_effect = pm.Lognormal("run_effect", mu=0, sd=0.1, dims="run")
         k_reaction = pm.Lognormal(
