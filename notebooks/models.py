@@ -141,130 +141,129 @@ def build_model(
     pymc3.Data("idesign_by_reaction", idesign_by_reaction, dims="reaction")
 
     _log.info("Constructing model for %i wells out of which %i are reaction wells.", len(df_layout), len(coords["reaction"]))
-    with pmodel:
-        X_design = pymc3.Data(
-            "X_design",
-            df_layout.set_index("design_id")[coords["design_dim"]].dropna().drop_duplicates().sort_index().to_numpy(),
-            dims=("design_id", "design_dim")
+    X_design = pymc3.Data(
+        "X_design",
+        df_layout.set_index("design_id")[coords["design_dim"]].dropna().drop_duplicates().sort_index().to_numpy(),
+        dims=("design_id", "design_dim")
+    )
+    ################ PROCESS MODEL ################
+    # The data is ultimately generated from some biomass and product concentrations.
+    # We don't know the biomasses in the wells (replicate_id) and they change over time (cycle):
+    # TODO: consider biomass prior information from the df_layout
+    X = pymc3.Lognormal("X", mu=0, sd=0.3, dims=("replicate_id", "cycle"))
+
+    # The initial substrate concentration is 👇 µM,
+    # but we wouldn't be surprised if it was    ~10 % 👇 off.
+    S0 = pymc3.Lognormal("S0", mu=numpy.log(2.5), sd=0.1)
+
+    # But we have data for the product concentration:
+    P0 = pymc3.Data("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
+
+    # The product concentration will be a function of the time ⌚.
+    # Because all kinetics have the same length we can work with a time matrix.
+    time = pymc3.Data("time", df_time.loc[replicates], dims=("replicate_id", "cycle"))
+
+    # Instead of modeling an initial product concentration, we can model a time delay
+    # since the actual start of the reaction. This way the total amount of substrate/product
+    # is preserved and it's a little easier to encode prior knowledge.
+    # Here we expect a time delay of about 0.1 hours 👇
+    time_delay = pymc3.HalfNormal("time_delay", sd=0.1)
+    time_actual = time + time_delay
+
+    if kind == "mass action":
+        k_design = pymc3.HalfNormal("k_design", sd=1.5, dims="design_id")
+
+        run_effect = pymc3.Lognormal("run_effect", mu=0, sd=0.1, dims="run")
+        k_reaction = pymc3.Lognormal(
+            "k_reaction",
+            mu=at.log([
+                run_effect[irun] * k_design[idesign]
+                for irun, idesign in zip(irun_by_reaction, idesign_by_reaction)
+            ]),
+            sd=0.1,
+            dims="reaction"
         )
-        ################ PROCESS MODEL ################
-        # The data is ultimately generated from some biomass and product concentrations.
-        # We don't know the biomasses in the wells (replicate_id) and they change over time (cycle):
-        # TODO: consider biomass prior information from the df_layout
-        X = pymc3.Lognormal("X", mu=0, sd=0.3, dims=("replicate_id", "cycle"))
 
-        # The initial substrate concentration is 👇 µM,
-        # but we wouldn't be surprised if it was    ~10 % 👇 off.
-        S0 = pymc3.Lognormal("S0", mu=numpy.log(2.5), sd=0.1)
+        P_in_R = pymc3.Deterministic(
+            "P_in_R",
+            S0 * (1 - at.exp(-time_actual[mask_RinRID] * k_reaction[:, None])),
+            dims=("reaction", "cycle"),
+        )
+    elif kind == "michaelis menten":
+        model = MichaelisMentenModel()
 
-        # But we have data for the product concentration:
-        P0 = pymc3.Data("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
+        # Create a template replicate with the same sizes as the data
+        template = murefi.Replicate()
+        n_timesteps = len(pmodel.coords["sampling_cycle"])
+        # Circumvent an isinstance check. See https://github.com/JuBiotech/murefi/issues/2
+        template["P"] = murefi.Timeseries(
+            numpy.arange(n_timesteps),
+            [None] * n_timesteps,
+            independent_key="P",
+            dependent_key="P"
+        )
+        template["P"].t = time_actual
 
-        # The product concentration will be a function of the time ⌚.
-        # Because all kinetics have the same length we can work with a time matrix.
-        time = pymc3.Data("time", df_time.loc[replicates], dims=("replicate_id", "cycle"))
-
-        # Instead of modeling an initial product concentration, we can model a time delay
-        # since the actual start of the reaction. This way the total amount of substrate/product
-        # is preserved and it's a little easier to encode prior knowledge.
-        # Here we expect a time delay of about 0.1 hours 👇
-        time_delay = pymc3.HalfNormal("time_delay", sd=0.1)
-        time_actual = time + time_delay
-
-        if kind == "mass action":
-            k_design = pymc3.HalfNormal("k_design", sd=1.5, dims="design_id")
-
-            run_effect = pymc3.Lognormal("run_effect", mu=0, sd=0.1, dims="run")
-            k_reaction = pymc3.Lognormal(
-                "k_reaction",
-                mu=at.log([
-                    run_effect[irun] * k_design[idesign]
-                    for irun, idesign in zip(irun_by_reaction, idesign_by_reaction)
-                ]),
-                sd=0.1,
-                dims="reaction"
+        P0 = 0
+        KS = pymc3.HalfNormal("KS", sd=1)
+        vmax = pymc3.Lognormal("vmax_mM_per_h", mu=numpy.log(1), sd=1, dims=R)
+        P = []
+        for r, rwell in enumerate(reaction_wells):
+            pred = model.predict_replicate(
+                parameters=[S0, P0, vmax[r], KS],
+                template=template
             )
+            P.append(pred["P"].y)
+        P = pymc3.Deterministic("P", at.stack(P), dims=(S, R))
+    else:
+        raise NotImplementedError(f"Invalid model kind '{kind}'.")
 
-            P_in_R = pymc3.Deterministic(
-                "P_in_R",
-                S0 * (1 - at.exp(-time_actual[mask_RinRID] * k_reaction[:, None])),
-                dims=("reaction", "cycle"),
-            )
-        elif kind == "michaelis menten":
-            model = MichaelisMentenModel()
+    # Combine fixed & variable P into one tensor
+    P = at.empty(
+        shape=(pmodel.dim_lengths["replicate_id"], pmodel.dim_lengths["cycle"]),
+        dtype=aesara.config.floatX
+    )
 
-            # Create a template replicate with the same sizes as the data
-            template = murefi.Replicate()
-            n_timesteps = len(pmodel.coords["sampling_cycle"])
-            # Circumvent an isinstance check. See https://github.com/JuBiotech/murefi/issues/2
-            template["P"] = murefi.Timeseries(
-                numpy.arange(n_timesteps),
-                [None] * n_timesteps,
-                independent_key="P",
-                dependent_key="P"
-            )
-            template["P"].t = time_actual
+    P = at.set_subtensor(P[mask_RinRID, :], P_in_R)
+    P = at.set_subtensor(P[~mask_RinRID, :], P0[~mask_RinRID, None])
+    P = pymc3.Deterministic("P", P, dims=("replicate_id", "cycle"))
 
-            P0 = 0
-            KS = pymc3.HalfNormal("KS", sd=1)
-            vmax = pymc3.Lognormal("vmax_mM_per_h", mu=numpy.log(1), sd=1, dims=R)
-            P = []
-            for r, rwell in enumerate(reaction_wells):
-                pred = model.predict_replicate(
-                    parameters=[S0, P0, vmax[r], KS],
-                    template=template
-                )
-                P.append(pred["P"].y)
-            P = pymc3.Deterministic("P", at.stack(P), dims=(S, R))
-        else:
-            raise NotImplementedError(f"Invalid model kind '{kind}'.")
+    ################ OBSERVATION MODEL ############
+    # The absorbance at 360 nm depends on input/response relationships that we don't know.
+    # But from an exploratory scatter plot we made guesses 👇 about the slopes.
+    A360_per_X = pymc3.Lognormal("A360_per_X", mu=numpy.log(0.6), sd=0.5)
+    A360_per_P = pymc3.Lognormal("A360_per_P", mu=numpy.log(1/3), sd=0.5)
 
-        # Combine fixed & variable P into one tensor
-        P = at.empty(
-            shape=(pmodel.dim_lengths["replicate_id"], pmodel.dim_lengths["cycle"]),
-            dtype=aesara.config.floatX
-        )
+    # We don't know how much noise there is in the A360 measurement.
+    # We could make this an unknown variable (e.g. σ_A360 ~ HalfNormal(0.05)),
+    # but the MCMC algorithms often have a hard time fitting the standard deviation of the likelihood function.
+    # So we just assume a conservative 0.05 [a.u.] noise:
+    σ_A360 = 0.05
 
-        P = at.set_subtensor(P[mask_RinRID, :], P_in_R)
-        P = at.set_subtensor(P[~mask_RinRID, :], P0[~mask_RinRID, None])
-        P = pymc3.Deterministic("P", P, dims=("replicate_id", "cycle"))
+    # The absorbance at 360 nm can be predicted as a function of the concentrations (X_cal, P_cal) and slope parameters.
+    A360_of_X = pymc3.Deterministic("A360_of_X", A360_per_X * X, dims=("replicate_id", "cycle"))
 
-        ################ OBSERVATION MODEL ############
-        # The absorbance at 360 nm depends on input/response relationships that we don't know.
-        # But from an exploratory scatter plot we made guesses 👇 about the slopes.
-        A360_per_X = pymc3.Lognormal("A360_per_X", mu=numpy.log(0.6), sd=0.5)
-        A360_per_P = pymc3.Lognormal("A360_per_P", mu=numpy.log(1/3), sd=0.5)
+    A360_of_P = pymc3.Deterministic(
+        "A360_of_P",
+        P * A360_per_P,
+        dims=("replicate_id", "cycle")
+    )
+    A360 = pymc3.Deterministic(
+        "A360",
+        A360_of_X + A360_of_P,
+        dims=("replicate_id", "cycle")
+    )
+    
+    # connect with observations
+    pymc3.Data("obs_A360", obs_A360, dims=("replicate_id", "cycle"))
+    obs = pymc3.Data("obs_A360_notnan", obs_A360[mask_numericA360])
+    L_A360 = pymc3.Normal("L_of_A360", mu=A360[mask_numericA360], sd=σ_A360, observed=obs)
 
-        # We don't know how much noise there is in the A360 measurement.
-        # We could make this an unknown variable (e.g. σ_A360 ~ HalfNormal(0.05)),
-        # but the MCMC algorithms often have a hard time fitting the standard deviation of the likelihood function.
-        # So we just assume a conservative 0.05 [a.u.] noise:
-        σ_A360 = 0.05
-
-        # The absorbance at 360 nm can be predicted as a function of the concentrations (X_cal, P_cal) and slope parameters.
-        A360_of_X = pymc3.Deterministic("A360_of_X", A360_per_X * X, dims=("replicate_id", "cycle"))
-
-        A360_of_P = pymc3.Deterministic(
-            "A360_of_P",
-            P * A360_per_P,
-            dims=("replicate_id", "cycle")
-        )
-        A360 = pymc3.Deterministic(
-            "A360",
-            A360_of_X + A360_of_P,
-            dims=("replicate_id", "cycle")
-        )
-        
-        # connect with observations
-        pymc3.Data("obs_A360", obs_A360, dims=("replicate_id", "cycle"))
-        obs = pymc3.Data("obs_A360_notnan", obs_A360[mask_numericA360])
-        L_A360 = pymc3.Normal("L_of_A360", mu=A360[mask_numericA360], sd=σ_A360, observed=obs)
-
-        pymc3.Data("obs_A600", obs_A600, dims=("replicate_id", "cycle"))
-        obs = pymc3.Data("obs_A600_notnan", obs_A600[mask_numericA600])
-        L_cal_A600 = cm_600.loglikelihood(
-            x=X[mask_numericA600],
-            y=obs,
-            name="L_of_A600",
-        )
+    pymc3.Data("obs_A600", obs_A600, dims=("replicate_id", "cycle"))
+    obs = pymc3.Data("obs_A600_notnan", obs_A600[mask_numericA600])
+    L_cal_A600 = cm_600.loglikelihood(
+        x=X[mask_numericA600],
+        y=obs,
+        name="L_of_A600",
+    )
     return pmodel
