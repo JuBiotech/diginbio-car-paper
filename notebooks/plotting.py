@@ -5,7 +5,7 @@ import fastprogress
 import io
 import mpl_toolkits
 import pandas
-import pymc3
+import pymc as pm
 import scipy
 import numpy
 import os
@@ -167,30 +167,23 @@ def plot_reaction(
     cm_600:calibr8.CalibrationModel=None,
     reaction_order: Optional[Sequence[str]]=None,
 ):
-    # 👇 workaround for https://github.com/pymc-devs/pymc/issues/5046
-    def get_constant_data(data, dname, cval):
-        if not cval in tuple(data[dname].values):
-            cval = list(idata.posterior[dname].values).index(cval)
-        dat = data.sel({dname: cval}).values
-        return dat
-
     if reaction_order is None:
         reaction_order = idata.posterior.reaction.values
     reaction_order = list(reaction_order)
 
     posterior = idata.posterior.stack(sample=("chain", "draw"))
-    time = get_constant_data(idata.constant_data.time, "replicate_id", rid)
+    time = idata.constant_data.time.sel(replicate_id=rid).values
 
     fig, axs = pyplot.subplots(ncols=2, nrows=2, figsize=(16, 8))
     title = f"reaction {rid}"
     if "X_design" in idata.constant_data:
-        replicates = list(posterior.replicate_id.values)
-        idesign = int(idata.constant_data.idesign_by_reaction.values[replicates.index(rid)])
+        reactions = list(posterior.reaction.values)
+        idesign = int(idata.constant_data.idesign_by_reaction.values[reactions.index(rid)])
         did = idata.posterior.design_id.values[idesign]
         title += f"\ndesign {did}"
         design_dict = {
             dc : float(idata.constant_data.X_design.sel(
-                design_id=idesign,
+                design_id=did,
                 design_dim=dc,
             ))
             for dc in idata.constant_data.design_dim.values
@@ -201,7 +194,7 @@ def plot_reaction(
     ax = axs[0,0]
     if cm_600 is not None:
         loc, scale, df = cm_600.predict_dependent(posterior.X.sel(replicate_id=rid).values.T)
-        pymc3.gp.util.plot_gp_dist(
+        pm.gp.util.plot_gp_dist(
             ax=ax,
             x=time,
             samples=scipy.stats.t.rvs(loc=loc, scale=scale, df=df),
@@ -213,7 +206,7 @@ def plot_reaction(
 
     ax.scatter(
         time,
-        get_constant_data(idata.constant_data.obs_A600, "replicate_id", rid),
+        idata.constant_data.obs_A600.sel(replicate_id=rid),
         marker="x", color="black",
         label="observations"
     )
@@ -224,7 +217,7 @@ def plot_reaction(
     ax.legend(frameon=False, loc="upper left")
 
     ax = axs[0,1]
-    pymc3.gp.util.plot_gp_dist(
+    pm.gp.util.plot_gp_dist(
         ax=ax,
         x=time,
         samples=posterior.A360_of_X.sel(replicate_id=rid).values.T,
@@ -232,7 +225,7 @@ def plot_reaction(
         fill_alpha=None,
         palette=cm.Greens
     )
-    pymc3.gp.util.plot_gp_dist(
+    pm.gp.util.plot_gp_dist(
         ax=ax,
         x=time,
         samples=posterior.A360_of_P.sel(replicate_id=rid).values.T,
@@ -240,7 +233,7 @@ def plot_reaction(
         fill_alpha=None,
         palette=cm.Blues
     )
-    pymc3.gp.util.plot_gp_dist(
+    pm.gp.util.plot_gp_dist(
         ax=ax,
         x=time,
         samples=posterior.A360.sel(replicate_id=rid).values.T,
@@ -250,7 +243,7 @@ def plot_reaction(
     )
     ax.scatter(
         time,
-        get_constant_data(idata.constant_data.obs_A360, "replicate_id", rid),
+        idata.constant_data.obs_A360.sel(replicate_id=rid),
         color="black", marker="x"
     )
     ax.set(
@@ -265,7 +258,7 @@ def plot_reaction(
     ], loc="upper left", frameon=False)
 
     ax = axs[1, 0]
-    pymc3.gp.util.plot_gp_dist(
+    pm.gp.util.plot_gp_dist(
         ax=ax,
         x=time,
         samples=posterior.P.sel(replicate_id=rid).values.T,
