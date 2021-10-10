@@ -6,7 +6,6 @@ import calibr8
 import aesara.tensor as at
 import pymc3
 import numpy
-import murefi
 
 
 _log = logging.getLogger(__file__)
@@ -14,31 +13,6 @@ _log = logging.getLogger(__file__)
 class LinearBiomassAbsorbanceModel(calibr8.BasePolynomialModelT):
     def __init__(self, *, independent_key="X", dependent_key="absorbance"):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=0, theta_names=["intercept", "slope", "sigma", "df"])
-
-
-class MichaelisMentenModel(murefi.BaseODEModel):
-    def __init__(self):
-        self.guesses = dict(S_0=5, P_0=0, v_max=0.1, K_S=1)
-        self.bounds = dict(
-            S_0=(1, 20),
-            P_0=(0, 10),
-            v_max=(0.0001, 5),
-            K_S=(0.01, 10),
-        )
-        super().__init__(
-            independent_keys=['S', 'P'],
-            parameter_names=["S_0", "P_0", "v_max", "K_S"],
-        )
-
-    def dydt(self, y, t, theta):
-        S, P = y
-        v_max, K_S = theta
-
-        dPdt = v_max * S / (K_S + S)
-        return [
-            -dPdt,
-            dPdt,
-        ]
 
 
 def tidy_coords(
@@ -189,32 +163,6 @@ def build_model(
             S0 * (1 - at.exp(-time_actual[mask_RinRID] * k_reaction[:, None])),
             dims=("reaction", "cycle"),
         )
-    elif kind == "michaelis menten":
-        model = MichaelisMentenModel()
-
-        # Create a template replicate with the same sizes as the data
-        template = murefi.Replicate()
-        n_timesteps = len(pmodel.coords["sampling_cycle"])
-        # Circumvent an isinstance check. See https://github.com/JuBiotech/murefi/issues/2
-        template["P"] = murefi.Timeseries(
-            numpy.arange(n_timesteps),
-            [None] * n_timesteps,
-            independent_key="P",
-            dependent_key="P"
-        )
-        template["P"].t = time_actual
-
-        P0 = 0
-        KS = pymc3.HalfNormal("KS", sd=1)
-        vmax = pymc3.Lognormal("vmax_mM_per_h", mu=numpy.log(1), sd=1, dims=R)
-        P = []
-        for r, rwell in enumerate(reaction_wells):
-            pred = model.predict_replicate(
-                parameters=[S0, P0, vmax[r], KS],
-                template=template
-            )
-            P.append(pred["P"].y)
-        P = pymc3.Deterministic("P", at.stack(P), dims=(S, R))
     else:
         raise NotImplementedError(f"Invalid model kind '{kind}'.")
 
