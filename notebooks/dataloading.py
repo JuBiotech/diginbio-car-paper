@@ -1,4 +1,5 @@
 import hagelkorn
+import hashlib
 import logging
 import numpy
 import pandas
@@ -27,7 +28,8 @@ def fetch_file(fp):
 
 def hagelhash(obj, digits:int=5) -> str:
     """Deterministically calculates a random hagelkorn-style hash of an object."""
-    rng = numpy.random.RandomState(hash(obj) % (2**32 - 1))
+    ihash = int(hashlib.sha256(str(obj).encode('utf-8')).hexdigest(), 16)
+    rng = numpy.random.RandomState(ihash % (2**32 - 1))
     alphabet = tuple(hagelkorn.core.DEFAULT_ALPHABET)
     return "".join(rng.choice(alphabet, size=digits))
 
