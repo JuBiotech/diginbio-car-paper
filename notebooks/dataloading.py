@@ -92,7 +92,7 @@ def get_layout(fp: str, design_cols: Sequence[str]) -> pandas.DataFrame:
         else:
             design_ids.append(None)
     df_layout["design_id"] = design_ids
-    return df_layout
+    return df_layout.sort_values(["run", "assay_well"])
 
 
 def read_absorbances(fp) -> pandas.DataFrame:
