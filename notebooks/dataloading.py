@@ -95,6 +95,19 @@ def get_layout(fp: str, design_cols: Sequence[str]) -> pandas.DataFrame:
     return df_layout.sort_values(["run", "assay_well"])
 
 
+def read_biomass_calibration() -> pandas.DataFrame:
+    df = pandas.read_excel(fetch_file("2021-10-11 BTM Kalibration.xlsx"), sheet_name="Tabelle2")[
+        ["BTM", "A360, gem", "A600, gem"]
+    ].rename(
+        columns={
+            "A600, gem": "A600",
+            "A360, gem": "A360",
+            "BTM": "biomass",
+        }
+    )
+    return df
+
+
 def read_absorbances(fp) -> pandas.DataFrame:
     """Reads absorbance measurements from TUM-style CSV layout."""
     df = pandas.read_csv(

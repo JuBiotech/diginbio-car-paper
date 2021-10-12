@@ -15,6 +15,12 @@ class LinearBiomassAbsorbanceModel(calibr8.BasePolynomialModelT):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=0, theta_names=["intercept", "slope", "sigma", "df"])
 
 
+class LogisticBiomassAbsorbanceModel(calibr8.BaseLogIndependentAsymmetricLogisticT):
+    def __init__(self, *, independent_key="biomass", dependent_key="A600"):
+        super().__init__(independent_key=independent_key, dependent_key=dependent_key, scale_degree=1)
+
+
+
 def tidy_coords(
     raw_coords: Dict[str, Sequence[Union[str, int]]]
 ) -> Dict[str, numpy.ndarray]:
