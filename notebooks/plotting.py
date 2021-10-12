@@ -15,6 +15,61 @@ from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 from matplotlib import cm, pyplot
 
 
+def plot_absorbance_heatmap(df_layout: pandas.DataFrame, df_360: pandas.DataFrame, df_600: pandas.DataFrame):
+    rids = df_layout[df_layout["product"].isna()].index
+
+    fig, axs = pyplot.subplots(nrows=2, dpi=100, figsize=(20, 2), sharex=True)
+    ax = axs[0]
+    ax.imshow(df_360.loc[rids].to_numpy().T)
+    ax.set(
+        ylabel="A360\ncycle [-]",
+        yticks=[0, 4],
+    )
+
+    ax = axs[1]
+    ax.imshow(df_600.loc[rids].to_numpy().T)
+    ax.set(
+        ylabel="A600\ncycle [-]",
+        yticks=[0, 4],
+        xticks=numpy.arange(len(rids)),
+        xticklabels=rids,
+        xlabel="replicate ID",
+    )
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=90, fontsize=8)
+    return fig, axs
+
+
+def plot_group_kinetics(df_layout, df_time, df_360, df_600, group: str):
+    """Makes a dual plot of absorbance time series for one group of replicates.
+    Lines are colored by run.
+    """
+    fig, axs = pyplot.subplots(ncols=2, figsize=(12, 4), dpi=140, sharex=True)
+
+    for ir, run in enumerate(df_layout.run.unique()):
+        rids = df_layout[(df_layout["group"] == group) & (df_layout.run == run)].index
+        for r, rid in enumerate(rids):
+            label = run if r == 0 else None
+            axs[0].plot(df_time.loc[rid].T, df_360.loc[rid].T, label=label, color=cm.tab10(ir))
+            axs[1].plot(df_time.loc[rid].T, df_600.loc[rid].T, label=label, color=cm.tab10(ir))
+
+    ax = axs[0]
+    ax.set(
+        ylabel="absorbance at 360 mm",
+        xlabel="time   [h]",
+        ylim=(0, 2.5),
+    )
+    ax.legend(loc="upper left", frameon=False)
+
+    ax = axs[1]
+    ax.set(
+        ylabel="absorbance at 600 mm",
+        xlabel="time   [h]",
+        ylim=(0, 1),
+        xlim=(0, None),
+    )
+    fig.tight_layout()
+    return fig, axs
+
 def plot_gif(
     fn_plot: Callable[[Any], None],
     fp_out: os.PathLike,
@@ -79,10 +134,9 @@ def plot_gif(
     return fp_out
 
 
-def plot_calibration_biomass_observations(df_layout, df_A600, df_time):
-    fig, ax = pyplot.subplots()
+def plot_calibration_A600(df_layout, df_A600, df_time):
+    fig, ax = pyplot.subplots(dpi=100)
 
-    ax.set_title("product inhibits biomass growth\nbut just a bit")
     groups = list(df_layout.sort_values("product").groupby("product"))
     for g, (concentration, df) in enumerate(groups):
         rids = list(df.index)
@@ -92,71 +146,55 @@ def plot_calibration_biomass_observations(df_layout, df_A600, df_time):
         ax.plot([], [], color=color, label=label)
     ax.legend(frameon=False)
     ax.set(
+        title="A600 kinetics by product concentrations",
         xlabel="time   [h]",
         ylabel="absorbance at 600 nm",
         ylim=(0, None),
     )
-    pyplot.show()
-    return
+    return fig, ax
 
 
-def plot_cmodel(cm_600):
-    fig, axs = calibr8.plot_model(cm_600, band_xlim=(0.001, None))
-    axs[0].set(
-        ylabel="$A_\mathrm{600\ nm}$   [a.u.]",
-        xlabel="relative biomass   [-]",
-        xlim=(0, None),
-        ylim=(0, 0.7),
-    )
-    axs[1].set(
-        ylabel="",
-        xlabel="relative biomass   [-]",
-        ylim=(0, 0.7),
-        xlim=(0.9, 1.4),
-    )
-    axs[2].set(
-        ylabel="residual",
-        xlabel="relative biomass   [-]",
-    )
-    pyplot.show()
-    return
+def plot_calibration_A360(df_layout, df_time, df_A360, df_A600, cm360, cm600, A360_abao=0.212):
+    """Makes a scatter plot of 360 nm absorbance of product calibration wells,
+    excluding the contributions from biomass and ABAO.
+    """
+    # For this analysis we only use wells with known product concentration (they got no substrate)
+    df = df_layout[~df_layout["product"].isna()]
 
-
-def plot_A360_relationships(df_layout, df_time, df_A360, df_rel_biomass, calibration_rids):
-    fig, axs = pyplot.subplots(ncols=2, figsize=(8, 4))
+    X = df_A600.loc[df.index].applymap(cm600.predict_independent)
+    A360_biomass = X.applymap(lambda x: cm360.predict_dependent(x)[0])
+    
+    A360_product = df_A360.loc[df.index] - A360_biomass - A360_abao
+    
+    fig, axs = pyplot.subplots(dpi=100, figsize=(12, 6), ncols=2, sharey=True)
 
     ax = axs[0]
-    for c in df_A360.columns:
-        t = df_time.loc[calibration_rids, c][0]
-        ax.scatter(
-            df_layout.loc[calibration_rids, "product"],
-            df_A360.loc[calibration_rids, c],
-            label=f"t={t:.3f}"
-        )
+    for c, marker in zip(A360_product.columns, "xov1+*D"):
+        t = df_time.loc[A360_product.index[0], c]
+        ax.scatter(df["product"], A360_product[c], label=f"t={t:.3f}", color=cm.Set1(c), marker=marker)
     ax.set(
-        ylabel="$A_\mathrm{360\ nm}$   [a.u.]",
-        xlabel="product   [mM]",
-        title=r"slope $\approx 1/3\ [\frac{a.u.}{mM}]$"
+        title=r"slope $\approx 0.6\ [\frac{a.u.}{mM}]$",
+        ylabel="A360   [a.u.]",
+        xlabel="product concentration   [mM]",
     )
     ax.legend(loc="upper left")
 
     ax = axs[1]
-    for c in df_A360.columns:
-        t = df_time.loc[calibration_rids, c][0]
-        ax.scatter(
-            df_rel_biomass.loc[calibration_rids, c],
-            df_A360.loc[calibration_rids, c] - df_A360.loc[calibration_rids, 0],
-            label=f"t={t:.3f}"
-        )
+    for p, P in enumerate(df["product"].unique()):
+        rids = df[df["product"] == P].index
+        x = df_time.loc[rids].T
+        y = A360_product.loc[rids].T
+        ax.plot(x, y, color=cm.Set1(p))
+        ax.plot([], [], label=f"{P:.1f} mM", color=cm.Set1(p))
     ax.set(
-        ylabel="$\Delta A_\mathrm{360\ nm}$   [a.u.]",
-        xlabel="relative biomass  [-]\naccording to A600",
-        title=r"slope $\approx 0.6\ [\frac{a.u.}{1}]$"
+        title="A360 increases over time\neven after subtracting biomass & ABAO contribution",
+        xlabel="time   [h]",
+        ylim=(None, numpy.max(A360_product.values) * 1.2),
     )
     ax.legend(loc="upper left")
 
     fig.tight_layout()
-    pyplot.show()
+    return fig, ax
 
 
 def plot_reaction(
