@@ -408,3 +408,46 @@ def plot_reactor_positions(data: Dict[str, xarray.Dataset], df_layout: pandas.Da
     fig.tight_layout()
     pyplot.show()
     return
+
+
+def plot_3d_k_design(idata):
+    # Extract relevant data arrays
+    design_dims = list(idata.constant_data.design_dim.values)
+    X = numpy.log10(idata.constant_data.X_design.sel(design_dim=design_dims))
+    Z = idata.posterior.k_design #.stack(sample=("chain", "draw"))
+
+    D = len(design_dims)
+    BOUNDS = numpy.array([
+        X.min(dim="design_id"),
+        X.max(dim="design_id"),
+    ]).T
+    if not D == 2:
+        raise NotImplementedError(f"3D visualization for {D}-dimensional designs is not implemented.")
+
+    fig = pyplot.figure(dpi=140)
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot a basic wireframe.
+    ax.set_xlabel(f'log({design_dims[0]})')
+    ax.set_ylabel(f'log({design_dims[1]})')
+    ax.set_zlabel('$k_{design}$ [mM/h]')
+
+    # plot observations
+    x = X.values
+    z = Z.median(dim=("chain", "draw"))
+    hdi = arviz.hdi(Z, hdi_prob=0.9).k_design
+    zerr = numpy.abs(hdi - z)
+    ax.errorbar(
+        x[:, 0], x[:, 1], z,
+        zerr=zerr.T,
+        fmt=" ",
+        ecolor=cm.autumn(z)
+    )
+    ax.scatter(
+        x[:,0], x[:,1], z,
+        color=cm.autumn(z),
+        marker='x',
+        alpha=1
+    )
+    ax.view_init(elev=25, azim=-65)
+    return
