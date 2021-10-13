@@ -94,6 +94,11 @@ def get_layout(fp: str, design_cols: Sequence[str]) -> pandas.DataFrame:
         else:
             design_ids.append(None)
     df_layout["design_id"] = design_ids
+
+    # Remove known outlier replicates:
+    df_layout.drop(index=[
+        "PM9X4", # loss of oxygen early into the expression
+    ], inplace=True)
     return df_layout.sort_values(["run", "assay_well"])
 
 
