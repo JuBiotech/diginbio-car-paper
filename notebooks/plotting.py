@@ -204,6 +204,7 @@ def plot_reaction(
     ylims=((1.0, 2.5), (2.8, 1.8)),
     cm_600:calibr8.CalibrationModel=None,
     reaction_order: Optional[Sequence[str]]=None,
+    stacked: bool=True,
 ):
     if reaction_order is None:
         reaction_order = idata.posterior.reaction.values
@@ -255,22 +256,48 @@ def plot_reaction(
     ax.legend(frameon=False, loc="upper left")
 
     ax = axs[0,1]
-    pm.gp.util.plot_gp_dist(
-        ax=ax,
-        x=time,
-        samples=posterior.A360_of_X.sel(replicate_id=rid).values.T,
-        plot_samples=False,
-        fill_alpha=None,
-        palette=cm.Greens
-    )
-    pm.gp.util.plot_gp_dist(
-        ax=ax,
-        x=time,
-        samples=posterior.A360_of_P.sel(replicate_id=rid).values.T,
-        plot_samples=False,
-        fill_alpha=None,
-        palette=cm.Blues
-    )
+    handles = []
+    if stacked:
+        yup = None
+        ydown = numpy.zeros_like(time)
+        for label, ds, color in [
+            ("biomass", posterior.A360_of_X, "green"),
+            ("ABAO", posterior.A360_of_ABAO, "orange"),
+            ("product", posterior.A360_of_P, "blue"),
+        ]:
+            yup = ydown + numpy.median(ds.sel(replicate_id=rid).values.T, axis=0)
+            handles.append(ax.fill_between(time, ydown, yup, color=color, label=label))
+            ydown = yup
+    else:
+        pm.gp.util.plot_gp_dist(
+            ax=ax,
+            x=time,
+            samples=posterior.A360_of_X.sel(replicate_id=rid).values.T,
+            plot_samples=False,
+            fill_alpha=None,
+            palette=cm.Greens
+        )
+        pm.gp.util.plot_gp_dist(
+            ax=ax,
+            x=time,
+            samples=posterior.A360_of_P.sel(replicate_id=rid).values.T,
+            plot_samples=False,
+            fill_alpha=None,
+            palette=cm.Blues
+        )
+        pm.gp.util.plot_gp_dist(
+            ax=ax,
+            x=time,
+            samples=posterior.A360_of_ABAO.sel(replicate_id=rid).values.T,
+            plot_samples=False,
+            fill_alpha=None,
+            palette=cm.Oranges
+        )
+        handles += [
+            ax.fill_between([], [], [], color="red", label="posterior (sum)"),
+            ax.fill_between([], [], [], color="green", label="biomass"),
+            ax.fill_between([], [], [], color="blue", label="product"),
+        ]
     pm.gp.util.plot_gp_dist(
         ax=ax,
         x=time,
@@ -288,12 +315,14 @@ def plot_reaction(
         title="A360 contributions",
         ylabel="$A_{360\ nm}$   [a.u.]",
     )
-    ax.legend(handles=[
-        ax.scatter([], [], color="black", marker="x", label="observed"),
-        ax.fill_between([], [], [], color="red", label="posterior (sum)"),
-        ax.fill_between([], [], [], color="green", label="biomass"),
-        ax.fill_between([], [], [], color="blue", label="product"),
-    ], loc="upper left", frameon=False)
+    ax.legend(
+        handles=[
+            ax.scatter([], [], color="black", marker="x", label="observed"),
+            ax.fill_between([], [], [], color="red", label="posterior (sum)"),
+        ] + handles[::-1],
+        loc="upper left",
+        frameon=False
+    )
 
     ax = axs[1, 0]
     pm.gp.util.plot_gp_dist(
