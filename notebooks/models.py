@@ -1,10 +1,12 @@
+import aesara
 import logging
+from typing import Dict, Sequence, Union
 import pandas
 import calibr8
 import aesara.tensor as at
-import pymc3
+import pymc as pm
 import numpy
-import murefi
+
 
 _log = logging.getLogger(__file__)
 
@@ -13,37 +15,42 @@ class LinearBiomassAbsorbanceModel(calibr8.BasePolynomialModelT):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=0, theta_names=["intercept", "slope", "sigma", "df"])
 
 
-class MichaelisMentenModel(murefi.BaseODEModel):
-    def __init__(self):
-        self.guesses = dict(S_0=5, P_0=0, v_max=0.1, K_S=1)
-        self.bounds = dict(
-            S_0=(1, 20),
-            P_0=(0, 10),
-            v_max=(0.0001, 5),
-            K_S=(0.01, 10),
-        )
-        super().__init__(
-            independent_keys=['S', 'P'],
-            parameter_names=["S_0", "P_0", "v_max", "K_S"],
-        )
+class LogisticBiomassAbsorbanceModel(calibr8.BaseLogIndependentAsymmetricLogisticT):
+    def __init__(self, *, independent_key="biomass", dependent_key="A600"):
+        super().__init__(independent_key=independent_key, dependent_key=dependent_key, scale_degree=1)
 
-    def dydt(self, y, t, theta):
-        S, P = y
-        v_max, K_S = theta
 
-        dPdt = v_max * S / (K_S + S)
-        return [
-            -dPdt,
-            dPdt,
-        ]
+
+def tidy_coords(
+    raw_coords: Dict[str, Sequence[Union[str, int]]]
+) -> Dict[str, numpy.ndarray]:
+    """Creates a coords dictionary with sorted unique coordinate values."""
+    coords = {}
+    for dname, rawvals in raw_coords.items():
+        coords[dname] = numpy.unique(rawvals)
+    return coords
+
+
+def _add_or_assert_coords(
+    coords: Dict[str, Sequence], pmodel: pm.Model
+):
+    """Ensures that the coords are available in the model."""
+    for cname, cvalues in coords.items():
+        if cname in pmodel.coords:
+            numpy.testing.assert_array_equal(pmodel.coords[cname], cvalues)
+        else:
+            pmodel.add_coord(name=cname, values=cvalues)
 
 
 def build_model(
     df_layout: pandas.DataFrame,
+    df_time: pandas.DataFrame,
     df_A360: pandas.DataFrame,
     df_A600: pandas.DataFrame,
     cm_600: calibr8.CalibrationModel,
+    *,
     kind: str,
+    design_cols: Sequence[str],
 ):
     """Constructs the full model for the analysis of one biotransformation experiment.
 
@@ -71,139 +78,146 @@ def build_model(
         Which product formation model to apply. One of:
         - "mass action"
         - "michaelis menten"
+    design_cols : array-like
+        Names of columns that describe the experimental design.
     """
-    reaction_wells = df_layout.loc[numpy.logical_and(
-        ~df_layout["content"].isna(),
-        df_layout["product"].isna(),
-    )].index.to_numpy()
-    calibration_wells = df_layout.loc[~df_layout["product"].isna()].index.to_numpy()
+    pmodel = pm.modelcontext(None)
 
-    _log.info("Constructing model for %i calibration and %i reaction wells.", len(reaction_wells), len(calibration_wells))
+    assert numpy.array_equal(df_time.index, df_layout.index)
+    assert numpy.array_equal(df_A360.index, df_layout.index)
+    assert numpy.array_equal(df_A600.index, df_layout.index)
 
-    # Name of dimensions in the model:
-    C = "calibration_well"
-    R = "reaction_well"
-    S = "sampling_cycle"
+    coords = tidy_coords({
+        "run": df_layout.run.astype(str),
+        "replicate_id": df_layout.index.to_numpy().astype(str),
+        "reactor": df_layout.reactor.astype(str),
+        "cycle": df_time.columns.to_numpy(),
+        "reaction": df_layout[df_layout["product"].isna()].index.to_numpy().astype(str),
+        "design_id": df_layout[~df_layout["design_id"].isna()].design_id.astype(str),
+        "design_dim": design_cols,
+    })
+    _add_or_assert_coords(coords, pmodel)
 
-    with pymc3.Model(coords={
-        C: calibration_wells,
-        R: reaction_wells,
-        S: numpy.arange(len(df_A600)),
-    }) as pmodel:
-        ################ CALIBRATION MODEL ################
-        # This part of the model describes the data-generating process of the absorbances in CALIBRATION wells.
-        # We need to include this in the model, because we don't have separate biomass/A360 and biomass/A600 calibrations.
+    # Masking and slicing helper variables
+    replicates = list(coords["replicate_id"])
+    mask_RinRID = numpy.isin(coords["replicate_id"], coords["reaction"])
+    assert len(mask_RinRID) == len(df_layout)
+    assert sum(mask_RinRID) == len(coords["reaction"])
 
-        # The data is ultimately generated from some biomass and product concentrations.
-        # We don't know the biomasses in the calibration wells (C) and they change over time (S):
-        X_cal = pymc3.Lognormal("X_cal", mu=0, sd=0.1, dims=(S, C))
-        # But we have data for the product concentration:
-        P_cal = pymc3.Data("P_cal", df_layout.loc[calibration_wells, "product"], dims=C)
+    obs_A360 = df_A360.loc[replicates].to_numpy()
+    obs_A600 = df_A600.loc[replicates].to_numpy()
+    mask_numericA360 = ~numpy.isnan(obs_A360)
+    mask_numericA600 = ~numpy.isnan(obs_A360)
 
-        # The absorbance at 360 nm depends on input/response relationships that we don't know.
-        # But from an exploratory scatter plot we made guesses 👇 about the slopes.
-        A360_per_X = pymc3.Lognormal("A360_per_X", mu=numpy.log(0.6), sd=0.5)
-        A360_per_P = pymc3.Lognormal("A360_per_P", mu=numpy.log(1/3), sd=0.5)
+    irun_by_reaction = [
+        list(coords["run"]).index(df_layout.loc[rid, "run"])
+        for rid in coords["reaction"]
+    ]
+    idesign_by_reaction = [
+        list(coords["design_id"]).index(df_layout.loc[rid, "design_id"])
+        for rid in coords["reaction"]
+    ]
+    pm.Data("irun_by_reaction", irun_by_reaction, dims="reaction")
+    pm.Data("idesign_by_reaction", idesign_by_reaction, dims="reaction")
 
-        # We don't know how much noise there is in the A360 measurement.
-        # We could make this an unknown variable (e.g. σ_A360 ~ HalfNormal(0.05)),
-        # but the MCMC algorithms often have a hard time fitting the standard deviation of the likelihood function.
-        # So we just assume a conservative 0.05 [a.u.] noise:
-        σ_A360 = 0.05
+    _log.info("Constructing model for %i wells out of which %i are reaction wells.", len(df_layout), len(coords["reaction"]))
+    X_design = pm.Data(
+        "X_design",
+        df_layout.set_index("design_id")[coords["design_dim"]].dropna().drop_duplicates().sort_index().to_numpy(),
+        dims=("design_id", "design_dim")
+    )
+    ################ PROCESS MODEL ################
+    # The data is ultimately generated from some biomass and product concentrations.
+    # We don't know the biomasses in the wells (replicate_id) and they change over time (cycle):
+    # TODO: consider biomass prior information from the df_layout
+    X = pm.Lognormal("X", mu=0, sd=0.3, dims=("replicate_id", "cycle"))
 
-        # The absorbance at 360 nm can be predicted as a function of the concentrations (X_cal, P_cal) and slope parameters.
-        A360_of_X_cal = pymc3.Deterministic("A360_of_X_cal", A360_per_X * X_cal, dims=(S, C))
-        A360_of_P_cal = pymc3.Deterministic("A360_of_P_cal", A360_per_P * P_cal, dims=C)
-        A360_cal = pymc3.Deterministic(
-            "A360_cal",
-            # To make both compatible, this 👇 adds a broadcastable dimension to product absorbances.
-            A360_of_X_cal + A360_of_P_cal[None, :],
-            dims=(S, C)
+    # The initial substrate concentration is 👇 µM,
+    # but we wouldn't be surprised if it was    ~10 % 👇 off.
+    S0 = pm.Lognormal("S0", mu=numpy.log(2.5), sd=0.1)
+
+    # But we have data for the product concentration:
+    P0 = pm.Data("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
+
+    # The product concentration will be a function of the time ⌚.
+    # Because all kinetics have the same length we can work with a time matrix.
+    time = pm.Data("time", df_time.loc[replicates], dims=("replicate_id", "cycle"))
+
+    # Instead of modeling an initial product concentration, we can model a time delay
+    # since the actual start of the reaction. This way the total amount of substrate/product
+    # is preserved and it's a little easier to encode prior knowledge.
+    # Here we expect a time delay of about 0.1 hours 👇
+    time_delay = pm.HalfNormal("time_delay", sd=0.1)
+    time_actual = time + time_delay
+
+    if kind == "mass action":
+        k_design = pymc3.HalfNormal("k_design", sd=1.5, dims="design_id")
+
+        run_effect = pm.Lognormal("run_effect", mu=0, sd=0.1, dims="run")
+        k_reaction = pm.Lognormal(
+            "k_reaction",
+            mu=at.log([
+                run_effect[irun] * k_design[idesign]
+                for irun, idesign in zip(irun_by_reaction, idesign_by_reaction)
+            ]),
+            sd=0.1,
+            dims="reaction"
         )
-        
-        # connect with observations
-        obs_cal_A360 = pymc3.Data("obs_cal_A360", df_A360[calibration_wells].to_numpy(), dims=(S, C))
-        obs_cal_A600 = pymc3.Data("obs_cal_A600", df_A600[calibration_wells].to_numpy(), dims=(S, C))
 
-        L_cal_A360 = pymc3.Normal("L_of_calibration_A360", mu=A360_cal, sd=σ_A360, observed=obs_cal_A360, dims=(S, C))
-        L_cal_A600 = cm_600.loglikelihood(
-            x=X_cal,
-            y=obs_cal_A600,
-            name="L_of_calibration_A600",
-            dims=(S, C),
+        P_in_R = pm.Deterministic(
+            "P_in_R",
+            S0 * (1 - at.exp(-time_actual[mask_RinRID] * k_reaction[:, None])),
+            dims=("reaction", "cycle"),
         )
-        
-        ################ PROCESS MODEL ################
-        # This part of the model describes the data-generating process of the absorbances in REACTION wells.
-        # Here both X and P are unknown, but the slope parameters from above can be used in the prediction formulas.
+    else:
+        raise NotImplementedError(f"Invalid model kind '{kind}'.")
 
-        # The product concentration will be a function of the time ⌚.
-        time = pymc3.Data("time", df_A600.index.values, dims=S)
+    # Combine fixed & variable P into one tensor
+    P = at.empty(
+        shape=(pmodel.dim_lengths["replicate_id"], pmodel.dim_lengths["cycle"]),
+        dtype=aesara.config.floatX
+    )
 
-        X = pymc3.Lognormal("X", mu=0, sd=0.1, dims=(S, R))
-        # The initial substrate concentration is 👇 µM,
-        # but we wouldn't be surprised if it was    ~10 % 👇 off.
-        S0 = pymc3.Lognormal("S0", mu=numpy.log(2.5), sd=0.1)
-        # Instead of modeling an initial product concentration, we can model a time delay
-        # since the actual start of the reaction. This way the total amount of substrate/product
-        # is preserved and it's a little easier to encode prior knowledge.
-        # Here we expect a time delay of about 0.1 hours 👇
-        time_delay = pymc3.HalfNormal("time_delay", sd=0.1)
-        time_actual = time + time_delay
+    P = at.set_subtensor(P[mask_RinRID, :], P_in_R)
+    P = at.set_subtensor(P[~mask_RinRID, :], P0[~mask_RinRID, None])
+    P = pm.Deterministic("P", P, dims=("replicate_id", "cycle"))
 
-        if kind == "mass action":
-            k = pymc3.HalfNormal("k_mM_per_h", sd=1.5, dims=R)
-            P = pymc3.Deterministic(
-                "P",
-                S0 * (1 - at.exp(-time_actual[:, None] * k[None, :])),
-                dims=(S, R),
-            )
-        elif kind == "michaelis menten":
-            model = MichaelisMentenModel()
+    ################ OBSERVATION MODEL ############
+    # The absorbance at 360 nm depends on input/response relationships that we don't know.
+    # But from an exploratory scatter plot we made guesses 👇 about the slopes.
+    A360_per_X = pm.Lognormal("A360_per_X", mu=numpy.log(0.6), sd=0.5)
+    A360_per_P = pm.Lognormal("A360_per_P", mu=numpy.log(1/3), sd=0.5)
 
-            # Create a template replicate with the same sizes as the data
-            template = murefi.Replicate()
-            n_timesteps = len(pmodel.coords["sampling_cycle"])
-            # Circumvent an isinstance check. See https://github.com/JuBiotech/murefi/issues/2
-            template["P"] = murefi.Timeseries(
-                numpy.arange(n_timesteps),
-                [None] * n_timesteps,
-                independent_key="P",
-                dependent_key="P"
-            )
-            template["P"].t = time_actual
+    # We don't know how much noise there is in the A360 measurement.
+    # We could make this an unknown variable (e.g. σ_A360 ~ HalfNormal(0.05)),
+    # but the MCMC algorithms often have a hard time fitting the standard deviation of the likelihood function.
+    # So we just assume a conservative 0.05 [a.u.] noise:
+    σ_A360 = 0.05
 
-            P0 = 0
-            KS = pymc3.HalfNormal("KS", sd=1)
-            vmax = pymc3.Lognormal("vmax_mM_per_h", mu=numpy.log(1), sd=1, dims=R)
-            P = []
-            for r, rwell in enumerate(reaction_wells):
-                pred = model.predict_replicate(
-                    parameters=[S0, P0, vmax[r], KS],
-                    template=template
-                )
-                P.append(pred["P"].y)
-            P = pymc3.Deterministic("P", at.stack(P), dims=(S, R))
-        else:
-            raise NotImplementedError(f"Invalid model kind '{kind}'.")
+    # The absorbance at 360 nm can be predicted as a function of the concentrations (X_cal, P_cal) and slope parameters.
+    A360_of_X = pm.Deterministic("A360_of_X", A360_per_X * X, dims=("replicate_id", "cycle"))
 
-        A360_of_X = pymc3.Deterministic("A360_of_X", A360_per_X * X, dims=(S, R))
-        A360_of_P = pymc3.Deterministic("A360_of_P", A360_per_P * P, dims=(S, R))
-        A360 = pymc3.Deterministic(
-            "A360",
-            A360_of_X + A360_of_P,
-            dims=(S, R)
-        )
-        
-        # connect with observations
-        obs_A360 = pymc3.Data("obs_A360", df_A360[reaction_wells].to_numpy(), dims=(S, R))
-        obs_A600 = pymc3.Data("obs_A600", df_A600[reaction_wells].to_numpy(), dims=(S, R))
+    A360_of_P = pm.Deterministic(
+        "A360_of_P",
+        P * A360_per_P,
+        dims=("replicate_id", "cycle")
+    )
+    A360 = pm.Deterministic(
+        "A360",
+        A360_of_X + A360_of_P,
+        dims=("replicate_id", "cycle")
+    )
+    
+    # connect with observations
+    pm.Data("obs_A360", obs_A360, dims=("replicate_id", "cycle"))
+    obs = pm.Data("obs_A360_notnan", obs_A360[mask_numericA360])
+    L_A360 = pm.Normal("L_of_A360", mu=A360[mask_numericA360], sd=σ_A360, observed=obs)
 
-        L_A360 = pymc3.Normal("L_of_reaction_A360", mu=A360, sd=σ_A360, observed=obs_A360, dims=(S, R))
-        L_A600 = cm_600.loglikelihood(
-            x=X,
-            y=obs_A600,
-            name="L_of_reaction_A600",
-            dims=(S, R),
-        )
+    pm.Data("obs_A600", obs_A600, dims=("replicate_id", "cycle"))
+    obs = pm.Data("obs_A600_notnan", obs_A600[mask_numericA600])
+    L_cal_A600 = cm_600.loglikelihood(
+        x=X[mask_numericA600],
+        y=obs,
+        name="L_of_A600",
+    )
     return pmodel

@@ -3,12 +3,15 @@ import calibr8
 import copy
 import fastprogress
 import io
-import pymc3
+import mpl_toolkits
+import pandas
+import pymc as pm
 import scipy
 import numpy
 import os
+import xarray
 from PIL import Image
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 from matplotlib import cm, pyplot
 
 
@@ -76,16 +79,16 @@ def plot_gif(
     return fp_out
 
 
-def plot_calibration_biomass_observations(df_layout, df_A600):
+def plot_calibration_biomass_observations(df_layout, df_A600, df_time):
     fig, ax = pyplot.subplots()
 
     ax.set_title("product inhibits biomass growth\nbut just a bit")
     groups = list(df_layout.sort_values("product").groupby("product"))
     for g, (concentration, df) in enumerate(groups):
-        wells = list(df.index)
+        rids = list(df.index)
         color = cm.autumn(0.1 + g / len(groups))
         label = f"{concentration} mM"
-        ax.plot(df_A600.index, df_A600[wells], color=color)
+        ax.plot(df_time.loc[rids].T, df_A600.loc[rids].T, color=color)
         ax.plot([], [], color=color, label=label)
     ax.legend(frameon=False)
     ax.set(
@@ -119,14 +122,15 @@ def plot_cmodel(cm_600):
     return
 
 
-def plot_A360_relationships(df_layout, df_A360, df_rel_biomass, calibration_wells):
+def plot_A360_relationships(df_layout, df_time, df_A360, df_rel_biomass, calibration_rids):
     fig, axs = pyplot.subplots(ncols=2, figsize=(8, 4))
 
     ax = axs[0]
-    for t in df_A360.index:
+    for c in df_A360.columns:
+        t = df_time.loc[calibration_rids, c][0]
         ax.scatter(
-            df_layout.loc[calibration_wells, "product"],
-            df_A360.loc[t, calibration_wells],
+            df_layout.loc[calibration_rids, "product"],
+            df_A360.loc[calibration_rids, c],
             label=f"t={t:.3f}"
         )
     ax.set(
@@ -137,10 +141,11 @@ def plot_A360_relationships(df_layout, df_A360, df_rel_biomass, calibration_well
     ax.legend(loc="upper left")
 
     ax = axs[1]
-    for t in df_A360.index:
+    for c in df_A360.columns:
+        t = df_time.loc[calibration_rids, c][0]
         ax.scatter(
-            df_rel_biomass.loc[t],
-            df_A360.loc[t, calibration_wells] - df_A360.iloc[0][calibration_wells],
+            df_rel_biomass.loc[calibration_rids, c],
+            df_A360.loc[calibration_rids, c] - df_A360.loc[calibration_rids, 0],
             label=f"t={t:.3f}"
         )
     ax.set(
@@ -154,28 +159,54 @@ def plot_A360_relationships(df_layout, df_A360, df_rel_biomass, calibration_well
     pyplot.show()
 
 
-def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:calibr8.CalibrationModel=None):
-    posterior = idata.posterior.stack(sample=("chain", "draw"))
+def plot_reaction(
+    idata,
+    rid,
+    *,
+    ylims=((1.0, 2.5), (2.8, 1.8)),
+    cm_600:calibr8.CalibrationModel=None,
+    reaction_order: Optional[Sequence[str]]=None,
+):
+    if reaction_order is None:
+        reaction_order = idata.posterior.reaction.values
+    reaction_order = list(reaction_order)
 
-    fig, axs = pyplot.subplots(ncols=2, nrows=2, figsize=(12, 8))
-    fig.suptitle(f"reaction well {rwell}")
+    posterior = idata.posterior.stack(sample=("chain", "draw"))
+    time = idata.constant_data.time.sel(replicate_id=rid).values
+
+    fig, axs = pyplot.subplots(ncols=2, nrows=2, figsize=(16, 8))
+    title = f"reaction {rid}"
+    if "X_design" in idata.constant_data:
+        reactions = list(posterior.reaction.values)
+        idesign = int(idata.constant_data.idesign_by_reaction.values[reactions.index(rid)])
+        did = idata.posterior.design_id.values[idesign]
+        title += f"\ndesign {did}"
+        design_dict = {
+            dc : float(idata.constant_data.X_design.sel(
+                design_id=did,
+                design_dim=dc,
+            ))
+            for dc in idata.constant_data.design_dim.values
+        }
+        title += "\n" + ", ".join([f"{k}={v}" for k, v in design_dict.items()])
+    fig.suptitle(title)
 
     ax = axs[0,0]
     if cm_600 is not None:
-        loc, scale, df = cm_600.predict_dependent(posterior.X.sel(reaction_well=rwell).values.T)
-        pymc3.gp.util.plot_gp_dist(
+        loc, scale, df = cm_600.predict_dependent(posterior.X.sel(replicate_id=rid).values.T)
+        pm.gp.util.plot_gp_dist(
             ax=ax,
-            x=idata.constant_data.time.values,
+            x=time,
             samples=scipy.stats.t.rvs(loc=loc, scale=scale, df=df),
             plot_samples=False,
             fill_alpha=None,
             palette=cm.Greens,
         )
         ax.fill_between([], [], color="green", label="posterior predictive")
-    rw = list(idata.posterior.reaction_well).index(rwell)
+
     ax.scatter(
-        idata.constant_data.time.values,
-        idata.constant_data.obs_A600.sel(reaction_well=rw).values,
+        time,
+        idata.constant_data.obs_A600.sel(replicate_id=rid),
         marker="x", color="black",
         label="observations"
     )
@@ -186,35 +217,33 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
     ax.legend(frameon=False, loc="upper left")
 
     ax = axs[0,1]
-    pymc3.gp.util.plot_gp_dist(
+    pm.gp.util.plot_gp_dist(
         ax=ax,
-        x=idata.constant_data.time.values,
-        samples=posterior.A360_of_X.sel(reaction_well=rwell).values.T,
+        x=time,
+        samples=posterior.A360_of_X.sel(replicate_id=rid).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Greens
     )
-    pymc3.gp.util.plot_gp_dist(
+    pm.gp.util.plot_gp_dist(
         ax=ax,
-        x=idata.constant_data.time.values,
-        samples=posterior.A360_of_P.sel(reaction_well=rwell).values.T,
+        x=time,
+        samples=posterior.A360_of_P.sel(replicate_id=rid).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Blues
     )
-    pymc3.gp.util.plot_gp_dist(
+    pm.gp.util.plot_gp_dist(
         ax=ax,
-        x=idata.constant_data.time.values,
-        samples=posterior.A360.sel(reaction_well=rwell).values.T,
+        x=time,
+        samples=posterior.A360.sel(replicate_id=rid).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Reds
     )
     ax.scatter(
-        idata.constant_data.time.values,
-        idata.constant_data.obs_A360.sel(
-            reaction_well=list(idata.posterior.reaction_well).index(rwell)
-        ).values,
+        time,
+        idata.constant_data.obs_A360.sel(replicate_id=rid),
         color="black", marker="x"
     )
     ax.set(
@@ -229,10 +258,10 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
     ], loc="upper left", frameon=False)
 
     ax = axs[1, 0]
-    pymc3.gp.util.plot_gp_dist(
+    pm.gp.util.plot_gp_dist(
         ax=ax,
-        x=idata.constant_data.time.values,
-        samples=posterior.P.sel(reaction_well=rwell).values.T,
+        x=time,
+        samples=posterior.P.sel(replicate_id=rid).values.T,
         plot_samples=False,
         fill_alpha=None,
         palette=cm.Blues
@@ -252,26 +281,63 @@ def plot_reaction_well(idata, rwell, *, ylims=((1.0, 2.5), (2.8, 1.8)), cm_600:c
     elif "vmax" in idata.posterior:
         metric = "vmax_mM_per_h"
         ylabel = "$v_{max}$   [mM/h]"
+    elif "k_reaction" in idata.posterior:
+        metric = "k_reaction"
+        ylabel = "initial reaction rate   [mM/h]"
     else:
         raise NotImplementedError(f"Did not find a known performance metric in the posterior.")
 
     violins = ax.violinplot(
-        dataset=posterior[metric].T,
+        dataset=posterior[metric].sel(reaction=reaction_order).T,
         showextrema=False,
-        positions=numpy.arange(len(posterior.reaction_well)),
+        positions=numpy.arange(len(reaction_order)),
     )
     for i, violin in enumerate(violins['bodies']):
-        color = "blue" if posterior.reaction_well[i] == rwell else "grey"
+        color = "blue" if reaction_order[i] == rid else "grey"
         violin.set_facecolor(color)
         violin.set_edgecolor(color)
     ax.set(
         title="performance metric",
         ylabel=ylabel,
-        xlabel="reaction well",
-        xticks=numpy.arange(len(posterior.reaction_well)),
-        xticklabels=posterior.reaction_well.values,
+        xlabel="replicate id",
+        xticks=numpy.arange(len(reaction_order)),
+        xticklabels=reaction_order,
         ylim=(0, None),
     )
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
     for ax, ylim in zip(axs.flatten(), numpy.array(ylims).flatten()):
         ax.set_ylim(0, ylim)
+    return
+
+
+def plot_reactor_positions(data: Dict[str, xarray.Dataset], df_layout: pandas.DataFrame):
+    fig, axs = pyplot.subplots(ncols=len(data), figsize=(8, 6 * len(data)), dpi=200)
+
+    for i, (run, ds) in enumerate(data.items()):
+        arr = numpy.zeros((8, 6))
+        for rid in ds.reaction.values:
+            reactor = df_layout.loc[rid, "reactor"]
+            r = "ABCDEFGH".index(reactor[0])
+            c = int(reactor[1:]) - 1
+            arr[r, c] = numpy.median(ds.sel(reaction=rid))
+        
+        ax = axs[i]
+        im = ax.imshow(arr, vmin=0.7, vmax=1.3)
+        # Draw a colorbar that matches the height of the image
+        divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
+        cbar_kw = dict(
+            mappable=im,
+            ax=ax,
+            cax=divider.append_axes("right", size="5%", pad=0.05),
+        )
+        cbar = ax.figure.colorbar(**cbar_kw)
+        cbar.ax.set_ylabel("$k_{reactor} / k_{group}$", rotation=-90, va="bottom")
+        ax.set_yticks(numpy.arange(8))
+        ax.set_yticklabels("ABCDEFGH")
+        ax.set_xticks(numpy.arange(6))
+        ax.set_xticklabels([1,2,3,4,5,6])
+
+        ax.set_title(run)
+    fig.tight_layout()
+    pyplot.show()
     return
