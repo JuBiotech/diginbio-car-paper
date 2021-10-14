@@ -410,11 +410,11 @@ def plot_reactor_positions(data: Dict[str, xarray.Dataset], df_layout: pandas.Da
     return
 
 
-def plot_3d_k_design(idata):
+def plot_3d_k_design(idata, azim=-65):
     # Extract relevant data arrays
     design_dims = list(idata.constant_data.design_dim.values)
     X = numpy.log10(idata.constant_data.X_design.sel(design_dim=design_dims))
-    Z = idata.posterior.k_design #.stack(sample=("chain", "draw"))
+    Z = idata.posterior.k_design
 
     D = len(design_dims)
     BOUNDS = numpy.array([
@@ -428,9 +428,9 @@ def plot_3d_k_design(idata):
     ax = fig.add_subplot(111, projection='3d')
 
     # Plot a basic wireframe.
-    ax.set_xlabel(f'log({design_dims[0]})')
-    ax.set_ylabel(f'log({design_dims[1]})')
-    ax.set_zlabel('$k_{design}$ [mM/h]')
+    ax.set_xlabel(f'log10({design_dims[0]})')
+    ax.set_ylabel(f'log10({design_dims[1]})')
+    ax.set_zlabel('specific activity\n$k_{design}$ [(mM/h)/(g/L)]')
 
     # plot observations
     x = X.values
@@ -441,13 +441,13 @@ def plot_3d_k_design(idata):
         x[:, 0], x[:, 1], z,
         zerr=zerr.T,
         fmt=" ",
-        ecolor=cm.autumn(z)
+        ecolor=cm.autumn(z / z.max())
     )
     ax.scatter(
         x[:,0], x[:,1], z,
-        color=cm.autumn(z),
+        color=cm.autumn(z / z.max()),
         marker='x',
         alpha=1
     )
-    ax.view_init(elev=25, azim=-65)
+    ax.view_init(elev=25, azim=azim)
     return

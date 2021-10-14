@@ -120,6 +120,10 @@ def build_model(
         list(coords["design_id"]).index(df_layout.loc[rid, "design_id"])
         for rid in coords["reaction"]
     ]
+    ireplicate_by_reaction = [
+        list(coords["replicate_id"]).index(rid)
+        for rid in coords["reaction"]
+    ]
     pm.Data("irun_by_reaction", irun_by_reaction, dims="reaction")
     pm.Data("idesign_by_reaction", idesign_by_reaction, dims="reaction")
 
@@ -133,11 +137,11 @@ def build_model(
     # The data is ultimately generated from some biomass and product concentrations.
     # We don't know the biomasses in the wells (replicate_id) and they change over time (cycle):
     # TODO: consider biomass prior information from the df_layout
-    X = pm.Lognormal("X", mu=0, sd=0.5, dims=("replicate_id", "cycle"))
+    X = pm.Lognormal("X", mu=numpy.log(0.25), sd=0.5, dims=("replicate_id", "cycle"))
 
     # The initial substrate concentration is 👇 µM,
     # but we wouldn't be surprised if it was    ~10 % 👇 off.
-    S0 = pm.Lognormal("S0", mu=numpy.log(2.5), sd=0.05)
+    S0 = pm.Lognormal("S0", mu=numpy.log(2.5), sd=0.02)
 
     # But we have data for the product concentration:
     P0 = pm.Data("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
@@ -160,10 +164,10 @@ def build_model(
         k_reaction = pm.Lognormal(
             "k_reaction",
             mu=at.log([
-                run_effect[irun] * k_design[idesign]
-                for irun, idesign in zip(irun_by_reaction, idesign_by_reaction)
+                run_effect[irun] * k_design[idesign] * X[ireplicate, 0]
+                for irun, idesign, ireplicate in zip(irun_by_reaction, idesign_by_reaction, ireplicate_by_reaction)
             ]),
-            sd=0.1,
+            sd=0.05,
             dims="reaction"
         )
 
