@@ -20,6 +20,75 @@ class LogisticBiomassAbsorbanceModel(calibr8.BaseLogIndependentAsymmetricLogisti
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, scale_degree=1)
 
 
+class LinearProductAbsorbanceModel(calibr8.BasePolynomialModelT):
+    def __init__(self, *, independent_key="P", dependent_key="absorbance"):
+        super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=0, theta_names=["intercept", "slope", "sigma", "df"])
+
+
+class BivariateProductCalibration(calibr8.BaseModelT):
+    def __init__(
+        self, *,
+        independent_key: str="product,pH",
+        dependent_key: str="A360",
+    ):
+        super().__init__(
+            independent_key=independent_key,
+            dependent_key=dependent_key,
+            theta_names="intercept,per_product,I_x,L_max,s,scale,df".split(",")
+        )
+
+    @property
+    def order(self) -> tuple:
+        return tuple(self.independent_key.split(","))
+
+    def predict_dependent(self, x, *, theta=None):
+        """Predicts the parameters mu and scale of a student-t-distribution which
+        characterizes the dependent variable given values of the independent variable.
+        Parameters
+        ----------
+        x : array-like
+            (2,) or (N, 2) values of the independent variables
+        theta : optional, array-like
+            Parameter vector of the calibration model.
+
+        Returns
+        -------
+        mu : array-like
+            values for the mu parameter of a student-t-distribution describing the dependent variable
+        scale : array-like or float
+            values for the scale parameter of a student-t-distribution describing the dependent variable
+        df : float
+            degree of freedom of student-t-distribution
+        """
+        if theta is None:
+            theta = self.theta_fitted
+            
+        if numpy.ndim(x) == 1:
+            x = numpy.atleast_2d(x)
+            reduce = True
+        else:
+            reduce = False
+            
+        intercept = theta[0]
+        per_product = theta[1]
+        I_x = theta[2]
+        I_y = 1            # to avoid a non-identifiability between I_y and per_product
+        Lmax = theta[3]
+        s = theta[4]
+        scale = theta[5]
+        df = theta[6]
+
+        product = x[..., self.order.index("product")]
+        pH = x[..., self.order.index("pH")]
+
+        mod = calibr8.core.logistic(pH, [I_x, I_y, Lmax, s])
+        
+        mu = intercept + product * per_product * mod
+        
+        if reduce:
+            mu = mu[0]
+        return mu, scale, df
+
 
 def tidy_coords(
     raw_coords: Dict[str, Sequence[Union[str, int]]]

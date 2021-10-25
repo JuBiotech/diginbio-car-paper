@@ -198,6 +198,99 @@ def plot_calibration_A360(df_layout, df_time, df_A360, df_A600, cm360, cm600, A3
     return fig, ax
 
 
+def plot_bivariate_calibration(
+    df: pandas.DataFrame,
+    x1: str, x2:str, z:str,
+    *,
+    flip: str="",
+    cm: calibr8.CalibrationModel=None,
+    fig=None,
+    ax=None,
+):
+    """Creates a 3D plot of bivariate calibration points.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        A table with columns corresponding to x/y/z values.
+    x1 : str
+        Name or part of the name of the column containing the first independent variable.
+    x2 : str
+        Name or part of the name of the column containing the second independent variable.
+    z : str
+        Name or part of the name of the column containing the dependent variable.
+    flip : str, set, tuple or list
+        Axes to flip. This variable is accessed via the `in` operator.
+        Valid examples include: `"x1"`, `"x1x2"`, `["x2", "z"]`
+    cm : calibr8.CalibrationModel
+        A bivariate calibration model. Needs to have a `.order` property and must support
+        bivariate independent variables.
+
+    Returns
+    -------
+    fig : matplotlib.Figure
+    ax : matplotlib.Axes
+    """
+    if fig is None:
+        fig = pyplot.figure(dpi=140)
+    if ax is None:
+        ax = fig.add_subplot(111, projection='3d')
+
+    # plot data points
+    col_x = [c for c in df.columns if c in x1][0]
+    col_y = [c for c in df.columns if c in x2][0]
+    col_z = [c for c in df.columns if c in z][0]
+    vals = df[col_z]
+    ax.scatter(
+        df[col_x], df[col_y], vals,
+        color=pyplot.cm.autumn(vals / vals.max()),
+        marker='x',
+        alpha=1
+    )
+
+    # plot calibration model
+    if cm:
+        ix = cm.order.index(col_x)
+        iy = cm.order.index(col_y)
+        X = numpy.linspace(cm.cal_independent[:, ix].min(), cm.cal_independent[:, ix].max(), 50)
+        Y = numpy.linspace(cm.cal_independent[:, iy].min(), cm.cal_independent[:, iy].max(), 50)
+        X, Y = numpy.array(numpy.meshgrid(X, Y))
+        x1x2 = numpy.array([
+            Y.flatten("F"),
+            X.flatten("F"),
+        ]).T
+
+        mu, scale, df = cm.predict_dependent(x1x2)
+
+        qs = [97.5]
+        lowers = []
+        uppers = []
+        for q in qs:
+            lowers.append(scipy.stats.t.ppf(1-q/100, loc=mu, scale=scale, df=df))
+            uppers.append(scipy.stats.t.ppf(q/100, loc=mu, scale=scale, df=df))
+        Zs = lowers + [mu] + uppers[::-1]
+        for q, Z in zip(qs + [50] + qs[::-1], Zs):
+            ax.plot_surface(
+                X, Y, Z.reshape(50, 50, order="F"),
+                cmap=pyplot.cm.autumn,
+                linewidth=0,
+                antialiased=False,
+                alpha=1 - abs(q/100 - 0.5) - 0.25
+            )
+
+    if "x1" in flip:
+        ax.set_xlim(ax.get_xlim()[::-1])
+    if "x2" in flip:
+        ax.set_ylim(ax.get_ylim()[::-1])
+    if "z" in flip:
+        ax.set_zlim(ax.get_zlim()[::-1])
+
+    ax.set_xlabel(x1)
+    ax.set_ylabel(x2)
+    ax.set_zlabel(z)
+    return fig, ax
+
+
 def plot_reaction(
     idata,
     rid,
