@@ -356,7 +356,6 @@ def plot_reaction(
         ydown = numpy.zeros_like(time)
         for label, ds, color in [
             ("biomass", posterior.A360_of_X, "green"),
-            ("ABAO", posterior.A360_of_ABAO, "orange"),
             ("product", posterior.A360_of_P, "blue"),
         ]:
             yup = ydown + numpy.median(ds.sel(replicate_id=rid).values.T, axis=0)
