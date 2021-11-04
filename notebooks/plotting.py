@@ -6,6 +6,7 @@ import io
 import mpl_toolkits
 import pandas
 import pymc as pm
+import pyrff
 import scipy
 import numpy
 import os
@@ -451,3 +452,58 @@ def plot_3d_k_design(idata, azim=-65):
     )
     ax.view_init(elev=25, azim=azim)
     return
+
+
+def p_best_dataarray(var) -> xarray.DataArray:
+    """Applies pyrff.sampling_probabilities on posterior samples, maintaining coords."""
+    samples = var.stack(sample=("chain", "draw"))
+    dim = samples.dims[0]
+    return xarray.DataArray(
+        pyrff.sampling_probabilities(samples.values, correlated=True),
+        dims=(dim,),
+        coords={dim: var[dim]}
+    )
+
+
+def summarize(idata, df_layout) -> pandas.DataFrame:
+    reactions = list(idata.posterior.reaction.values)
+    k = idata.posterior.k_reaction.sel(reaction=reactions)
+    x0 = idata.posterior.X.sel(cycle=0, replicate_id=reactions).rename({"replicate_id": "reaction"})
+    initial_rate = k * x0
+
+    order = numpy.argsort(initial_rate.median(("chain", "draw")))
+
+    def med_hdi(samples, ci_prob=0.9):
+        hdi = arviz.hdi(samples, hdi_prob=ci_prob)
+        name = tuple(hdi.data_vars)[0]
+        lower, upper = hdi[name]
+        return float(lower), float(numpy.median(samples)), float(upper)
+
+    df = df_layout.loc[order.reaction]
+
+    # Add columns with probability of being the best
+    df["p_best_design"] = p_best_dataarray(idata.posterior.k_design).sel(design_id=list(df.design_id)).values
+    df["p_best_reaction"] = p_best_dataarray(idata.posterior.k_reaction).sel(reaction=list(df.index)).values
+
+    for name, var, coord in [
+        ("k_design_µM/h/CDW", idata.posterior.k_design, "design_id"),
+        ("k_reaction_µM/h/CDW", idata.posterior.k_reaction, "reaction"),
+        ("initial_rate_µM/h", initial_rate, "reaction"),
+    ]:
+        df[name + "_lower"] = None
+        df[name] = None
+        df[name + "_upper"] = None
+
+        for rid in df.index:
+            if coord == "reaction":
+                cval = rid
+            else:
+                cval = df.loc[rid, coord]
+            df.loc[rid, [name + "_lower", name, name + "_upper"]] = med_hdi(
+                var.sel({coord : cval})
+            )
+            
+        assert numpy.all(df[name + "_lower"] < df[name])
+        assert numpy.all(df[name + "_upper"] > df[name])
+    df = df.sort_values("k_design_µM/h/CDW")
+    return df
