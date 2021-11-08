@@ -211,7 +211,7 @@ def build_model(
     # TODO: consider biomass prior information from the df_layout
     X = pm.Lognormal("X", mu=numpy.log(0.25), sd=0.5, dims=("replicate_id", "cycle"))
 
-    # The initial substrate concentration is 👇 µM,
+    # The initial substrate concentration is 👇 mM,
     # but we wouldn't be surprised if it was    ~10 % 👇 off.
     S0 = pm.Lognormal("S0", mu=numpy.log(2.5), sd=0.02)
 
@@ -271,6 +271,7 @@ def build_model(
         k_reaction = pm.Lognormal(
             "k_reaction",
             mu=at.log([
+                #     [-]          [mM/h/CDW]          [CDW]
                 run_effect[irun] * k_design[idesign] * X[ireplicate, 0]
                 for irun, idesign, ireplicate in zip(irun_by_reaction, idesign_by_reaction, ireplicate_by_reaction)
             ]),

@@ -578,9 +578,9 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
     df["p_best_reaction"] = p_best_dataarray(idata.posterior.k_reaction).sel(reaction=list(df.index)).values
 
     for name, var, coord in [
-        ("k_design_µM/h/CDW", idata.posterior.k_design, "design_id"),
-        ("k_reaction_µM/h/CDW", idata.posterior.k_reaction, "reaction"),
-        ("initial_rate_µM/h", initial_rate, "reaction"),
+        ("k_design_mM/h/CDW", idata.posterior.k_design, "design_id"),
+        ("k_reaction_mM/h/CDW", idata.posterior.k_reaction, "reaction"),
+        ("initial_rate_mM/h", initial_rate, "reaction"),
     ]:
         df[name + "_lower"] = None
         df[name] = None
@@ -597,5 +597,5 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
             
         assert numpy.all(df[name + "_lower"] < df[name])
         assert numpy.all(df[name + "_upper"] > df[name])
-    df = df.sort_values("k_design_µM/h/CDW")
+    df = df.sort_values("k_design_mM/h/CDW")
     return df
