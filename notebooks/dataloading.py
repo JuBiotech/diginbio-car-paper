@@ -151,6 +151,38 @@ def read_biomass_calibration() -> pandas.DataFrame:
     return df
 
 
+def read_ph_product_calibration(filename: str) -> pandas.DataFrame:
+    fp = fetch_file(filename)
+    df_p = pandas.read_excel(
+        fp,
+        skiprows=2,
+        nrows=5,
+        usecols="B:H",
+        index_col=6,
+    )
+    df = pandas.DataFrame(
+        index=pandas.Index([
+            float(v.split("=")[1])
+            for v in df_p.melt(ignore_index=False).index
+        ], name="pH"),
+    )
+    df["product"] = numpy.clip(df_p.to_numpy().flatten("F"), 1e-4, numpy.inf)
+    del df_p
+    df["A360"] = pandas.read_excel(
+        fp,
+        skiprows=22,
+        nrows=5,
+        usecols="B:G",
+    ).to_numpy().flatten("F")
+    df["A600"] = pandas.read_excel(
+        fp,
+        skiprows=13,
+        nrows=5,
+        usecols="B:G",
+    ).to_numpy().flatten("F")
+    return df
+
+
 def read_absorbances(fp) -> pandas.DataFrame:
     """Reads absorbance measurements from TUM-style CSV layout."""
     df = pandas.read_csv(

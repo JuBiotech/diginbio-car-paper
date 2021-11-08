@@ -20,6 +20,75 @@ class LogisticBiomassAbsorbanceModel(calibr8.BaseLogIndependentAsymmetricLogisti
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, scale_degree=1)
 
 
+class LinearProductAbsorbanceModel(calibr8.BasePolynomialModelT):
+    def __init__(self, *, independent_key="P", dependent_key="absorbance"):
+        super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=0, theta_names=["intercept", "slope", "sigma", "df"])
+
+
+class BivariateProductCalibration(calibr8.BaseModelT):
+    def __init__(
+        self, *,
+        independent_key: str="product,pH",
+        dependent_key: str="A360",
+    ):
+        super().__init__(
+            independent_key=independent_key,
+            dependent_key=dependent_key,
+            theta_names="intercept,per_product,I_x,L_max,s,scale,df".split(",")
+        )
+
+    @property
+    def order(self) -> tuple:
+        return tuple(self.independent_key.split(","))
+
+    def predict_dependent(self, x, *, theta=None):
+        """Predicts the parameters mu and scale of a student-t-distribution which
+        characterizes the dependent variable given values of the independent variable.
+        Parameters
+        ----------
+        x : array-like
+            (2,) or (N, 2) values of the independent variables
+        theta : optional, array-like
+            Parameter vector of the calibration model.
+
+        Returns
+        -------
+        mu : array-like
+            values for the mu parameter of a student-t-distribution describing the dependent variable
+        scale : array-like or float
+            values for the scale parameter of a student-t-distribution describing the dependent variable
+        df : float
+            degree of freedom of student-t-distribution
+        """
+        if theta is None:
+            theta = self.theta_fitted
+            
+        if numpy.ndim(x) == 1:
+            x = numpy.atleast_2d(x)
+            reduce = True
+        else:
+            reduce = False
+            
+        intercept = theta[0]
+        per_product = theta[1]
+        I_x = theta[2]
+        I_y = 1            # to avoid a non-identifiability between I_y and per_product
+        Lmax = theta[3]
+        s = theta[4]
+        scale = theta[5]
+        df = theta[6]
+
+        product = x[..., self.order.index("product")]
+        pH = x[..., self.order.index("pH")]
+
+        mod = calibr8.core.logistic(pH, [I_x, I_y, Lmax, s])
+        
+        mu = intercept + product * per_product * mod
+        
+        if reduce:
+            mu = mu[0]
+        return mu, scale, df
+
 
 def tidy_coords(
     raw_coords: Dict[str, Sequence[Union[str, int]]]
@@ -47,8 +116,9 @@ def build_model(
     df_time: pandas.DataFrame,
     df_A360: pandas.DataFrame,
     df_A600: pandas.DataFrame,
-    cm_360: calibr8.CalibrationModel,
-    cm_600: calibr8.CalibrationModel,
+    cmX_360: calibr8.CalibrationModel,
+    cmX_600: calibr8.CalibrationModel,
+    cmP_360: calibr8.CalibrationModel,
     *,
     kind: str,
     design_cols: Sequence[str],
@@ -73,10 +143,12 @@ def build_model(
         values: Measured absorbance for that time/well combination.
     df_A600 : pandas.DataFrame
         Same as df_A360, but for 600 nm.
-    cm_360 : calibr8.CalibrationModel
+    cmX_360 : calibr8.CalibrationModel
         A calibration model fitted for absolute biomass vs. absorbance at 360 nm.
-    cm_600 : calibr8.CalibrationModel
+    cmX_600 : calibr8.CalibrationModel
         A calibration model fitted for absolute biomass vs. absorbance at 600 nm.
+    cmP_360 : calibr8.CalibrationModel
+        A calibration model fitted for absolute ABAO reaction product vs. absorbance at 360 nm.
     kind : str
         Which product formation model to apply. One of:
         - "mass action"
@@ -225,37 +297,35 @@ def build_model(
     P = pm.Deterministic("P", P, dims=("replicate_id", "cycle"))
 
     ################ OBSERVATION MODEL ############
-    # We don't have a separate calibration model for A360 vs. product concentration.
-    # But we can assume linearity and make a guess 👇 for the slope.
-    A360_per_P = pm.Lognormal("A360_per_P", mu=numpy.log(1/3), sd=0.5)
-
     # The absorbance at 360 nm can be predicted as the sum of ABAO shift, product absorbance and biomass absorbance.
-    A360_per_ABAOmM = pm.Data("A360_per_ABAOmM", 0.212 / 10)
-    ABAO_concentration = pm.Data("ABAO_concentration", 10)
-    A360_of_ABAO = pm.Deterministic("A360_of_ABAO", A360_per_ABAOmM * (ABAO_concentration - P), dims=("replicate_id", "cycle"))
-    X_loc, X_scale, X_df = cm_360.predict_dependent(X)
+
+    # Biomass and product contributions
+    X_loc, X_scale, X_df = cmX_360.predict_dependent(X)
+    P_loc, P_scale, P_df = cmP_360.predict_dependent(P)
     A360_of_X = pm.Deterministic("A360_of_X", X_loc, dims=("replicate_id", "cycle"))
-    A360_of_P = pm.Deterministic("A360_of_P", P * A360_per_P, dims=("replicate_id", "cycle"))
+    A360_of_P = pm.Deterministic("A360_of_P", P_loc, dims=("replicate_id", "cycle"))
     A360 = pm.Deterministic(
         "A360",
-        A360_of_ABAO + A360_of_X + A360_of_P,
+        A360_of_X + A360_of_P,
         dims=("replicate_id", "cycle")
     )
-    
+
     # connect with observations
     pm.Data("obs_A360", obs_A360, dims=("replicate_id", "cycle"))
     obs = pm.Data("obs_A360_notnan", obs_A360[mask_numericA360])
+    sigma = pm.Deterministic("sigma", at.sqrt(X_scale**2 + P_scale**2)[mask_numericA360])
     L_A360 = pm.StudentT(
         "L_of_A360",
         mu=A360[mask_numericA360],
-        sigma=X_scale[mask_numericA360],
-        nu=X_df,
+        # This 👇 calculates the scale as if the distributions were Normal ⚠
+        sigma=sigma,
+        nu=at.mean([X_df, P_df]),
         observed=obs
     )
 
     pm.Data("obs_A600", obs_A600, dims=("replicate_id", "cycle"))
     obs = pm.Data("obs_A600_notnan", obs_A600[mask_numericA600])
-    L_cal_A600 = cm_600.loglikelihood(
+    L_cal_A600 = cmX_600.loglikelihood(
         x=X[mask_numericA600],
         y=obs,
         name="L_of_A600",
