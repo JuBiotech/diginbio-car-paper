@@ -182,6 +182,8 @@ def build_model(
                 ls=ls
             )
             gp = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+            # Monkeypatch the GP onto the model object so we can access it from the notebook
+            pmodel.gp = gp
 
             # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
             log_k_design = gp.prior(
