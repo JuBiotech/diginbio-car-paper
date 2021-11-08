@@ -47,6 +47,7 @@ def build_model(
     df_time: pandas.DataFrame,
     df_A360: pandas.DataFrame,
     df_A600: pandas.DataFrame,
+    cm_360: calibr8.CalibrationModel,
     cm_600: calibr8.CalibrationModel,
     *,
     kind: str,
@@ -72,8 +73,10 @@ def build_model(
         values: Measured absorbance for that time/well combination.
     df_A600 : pandas.DataFrame
         Same as df_A360, but for 600 nm.
+    cm_360 : calibr8.CalibrationModel
+        A calibration model fitted for absolute biomass vs. absorbance at 360 nm.
     cm_600 : calibr8.CalibrationModel
-        A calibration model fitted for relative biomass vs. absorbance at 600 nm.
+        A calibration model fitted for absolute biomass vs. absorbance at 600 nm.
     kind : str
         Which product formation model to apply. One of:
         - "mass action"
@@ -117,6 +120,10 @@ def build_model(
         list(coords["design_id"]).index(df_layout.loc[rid, "design_id"])
         for rid in coords["reaction"]
     ]
+    ireplicate_by_reaction = [
+        list(coords["replicate_id"]).index(rid)
+        for rid in coords["reaction"]
+    ]
     pm.Data("irun_by_reaction", irun_by_reaction, dims="reaction")
     pm.Data("idesign_by_reaction", idesign_by_reaction, dims="reaction")
 
@@ -130,11 +137,11 @@ def build_model(
     # The data is ultimately generated from some biomass and product concentrations.
     # We don't know the biomasses in the wells (replicate_id) and they change over time (cycle):
     # TODO: consider biomass prior information from the df_layout
-    X = pm.Lognormal("X", mu=0, sd=0.3, dims=("replicate_id", "cycle"))
+    X = pm.Lognormal("X", mu=numpy.log(0.25), sd=0.5, dims=("replicate_id", "cycle"))
 
     # The initial substrate concentration is 👇 µM,
     # but we wouldn't be surprised if it was    ~10 % 👇 off.
-    S0 = pm.Lognormal("S0", mu=numpy.log(2.5), sd=0.1)
+    S0 = pm.Lognormal("S0", mu=numpy.log(2.5), sd=0.02)
 
     # But we have data for the product concentration:
     P0 = pm.Data("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
@@ -150,17 +157,52 @@ def build_model(
     time_delay = pm.HalfNormal("time_delay", sd=0.1)
     time_actual = time + time_delay
 
-    if kind == "mass action":
-        k_design = pymc3.HalfNormal("k_design", sd=1.5, dims="design_id")
+    if "mass action" in kind:
+        if kind == "mass action":
+            k_design = pm.HalfNormal("k_design", sd=1.5, dims="design_id")
+        elif kind == "GP mass action":
+            # Build a GP model of the underlying k, based on glucose and IPTG alone
+            BOUNDS = [
+                (-2, 3),   # log(iptg)
+                (0, 1.6),  # log(glucose)
+            ]
+            D = len(BOUNDS)
+            span = numpy.ptp(BOUNDS, axis=1)
+            ls = pm.Lognormal('ls', mu=numpy.log(span/2), sd=0.5, dims="design_dim")
+
+            # The reaction rate k must be strictly positive. So our GP must describe log(k).
+            # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
+            # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
+            scaling = pm.Lognormal('scaling', mu=numpy.log(0.7), sd=0.2)
+
+            # the literature describes RFFs only for 0 mean !!!
+            mean_func = pm.gp.mean.Zero()
+            cov_func = scaling**2 * pm.gp.cov.ExpQuad(
+                input_dim=D,
+                ls=ls
+            )
+            gp = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+            # Monkeypatch the GP onto the model object so we can access it from the notebook
+            pmodel.gp = gp
+
+            # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
+            log_k_design = gp.prior(
+                "log_k_design",
+                X=X_design,
+                shape=int(pmodel.dim_lengths["design_id"].eval())
+            )
+            k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
+        else:
+            raise NotImplementedError(f"Unknown mass action model flavor '{kind}'.")
 
         run_effect = pm.Lognormal("run_effect", mu=0, sd=0.1, dims="run")
         k_reaction = pm.Lognormal(
             "k_reaction",
             mu=at.log([
-                run_effect[irun] * k_design[idesign]
-                for irun, idesign in zip(irun_by_reaction, idesign_by_reaction)
+                run_effect[irun] * k_design[idesign] * X[ireplicate, 0]
+                for irun, idesign, ireplicate in zip(irun_by_reaction, idesign_by_reaction, ireplicate_by_reaction)
             ]),
-            sd=0.1,
+            sd=0.05,
             dims="reaction"
         )
 
@@ -183,35 +225,33 @@ def build_model(
     P = pm.Deterministic("P", P, dims=("replicate_id", "cycle"))
 
     ################ OBSERVATION MODEL ############
-    # The absorbance at 360 nm depends on input/response relationships that we don't know.
-    # But from an exploratory scatter plot we made guesses 👇 about the slopes.
-    A360_per_X = pm.Lognormal("A360_per_X", mu=numpy.log(0.6), sd=0.5)
+    # We don't have a separate calibration model for A360 vs. product concentration.
+    # But we can assume linearity and make a guess 👇 for the slope.
     A360_per_P = pm.Lognormal("A360_per_P", mu=numpy.log(1/3), sd=0.5)
 
-    # We don't know how much noise there is in the A360 measurement.
-    # We could make this an unknown variable (e.g. σ_A360 ~ HalfNormal(0.05)),
-    # but the MCMC algorithms often have a hard time fitting the standard deviation of the likelihood function.
-    # So we just assume a conservative 0.05 [a.u.] noise:
-    σ_A360 = 0.05
-
-    # The absorbance at 360 nm can be predicted as a function of the concentrations (X_cal, P_cal) and slope parameters.
-    A360_of_X = pm.Deterministic("A360_of_X", A360_per_X * X, dims=("replicate_id", "cycle"))
-
-    A360_of_P = pm.Deterministic(
-        "A360_of_P",
-        P * A360_per_P,
-        dims=("replicate_id", "cycle")
-    )
+    # The absorbance at 360 nm can be predicted as the sum of ABAO shift, product absorbance and biomass absorbance.
+    A360_per_ABAOmM = pm.Data("A360_per_ABAOmM", 0.212 / 10)
+    ABAO_concentration = pm.Data("ABAO_concentration", 10)
+    A360_of_ABAO = pm.Deterministic("A360_of_ABAO", A360_per_ABAOmM * (ABAO_concentration - P), dims=("replicate_id", "cycle"))
+    X_loc, X_scale, X_df = cm_360.predict_dependent(X)
+    A360_of_X = pm.Deterministic("A360_of_X", X_loc, dims=("replicate_id", "cycle"))
+    A360_of_P = pm.Deterministic("A360_of_P", P * A360_per_P, dims=("replicate_id", "cycle"))
     A360 = pm.Deterministic(
         "A360",
-        A360_of_X + A360_of_P,
+        A360_of_ABAO + A360_of_X + A360_of_P,
         dims=("replicate_id", "cycle")
     )
     
     # connect with observations
     pm.Data("obs_A360", obs_A360, dims=("replicate_id", "cycle"))
     obs = pm.Data("obs_A360_notnan", obs_A360[mask_numericA360])
-    L_A360 = pm.Normal("L_of_A360", mu=A360[mask_numericA360], sd=σ_A360, observed=obs)
+    L_A360 = pm.StudentT(
+        "L_of_A360",
+        mu=A360[mask_numericA360],
+        sigma=X_scale[mask_numericA360],
+        nu=X_df,
+        observed=obs
+    )
 
     pm.Data("obs_A600", obs_A600, dims=("replicate_id", "cycle"))
     obs = pm.Data("obs_A600_notnan", obs_A600[mask_numericA600])

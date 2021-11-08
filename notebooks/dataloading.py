@@ -94,7 +94,48 @@ def get_layout(fp: str, design_cols: Sequence[str]) -> pandas.DataFrame:
         else:
             design_ids.append(None)
     df_layout["design_id"] = design_ids
+
+    # Remove known outlier replicates:
+    df_layout.drop(index=[
+        "PM9X4", # loss of oxygen early into the expression
+    ], inplace=True)
     return df_layout.sort_values(["run", "assay_well"])
+
+
+def count_replicates(df_layout: pandas.DataFrame) -> pandas.DataFrame:
+    """Summarizes the layout to a dataframe describing the number of replicates
+    for each unique experiment design.
+
+    Parameters
+    ----------
+    df_layout : pandas.DataFrame
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        Index: (design_id, group)
+        Columns: Names of each run + ["n_replicates", "redundancy"]
+    """
+    idx_cols = ["design_id", "group"]
+    df = pandas.DataFrame(columns=list(df_layout.run.unique()) + idx_cols).set_index(idx_cols)
+    for did in set(df_layout.design_id) - {None}:
+        group = df_layout[df_layout.design_id == did]["group"]
+        if len(set(group)) != 1:
+            raise Exception(f"Multiple groups ({group}) with the same design ID ({did}).")
+        else:
+            group = group[0]
+        idx = (did, group)
+        for run in df.columns:
+            sel = df_layout[(df_layout.design_id == did) & (df_layout.run == run)]
+            df.loc[idx, run] = len(sel)
+
+    df["n_replicates"] = df.sum(axis=1).astype(int)
+    df["redundancy"] = [
+        ["❌", f"✅ ({n})"][n > 1]
+        for n in numpy.clip(df[df.columns.drop("n_replicates")], 0, 1).sum(axis=1).astype(int)
+    ]
+    df.sort_values("n_replicates", inplace=True, ascending=False)
+    return df
 
 
 def read_biomass_calibration() -> pandas.DataFrame:
