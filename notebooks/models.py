@@ -171,8 +171,12 @@ def build_model(
         "reaction": df_layout[df_layout["product"].isna()].index.to_numpy().astype(str),
         "design_id": df_layout[~df_layout["design_id"].isna()].design_id.astype(str),
         "design_dim": design_cols,
+        "design_glucose": df_layout["glucose"].dropna().unique(),
+        "design_iptg": df_layout["iptg"].dropna().unique(),
+        "interval": ("lower", "upper"),
     })
     _add_or_assert_coords(coords, pmodel)
+    assert tuple(pmodel.coords["interval"]) == ("lower", "upper")
     coords = pmodel.coords
 
     # Masking and slicing helper variables
@@ -231,11 +235,22 @@ def build_model(
     pm.Data("idesign_by_reaction", idesign_by_reaction, dims="reaction")
 
     _log.info("Constructing model for %i wells out of which %i are reaction wells.", len(df_layout), len(coords["reaction"]))
-    X_design = pm.Data(
-        "X_design",
-        df_layout.set_index("design_id")[coords["design_dim"]].dropna().drop_duplicates().sort_index().to_numpy(),
-        dims=("design_id", "design_dim")
-    )
+
+    # Track relevant experiment design information and corresponding parameter space metadata as pm.Data containers
+    # This information is relevant for GP model components and visualization.
+    x_design = df_layout.set_index("design_id")[list(coords["design_dim"])].dropna().drop_duplicates().sort_index().to_numpy()
+    X_design = pm.Data("X_design", x_design, dims=("design_id", "design_dim"))
+    X_design_log10 = pm.Data("X_design_log10", numpy.log10(x_design), dims=("design_id", "design_dim"))
+    del x_design # to keep a single source of truth
+    BOUNDS = numpy.percentile(X_design_log10.get_value(), [0, 100], axis=0).T
+    SPAN = numpy.ptp(BOUNDS, axis=1)
+    pm.Data("X_design_log10_bounds", BOUNDS, dims=("design_dim", "interval"))
+    pm.Data("X_design_log10_span", SPAN, dims=("design_dim",))
+
+    # Data containers of unique marginal designs
+    X_design_glucose = pm.Data("X_design_glucose", coords["design_glucose"], dims="design_glucose")
+    X_design_iptg = pm.Data("X_design_iptg", coords["design_iptg"], dims="design_iptg")
+
     ################ PROCESS MODEL ################
     # The data is ultimately generated from some biomass and product concentrations.
     # We don't know the biomasses in the wells (replicate_id) and they change over time (cycle):
@@ -265,13 +280,7 @@ def build_model(
             k_design = pm.HalfNormal("k_design", sd=1.5, dims="design_id")
         elif kind == "GP mass action":
             # Build a GP model of the underlying k, based on glucose and IPTG alone
-            BOUNDS = [
-                (-2, 3),   # log(iptg)
-                (0, 1.6),  # log(glucose)
-            ]
-            D = len(BOUNDS)
-            span = numpy.ptp(BOUNDS, axis=1)
-            ls = pm.Lognormal('ls', mu=numpy.log(span/2), sd=0.5, dims="design_dim")
+            ls = pm.Lognormal('ls', mu=numpy.log(SPAN/2), sd=0.5, dims="design_dim")
 
             # The reaction rate k must be strictly positive. So our GP must describe log(k).
             # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
@@ -281,15 +290,13 @@ def build_model(
             # the literature describes RFFs only for 0 mean !!!
             mean_func = pm.gp.mean.Zero()
             cov_func = scaling**2 * pm.gp.cov.ExpQuad(
-                input_dim=D,
+                input_dim=len(BOUNDS),
                 ls=ls
             )
-            gp = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
-            # Monkeypatch the GP onto the model object so we can access it from the notebook
-            pmodel.gp = gp
-
+            pmodel.gp_log_k_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+            
             # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
-            log_k_design = gp.prior(
+            log_k_design = pmodel.gp_log_k_design.prior(
                 "log_k_design",
                 X=X_design,
                 shape=int(pmodel.dim_lengths["design_id"].eval())
