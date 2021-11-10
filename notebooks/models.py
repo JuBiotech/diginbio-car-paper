@@ -165,7 +165,7 @@ def build_model(
     coords = tidy_coords({
         "run": df_layout.run.astype(str),
         "replicate_id": df_layout.index.to_numpy().astype(str),
-        "reactor": df_layout.reactor.astype(str),
+        "reactor_position": df_layout.reactor.astype(str),
         "cycle": df_time.columns.to_numpy(),
         "reaction": df_layout[df_layout["product"].isna()].index.to_numpy().astype(str),
         "design_id": df_layout[~df_layout["design_id"].isna()].design_id.astype(str),
