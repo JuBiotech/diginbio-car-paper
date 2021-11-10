@@ -306,20 +306,19 @@ def build_model(
             raise NotImplementedError(f"Unknown mass action model flavor '{kind}'.")
 
         run_effect = pm.Lognormal("run_effect", mu=0, sd=0.1, dims="run")
-        k_reaction = pm.Lognormal(
-            "k_reaction",
-            mu=at.log([
+        v_reaction = pm.Lognormal(
+            "v_reaction",
+            mu=at.log(
                 #     [-]          [mM/h/CDW]          [CDW]
-                run_effect[irun] * k_design[idesign] * X[ireplicate, 0]
-                for irun, idesign, ireplicate in zip(irun_by_reaction, idesign_by_reaction, ireplicate_by_reaction)
-            ]),
+                run_effect[irun_by_reaction] * k_design[idesign_by_reaction] * X[ireplicate_by_reaction, 0]
+            ),
             sd=0.05,
             dims="reaction"
         )
 
         P_in_R = pm.Deterministic(
             "P_in_R",
-            S0 * (1 - at.exp(-time_actual[mask_RinRID] * k_reaction[:, None])),
+            S0 * (1 - at.exp(-time_actual[mask_RinRID] * v_reaction[:, None])),
             dims=("reaction", "cycle"),
         )
     else:

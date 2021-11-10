@@ -435,17 +435,8 @@ def plot_reaction(
 
 
     ax = axs[1, 1]
-    if "k_mM_per_h" in idata.posterior:
-        metric = "k_mM_per_h"
-        ylabel = "initial reaction rate   [mM/h]"
-    elif "vmax" in idata.posterior:
-        metric = "vmax_mM_per_h"
-        ylabel = "$v_{max}$   [mM/h]"
-    elif "k_reaction" in idata.posterior:
-        metric = "k_reaction"
-        ylabel = "initial reaction rate   [mM/h]"
-    else:
-        raise NotImplementedError(f"Did not find a known performance metric in the posterior.")
+    metric = "v_reaction"
+    ylabel = "initial reaction rate   [mM/h]"
 
     violins = ax.violinplot(
         dataset=posterior[metric].sel(reaction=reaction_order).T,
@@ -579,8 +570,7 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
 
     for name, var, coord in [
         ("k_design_mM/h/CDW", idata.posterior.k_design, "design_id"),
-        ("k_reaction_mM/h/CDW", idata.posterior.k_reaction, "reaction"),
-        ("initial_rate_mM/h", initial_rate, "reaction"),
+        ("v_reaction_mM/h", idata.posterior.v_reaction, "reaction"),
     ]:
         df[name + "_lower"] = None
         df[name] = None
