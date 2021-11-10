@@ -167,11 +167,13 @@ def build_model(
         "replicate_id": df_layout.index.to_numpy().astype(str),
         "reactor_position": df_layout.reactor.astype(str),
         "cycle": df_time.columns.to_numpy(),
+        "reactor_id": df_layout["reactor_id"].unique(),
         "reaction": df_layout[df_layout["product"].isna()].index.to_numpy().astype(str),
         "design_id": df_layout[~df_layout["design_id"].isna()].design_id.astype(str),
         "design_dim": design_cols,
     })
     _add_or_assert_coords(coords, pmodel)
+    coords = pmodel.coords
 
     # Masking and slicing helper variables
     replicates = list(coords["replicate_id"])
@@ -184,18 +186,47 @@ def build_model(
     mask_numericA360 = ~numpy.isnan(obs_A360)
     mask_numericA600 = ~numpy.isnan(obs_A360)
 
+    # by replicate
+    ireactor_by_replicate = [
+        coords["reactor_id"].index(df_layout.loc[rid, "reactor_id"])
+        for rid in coords["replicate_id"]
+    ]
+
+    # by reaction
     irun_by_reaction = [
-        list(coords["run"]).index(df_layout.loc[rid, "run"])
+        coords["run"].index(df_layout.loc[rid, "run"])
         for rid in coords["reaction"]
     ]
     idesign_by_reaction = [
-        list(coords["design_id"]).index(df_layout.loc[rid, "design_id"])
+        coords["design_id"].index(df_layout.loc[rid, "design_id"])
         for rid in coords["reaction"]
     ]
     ireplicate_by_reaction = [
-        list(coords["replicate_id"]).index(rid)
+        coords["replicate_id"].index(rid)
         for rid in coords["reaction"]
     ]
+
+    # by reactor_id
+    df_reactors = df_layout.drop_duplicates("reactor_id").set_index("reactor_id")
+    irun_by_reactorid = [
+        coords["run"].index(df_reactors.loc[rea, "run"])
+        for rea in coords["reactor_id"]
+    ]
+    iglucose_design_by_reactorid = [
+        coords["design_glucose"].index(df_reactors.loc[rea, "glucose"])
+        for rea in coords["reactor_id"]
+    ]
+    del df_reactors
+
+    # by design_id
+    df_designs = df_layout.drop_duplicates("design_id").set_index("design_id")
+    iglucose_by_design = [
+        coords["design_glucose"].index(df_designs.loc[did, "glucose"])
+        for did in coords["design_id"]
+    ]
+    del df_designs
+
+    # store some of these
     pm.Data("irun_by_reaction", irun_by_reaction, dims="reaction")
     pm.Data("idesign_by_reaction", idesign_by_reaction, dims="reaction")
 
