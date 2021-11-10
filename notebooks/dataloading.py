@@ -99,6 +99,15 @@ def get_layout(fp: str, design_cols: Sequence[str]) -> pandas.DataFrame:
     df_layout.drop(index=[
         "PM9X4", # loss of oxygen early into the expression
     ], inplace=True)
+
+    # Write design information into rows of calibration reactions
+    df_layout["reactor_id"] = [hagelhash(f"{row.run}_{row.reactor}") for row in df_layout.itertuples()]
+    mask = df_layout["product"].notna()
+    for rid in df_layout[mask].index:
+        row = df_layout[~mask].set_index("reactor_id").loc[df_layout.loc[rid, "reactor_id"]]
+        for design_dim in design_cols:
+            df_layout.loc[rid, design_dim] = row[design_dim]
+
     return df_layout.sort_values(["run", "assay_well"])
 
 
