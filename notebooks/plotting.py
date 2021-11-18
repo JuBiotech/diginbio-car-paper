@@ -549,27 +549,20 @@ def p_best_dataarray(var) -> xarray.DataArray:
 
 
 def summarize(idata, df_layout) -> pandas.DataFrame:
-    reactions = list(idata.posterior.reaction.values)
-    k = idata.posterior.k_reaction.sel(reaction=reactions)
-    x0 = idata.posterior.X.sel(cycle=0, replicate_id=reactions).rename({"replicate_id": "reaction"})
-    initial_rate = k * x0
-
-    order = numpy.argsort(initial_rate.median(("chain", "draw")))
-
     def med_hdi(samples, ci_prob=0.9):
         hdi = arviz.hdi(samples, hdi_prob=ci_prob)
         name = tuple(hdi.data_vars)[0]
         lower, upper = hdi[name]
         return float(lower), float(numpy.median(samples)), float(upper)
 
-    df = df_layout.loc[order.reaction]
+    df = df_layout.loc[idata.posterior.reaction.values]
 
     # Add columns with probability of being the best
     df["p_best_design"] = p_best_dataarray(idata.posterior.k_design).sel(design_id=list(df.design_id)).values
-    df["p_best_reaction"] = p_best_dataarray(idata.posterior.k_reaction).sel(reaction=list(df.index)).values
 
     for name, var, coord in [
         ("k_design_mM/h/CDW", idata.posterior.k_design, "design_id"),
+        ("v_design_mM/h", idata.posterior.v_design, "design_id"),
         ("v_reaction_mM/h", idata.posterior.v_reaction, "reaction"),
     ]:
         df[name + "_lower"] = None
