@@ -260,14 +260,14 @@ def plot_bivariate_calibration(
             X.flatten("F"),
         ]).T
 
-        mu, scale, df = cm.predict_dependent(x1x2)
+        mu, scale = cm.predict_dependent(x1x2)
 
         qs = [97.5]
         lowers = []
         uppers = []
         for q in qs:
-            lowers.append(scipy.stats.t.ppf(1-q/100, loc=mu, scale=scale, df=df))
-            uppers.append(scipy.stats.t.ppf(q/100, loc=mu, scale=scale, df=df))
+            lowers.append(cm.scipy_dist.ppf(1-q/100, loc=mu, scale=scale))
+            uppers.append(cm.scipy_dist.ppf(q/100, loc=mu, scale=scale))
         Zs = lowers + [mu] + uppers[::-1]
         for q, Z in zip(qs + [50] + qs[::-1], Zs):
             ax.plot_surface(

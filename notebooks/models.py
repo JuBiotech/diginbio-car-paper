@@ -25,7 +25,7 @@ class LinearProductAbsorbanceModel(calibr8.BasePolynomialModelT):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=0, theta_names=["intercept", "slope", "sigma", "df"])
 
 
-class BivariateProductCalibration(calibr8.BaseModelT):
+class BivariateProductCalibration(calibr8.ContinuousMultivariateModel, calibr8.NormalNoise):
     def __init__(
         self, *,
         independent_key: str="product,pH",
@@ -34,7 +34,8 @@ class BivariateProductCalibration(calibr8.BaseModelT):
         super().__init__(
             independent_key=independent_key,
             dependent_key=dependent_key,
-            theta_names="intercept,per_product,I_x,L_max,s,scale,df".split(",")
+            theta_names="intercept,per_product,I_x,L_max,s,scale".split(","),
+            ndim=2,
         )
 
     @property
@@ -76,7 +77,6 @@ class BivariateProductCalibration(calibr8.BaseModelT):
         Lmax = theta[3]
         s = theta[4]
         scale = theta[5]
-        df = theta[6]
 
         product = x[..., self.order.index("product")]
         pH = x[..., self.order.index("pH")]
@@ -87,7 +87,7 @@ class BivariateProductCalibration(calibr8.BaseModelT):
         
         if reduce:
             mu = mu[0]
-        return mu, scale, df
+        return mu, scale
 
 
 def tidy_coords(
