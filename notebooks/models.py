@@ -121,6 +121,7 @@ def build_model(
     cmP_360: calibr8.CalibrationModel,
     *,
     gp_k_design: bool,
+    gp_X_factor: bool,
     random_walk_X: bool,
     design_cols: Sequence[str],
 ):
@@ -153,6 +154,9 @@ def build_model(
     gp_k_design : bool
         If `True` a gaussian process model will describe the design-wise specific activity.
         Otherwise design-wise specific activities will be indepdent of each other.
+    gp_X_factor : bool
+        If `True` the multiplicative effect of glucose feed on initial biomass will be a gaussian process model.
+        Otherwise glucose feed specific factors will be indepdent of each other.
     random_walk_X : bool
         If `True` the cycle-wise biomass concentration in each reaction well
         will be described by a Gaussian random walk of cycle-wise growth factor.
@@ -267,8 +271,31 @@ def build_model(
     #     dimension    :    by run ---------------> by reaction --> by reaction
     # How this can be modeled:
     # + There's a biomass concentration resulting from a glucose feed rate.
+    # + That relationship between glucose feed rate and resulting biomass concentration (at the end of the expression phase)
+    #   is modeled by a 1-dimensional Gaussian process describing a scaling factor applied to the DASGIP reactor biomass concentration.
+    #   The Gaussian process is the log(factor), so centered on 0, making it RFF-approximatable.
     # + Each reaction is a little different, so the glucose-design-wise biomass concentration is used as a hyperprior.
-    X_factor = pm.LogNormal("X_factor", mu=0, sd=0.1, dims="design_glucose")
+
+    if gp_X_factor:
+        # The factor / glucose relationship hopefully has a sensitivity at around the order of magnitude of our design space.
+        ls_X = pm.LogNormal("ls_X", mu=numpy.log(SPAN[coords["design_dim"].index("glucose")]/2), sd=0.1)
+        # Within that design space, the factor possibly varies by ~1 order of magnitude.
+        scaling = pm.LogNormal('scaling_X', mu=numpy.log(0.3), sd=0.1)
+        # Now build the GP for the log-factor:
+        mean_func = pm.gp.mean.Zero()
+        cov_func = scaling**2 * pm.gp.cov.ExpQuad(input_dim=1, ls=ls_X)
+        pmodel.gp_log_X_factor = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+
+        # Condition the GP on actual glucose feed rates to obtain scaling factors for each unique glucose feed rate:
+        log_X_factor = pmodel.gp_log_X_factor.prior("log_X_factor", X_design_glucose[:, None], shape=(len(coords["design_glucose"]),))
+        X_factor = pm.Deterministic("X_factor", at.exp(log_X_factor), dims="design_glucose")
+
+        # Track dimnames so it shows up in the platemodel
+        pmodel.RV_dims["log_X_factor_rotated_"] = ("design_glucose",)
+        pmodel.RV_dims["log_X_factor"] = ("design_glucose",)
+        pmodel.RV_dims["X_factor"] = ("design_glucose",)
+    else:
+        X_factor = pm.LogNormal("X_factor", mu=0, sd=0.1, dims="design_glucose")
 
     # Model the biomass story
     # starting from a DASGIP biomass concentration hyperprior
