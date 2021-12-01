@@ -287,7 +287,7 @@ def build_model(
         pmodel.gp_log_X_factor = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
 
         # Condition the GP on actual glucose feed rates to obtain scaling factors for each unique glucose feed rate:
-        log_X_factor = pmodel.gp_log_X_factor.prior("log_X_factor", X_design_glucose[:, None], shape=(len(coords["design_glucose"]),))
+        log_X_factor = pmodel.gp_log_X_factor.prior("log_X_factor", X_design_glucose[:, None], size=(len(coords["design_glucose"]),))
         X_factor = pm.Deterministic("X_factor", at.exp(log_X_factor), dims="design_glucose")
 
         # Track dimnames so it shows up in the platemodel
@@ -393,7 +393,7 @@ def build_model(
         log_k_design = pmodel.gp_log_k_design.prior(
             "log_k_design",
             X=X_design,
-            shape=int(pmodel.dim_lengths["design_id"].eval())
+            size=int(pmodel.dim_lengths["design_id"].eval())
         )
         k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
 
