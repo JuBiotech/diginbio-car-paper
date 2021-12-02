@@ -12,8 +12,39 @@ import numpy
 import os
 import xarray
 from PIL import Image
-from typing import Any, Callable, Dict, Iterable, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 from matplotlib import cm, pyplot
+
+
+def interesting_groups(posterior) -> Dict[str, List[str]]:
+    """Get groups of interesting free RV names from the posterior."""
+    var_groups = {
+        "biomass": [
+            "X0_base",
+            "ls_X,scaling_X,log_X_factor||X-factor",
+            "X0",
+            "logdXdc|X",
+        ],
+        "biotransformation": [
+            "S0",
+            "time_delay",
+            "ls,scaling,log_k_design||k_design",
+            "run_effect",
+            "v_reaction",
+        ],
+    }
+    available = tuple(posterior.keys())
+    result = {}
+    for gname, expressions in var_groups.items():
+        selected = []
+        for expression in expressions:
+            for subset in expression.split("||"):
+                names = subset.split(",")
+                if set(names).issubset(available):
+                    selected += names
+                    break
+        result[gname] = selected
+    return result
 
 
 def plot_absorbance_heatmap(df_layout: pandas.DataFrame, df_360: pandas.DataFrame, df_600: pandas.DataFrame):
