@@ -138,7 +138,7 @@ def _build_model(wd: pathlib.Path):
     return pmodel
 
 
-def fit_model(wd: pathlib.Path):
+def fit_model(wd: pathlib.Path, **sample_kwargs):
     pmodel = _build_model(wd)
     #_log.info("Creating a model graph")
     #modelgraph = pm.model_to_graphviz(pmodel)
@@ -147,7 +147,7 @@ def fit_model(wd: pathlib.Path):
 
     _log.info("Running MCMC")
     with pmodel:
-        idata = pm.sample()
+        idata = pm.sample(**sample_kwargs)
     _log.info("Saving the trace")
     idata.to_netcdf(wd / "trace.nc")
     return
