@@ -299,21 +299,21 @@ def build_model(
 
     # Model the biomass story
     # starting from a DASGIP biomass concentration hyperprior
-    X0_base = pm.LogNormal("X0_base", mu=numpy.log(0.5), sd=0.5)
+    Xend_batch = pm.LogNormal("Xend_batch", mu=numpy.log(0.5), sd=0.5)
 
     # For the absolute activity metric we need design-wise biomass concentrations that we can multiply with specific activity
-    X0_design = pm.Deterministic(
-        "X0_design",
-        X0_base * X_factor[iglucose_by_design],
+    Xend_design = pm.Deterministic(
+        "Xend_design",
+        Xend_batch * X_factor[iglucose_by_design],
         dims="design_id",
     )
 
     # every run may have its own final DASGIP biomass concentration (5 % error)
-    X0_dasgip = pm.LogNormal("X0", mu=at.log(X0_base), sd=0.05, dims="run")
+    Xend_dasgip = pm.LogNormal("Xend_dasgip", mu=at.log(Xend_batch), sd=0.05, dims="run")
     # final biomasses at the 2mag scale (initial reaction biomasses) follow by multiplication with the feed rate specific factor
     Xend_2mag = pm.Deterministic(
         "Xend_2mag",
-        X0_dasgip[irun_by_reactorid] * X_factor[iglucose_design_by_reactorid],
+        Xend_dasgip[irun_by_reactorid] * X_factor[iglucose_design_by_reactorid],
         dims="reactor_id",
     )
     X0_replicate = pm.Deterministic(
@@ -374,18 +374,18 @@ def build_model(
         k_design = pm.HalfNormal("k_design", sd=1.5, dims="design_id")
     else:
         # Build a GP model of the underlying k, based on glucose and IPTG alone
-        ls = pm.Lognormal('ls', mu=numpy.log(SPAN/2), sd=0.5, dims="design_dim")
+        ls_k_design = pm.Lognormal('ls_k_design', mu=numpy.log(SPAN/2), sd=0.5, dims="design_dim")
 
         # The reaction rate k must be strictly positive. So our GP must describe log(k).
         # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
         # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
-        scaling = pm.Lognormal('scaling', mu=numpy.log(0.7), sd=0.2)
+        scaling_k_design = pm.Lognormal('scaling_k_design', mu=numpy.log(0.7), sd=0.2)
 
         # the literature describes RFFs only for 0 mean !!!
         mean_func = pm.gp.mean.Zero()
-        cov_func = scaling**2 * pm.gp.cov.ExpQuad(
+        cov_func = scaling_k_design**2 * pm.gp.cov.ExpQuad(
             input_dim=len(BOUNDS),
-            ls=ls
+            ls=ls_k_design
         )
         pmodel.gp_log_k_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
         
@@ -462,7 +462,7 @@ def build_model(
     # Additionally track an absolute activity metric based on the expected initial biomass concentration (no batch effects)
     pm.Deterministic(
         "v_design",
-        k_design * X0_design,
+        k_design * Xend_design,
         dims="design_id",
     )
     return pmodel

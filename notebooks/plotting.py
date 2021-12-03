@@ -20,15 +20,15 @@ def interesting_groups(posterior) -> Dict[str, List[str]]:
     """Get groups of interesting free RV names from the posterior."""
     var_groups = {
         "biomass": [
-            "X0_base",
+            "X0_batch",
             "ls_X,scaling_X,log_X_factor||X-factor",
-            "X0",
+            "Xend_dasgip",
             "logdXdc|X",
         ],
         "biotransformation": [
             "S0",
             "time_delay",
-            "ls,scaling,log_k_design||k_design",
+            "ls_k_design,scaling_k_design,log_k_design||k_design",
             "run_effect",
             "v_reaction",
         ],

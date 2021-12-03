@@ -227,7 +227,7 @@ def plot_gp_X_factor(wd: pathlib.Path):
         )
         X0_design = pm.Deterministic(
             "dense_X0_glucose",
-            pmodel["X0_base"] * X_factor,
+            pmodel["X0_batch"] * X_factor,
             dims="dense_glucose",
         )
 
@@ -246,8 +246,8 @@ def plot_gp_X_factor(wd: pathlib.Path):
         plot_samples=False,
     )
     ax.set(
-        ylabel="$X_{0,2mag}$   [g/L]",
-        xlabel="glucose feed rate   [g]",
+        ylabel="$X_{0,2mag}$   [g_\mathrm{biomass}/L]",
+        xlabel="glucose feed rate   [$g_\mathrm{glucose}/L_\mathrm{reactor}/h$]",
         xlim=(min(dense), max(dense)),
     )
     fig.savefig(wd / "plot_gp_X_factor.png")
