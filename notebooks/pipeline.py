@@ -226,14 +226,14 @@ def plot_gp_X_factor(wd: pathlib.Path):
             dims="dense_glucose",
         )
         X0_design = pm.Deterministic(
-            "dense_X0_glucose",
+            "dense_Xend_2mag",
             pmodel["Xend_batch"] * X_factor,
             dims="dense_glucose",
         )
 
         _log.info("Sampling posterior predictive")
         ipp = pm.sample_posterior_predictive(
-            idata, var_names=["dense_log_X_factor", "dense_X_factor", "dense_X0_glucose"]
+            idata, var_names=["dense_log_X_factor", "dense_X_factor", "dense_Xend_2mag"]
         )
 
     _log.info("Plotting")
@@ -242,12 +242,12 @@ def plot_gp_X_factor(wd: pathlib.Path):
     pm.gp.util.plot_gp_dist(
         ax=ax,
         x=dense,
-        samples=ipp.posterior_predictive["dense_X0_glucose"].stack(sample=("chain", "draw")).values.T,
+        samples=ipp.posterior_predictive["dense_Xend_2mag"].stack(sample=("chain", "draw")).values.T,
         plot_samples=False,
     )
     ax.set(
-        ylabel="$X_{0,2mag}$   [g_\mathrm{biomass}/L]",
-        xlabel="glucose feed rate   [$g_\mathrm{glucose}/L_\mathrm{reactor}/h$]",
+        ylabel="$X_{end,2mag}\ \ \ [g_\mathrm{biomass}/L]$",
+        xlabel="$\mathrm{glucose\ feed\ rate}\ \ \ [g_\mathrm{glucose}/L_\mathrm{reactor}/h]$",
         xlim=(min(dense), max(dense)),
     )
     fig.savefig(wd / "plot_gp_X_factor.png")
