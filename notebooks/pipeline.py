@@ -227,7 +227,7 @@ def plot_gp_X_factor(wd: pathlib.Path):
         )
         X0_design = pm.Deterministic(
             "dense_X0_glucose",
-            pmodel["X0_batch"] * X_factor,
+            pmodel["Xend_batch"] * X_factor,
             dims="dense_glucose",
         )
 
