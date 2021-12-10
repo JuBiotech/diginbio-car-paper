@@ -244,6 +244,7 @@ def plot_gp_X_factor(wd: pathlib.Path):
         x=dense,
         samples=ipp.posterior_predictive["dense_Xend_2mag"].stack(sample=("chain", "draw")).values.T,
         plot_samples=False,
+        palette=pyplot.cm.Greens,
     )
     ax.set(
         ylabel="$X_{end,2mag}\ \ \ [g_\mathrm{biomass}/L]$",
