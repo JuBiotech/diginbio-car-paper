@@ -59,13 +59,14 @@ The biomass in the experiment is sourced from a "seed train" of cultivations in 
 
 The process model must describe biomass in each biotransformation well so it can be accounted for in the 360&nbsp;nm absorbance.
 Since a universally activity metric, that can be interpredeted independent from experimenteal batch effects is desired, the model must additionally describe biomass in a way that excludes random batch effects.
-The first level at which such an experiment-independent prediction is needed, is the final biomass concentration of the 1&nbsp;L batch bioreactor process.
+The first process stage at which such an experiment-independent prediction is needed, is the final biomass concentration of the 1&nbsp;L batch cultivation.
 
 Concretely, we describe the per-experiment final biomass concentration at the 1&nbsp;L scale as a LogNormal-distributed variable called $\mathrm{\vec{X}_{end,DASGIP}}$ with an entry for each experiment run.
-To obtain an experiment-independent prediction, we introduced $\mathrm{X_{end,batch}}$ as a _group mean prior_, also known as a _hyperprior_, around which the $\mathrm{\vec{X}_{end,DASGIP}}$ is centered:
+To obtain an experiment-independent prediction, we introduced $\mathrm{X_{end,batch}}$ as a _group mean prior_, also known as a _hyperprior_, around which the $\mathrm{\vec{X}_{end,DASGIP}}$ is centered.
+The prior on $\mathrm{X_{end,batch}}$ is weakly (large $\sigma$) centered at $0.5\ g/L$, whereas actual batches should only deviate from that group mean by ca. $5\ \%$.
 
 $$\begin{aligned}
-    \mathrm{X_{end,batch}} &\sim LogNormal(\mu=ln(0.5), \sigma=0.5) \\
+    \mathrm{X_{end,batch}} &\sim LogNormal(\mu=ln(0.5), \sigma=0.5)\\
     \mathrm{\vec{X}_{end,DASGIP}} &\sim LogNormal(\mu=ln(\mathrm{X_{end,batch}}), \sigma=0.05)
 \end{aligned}$$
 
@@ -73,6 +74,45 @@ This hierarchical structure is a common motif in Bayesian modeling since it enab
 The motif of hierarchically modeled variables was used in several places of our bioprocess model.
 For a thorough introduction to hierarchical modeling, we recommend [betancourt2020].
 
+The second process stage in the biomass seed train is the expression in 10&nbsp;mL scale under fed-batch conditions.
+Every 10&nbsp;mL 2mag reactor was inoculated with culture broth from a DASGIP reactor, hence a mapping $f_\mathrm{run \rightarrow reactor}$ yields initial biomass concentrations $\mathrm{X_{start,2mag}}$ by sub-indexing the $\mathrm{\vec{X}_{end,DASGIP}}$ variable.
+The experimental design of the fed-batches comprised varying glucose feed rates and IPTG concentrations.
+It is plausible to assume a dependence of the final biomass concentration $\mathrm{\vec{X}_{end,2mag}}$ on the glucose feed rate.
+Without any mechanistic assumptions, we lump the final biomass concentration per 1&nbsp;mL reactor as the product of initial biomass concentration with a positive factor $\mathrm{X_{factor,glc}}$ that depends on the glucose feed rate.
+Dependence of $\mathrm{X_{factor,glc}}$ on the glucose feed rate is modeled by a Gaussian process such that our model can also interpolate and make predictions for new glucose feed rate settings.
+
+$$
+\begin{aligned}
+    \mathrm{\vec{X}_{start,2mag}} &= f_\mathrm{DASGIP \rightarrow 2mag}(\mathrm{\vec{X}_{end,DASGIP}}) \\
+    \mathrm{\vec{X}_{end,2mag}} &= \mathrm{\vec{X}_{start,2mag}} \cdot f_{\mathrm{glc-design \rightarrow 2mag}}(\mathrm{\vec{X}_{factor,glc}}) \\
+    \textrm{with} \\
+    ln(\mathrm{\vec{X}_{factor,glc}}) &= f_\mathrm{logX_{factor,glc}}(log_{10}(\vec{D}_\mathrm{design,glc})) \\
+    f_\mathrm{logX_{factor,glc}}(d) &\sim GP(0, k(d,d')) \\
+    k(d,d') &= \sigma^2 \cdot e^{-\frac{(d-d')^2}{2\ell^2}} \\
+    \sigma &\sim LogNormal(ln(0.3), 0.1) \\
+    \ell &\sim LogNormal(ln(0.34), 0.1)
+\end{aligned}
+$$
+
+The Gaussian process was parametrized with a mean function of $0$, thereby centering the prior for $\mathrm{X_{factor,glc}}$ around $1$.
+For the covariance function we chose a scaling parameter $\sigma$ such that the prior variance for the factor is around $\plusmn30\ \%$.
+The prior for $\ell$ in the exponential quadratic kernel encodes a belief that $\mathrm{X_{factor,glc}}$ varies smoothly on a length scale of around half of the (logarithmic) design space.
+
+The 3rd and final process stage is the biotransformation.
+Here, the initial biomass concentration in every DWP well $\mathrm{\vec{X}_{0,DWP}}$ equals the final biomass concentration from a corresponding 10&nbsp;mL reactor.
+The biomass concentration continued to change over the course of the biotransformation, because the solution also contained glucose as a carbon source.
+Inspired by the $\mu(t)$ method described in [blet] we account for this biomass growth during the biotransformation with a Gaussian random walk of the discretized growth rate $\vec{\mu}_t$.
+The result are biomass concentrations for every well and measurement cycle $\mathrm{\vec{X}_{t,DWP}}$.
+
+$$
+\begin{aligned}
+    \mathrm{\vec{X}_{0,DWP}} &= f_\mathrm{2mag\rightarrow DWP}(\mathrm{\vec{X}_{end,2mag}}) \\
+    \mathrm{\vec{X}_{t \ge 1,DWP}} &= \mathrm{\vec{X}_{0,DWP}} \cdot e^{cumsum(\vec{\mu}_t \cdot \vec{dt})}\\
+    \vec{\mu}_t &\sim GaussianRandomWalk(\sigma=0.1) \\
+\end{aligned}
+\\
+\textrm{Note: $\vec{\mu}_t$ and $\vec{dt}$ are modeled for each biotransformation well independently.}
+$$
 
 ### Biotransformation reaction process model
 
