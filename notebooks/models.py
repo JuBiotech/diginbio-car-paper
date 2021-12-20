@@ -175,6 +175,7 @@ def build_model(
         "replicate_id": df_layout.index.to_numpy().astype(str),
         "reactor_position": df_layout.reactor.astype(str),
         "cycle": df_time.columns.to_numpy(),
+        "cycle_segment": numpy.arange(len(df_time.columns) - 1),
         "reactor_id": df_layout["reactor_id"].unique(),
         "reaction": df_layout[df_layout["product"].isna()].index.to_numpy().astype(str),
         "design_id": df_layout[~df_layout["design_id"].isna()].design_id.astype(str),
@@ -259,6 +260,13 @@ def build_model(
     X_design_glucose = pm.Data("X_design_glucose", coords["design_glucose"], dims="design_glucose")
     X_design_iptg = pm.Data("X_design_iptg", coords["design_iptg"], dims="design_iptg")
 
+    # The biomass & product concentration will be a function of the time ⌚.
+    # Because all kinetics have the same length we can work with a time matrix.
+    t = df_time.loc[replicates].to_numpy()
+    time = pm.Data("time", t, dims=("replicate_id", "cycle"))
+    dt = pm.Data('dt', numpy.diff(t, axis=1), dims=("replicate_id", "cycle_segment"))
+    del t
+
     ################ PROCESS MODEL ################
     # The data is ultimately generated from some biomass and product concentrations.
     # We don't know the biomasses in the wells (replicate_id) and they change over time (cycle):
@@ -278,16 +286,22 @@ def build_model(
 
     if gp_X_factor:
         # The factor / glucose relationship hopefully has a sensitivity at around the order of magnitude of our design space.
-        ls_X = pm.LogNormal("ls_X", mu=numpy.log(SPAN[coords["design_dim"].index("glucose")]/2), sd=0.1)
-        # Within that design space, the factor possibly varies by ~1 order of magnitude.
+        design_idx_glc = coords["design_dim"].index("glucose")
+        ls_X = pm.LogNormal("ls_X", mu=numpy.log(SPAN[design_idx_glc]/2), sd=0.1)
+        # Within that design space, the factor possibly varies by ~30 %.
         scaling = pm.LogNormal('scaling_X', mu=numpy.log(0.3), sd=0.1)
         # Now build the GP for the log-factor:
         mean_func = pm.gp.mean.Zero()
         cov_func = scaling**2 * pm.gp.cov.ExpQuad(input_dim=1, ls=ls_X)
         pmodel.gp_log_X_factor = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
 
-        # Condition the GP on actual glucose feed rates to obtain scaling factors for each unique glucose feed rate:
-        log_X_factor = pmodel.gp_log_X_factor.prior("log_X_factor", X_design_glucose[:, None], size=(len(coords["design_glucose"]),))
+        # Condition the GP on actual glucose feed rates to obtain scaling factors for each unique glucose feed rate.
+        # Note that the GP is built on the log10(feed rate) !
+        log_X_factor = pmodel.gp_log_X_factor.prior(
+            "log_X_factor",
+            at.log10(X_design_glucose)[:, None],
+            size=(len(coords["design_glucose"]),)
+        )
         X_factor = pm.Deterministic("X_factor", at.exp(log_X_factor), dims="design_glucose")
 
         # Track dimnames so it shows up in the platemodel
@@ -320,7 +334,7 @@ def build_model(
         "X0_replicate",
         Xend_2mag[ireactor_by_replicate],
         dims="replicate_id",
-    )[:, None]
+    )
 
     if random_walk_X:
         # Describe biomass growth with a random walk
@@ -328,19 +342,21 @@ def build_model(
         #       1. the coords interpretation matches
         #       2. the GRW doesn't have unidentifiable entries
         #       3. there's no redundant parametrization of the first cycle biomass
-        log_dXdc__diff = pm.Normal(
-            'log_dXdX__diff_',
+        mu_t__diff = pm.Normal(
+            'mu_t__diff',
             mu=0, sd=0.1,
-            dims=("replicate_id", "cycle")
+            dims=("replicate_id", "cycle_segment")
         )
-        log_dXdc = pm.Deterministic(
-            "log_dXdc",
-            at.cumsum(log_dXdc__diff, axis=1),
-            dims=("replicate_id", "cycle")
+        mu_t = pm.Deterministic(
+            "mu_t",
+            at.cumsum(mu_t__diff, axis=1),
+            dims=("replicate_id", "cycle_segment")
         )
         X = pm.Deterministic(
-            "X",
-            X0_replicate + X0_replicate * at.exp(log_dXdc),
+            "X", at.concatenate([
+                X0_replicate[:, None],
+                X0_replicate[:, None] * at.exp(at.cumsum(mu_t * dt, axis=1)),
+            ], axis=1),
             dims=("replicate_id", "cycle"),
         )
     else:
@@ -358,10 +374,6 @@ def build_model(
 
     # But we have data for the product concentration:
     P0 = pm.Data("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
-
-    # The product concentration will be a function of the time ⌚.
-    # Because all kinetics have the same length we can work with a time matrix.
-    time = pm.Data("time", df_time.loc[replicates], dims=("replicate_id", "cycle"))
 
     # Instead of modeling an initial product concentration, we can model a time delay
     # since the actual start of the reaction. This way the total amount of substrate/product
