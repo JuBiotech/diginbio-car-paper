@@ -7,7 +7,7 @@ import pathlib
 from typing import Dict, Sequence
 
 
-DP_DATA = pathlib.Path("..") / "data"
+DP_DATA = pathlib.Path(__file__).parent.parent / "data"
 _log = logging.getLogger(__file__)
 
 

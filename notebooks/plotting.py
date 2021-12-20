@@ -12,8 +12,39 @@ import numpy
 import os
 import xarray
 from PIL import Image
-from typing import Any, Callable, Dict, Iterable, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 from matplotlib import cm, pyplot
+
+
+def interesting_groups(posterior) -> Dict[str, List[str]]:
+    """Get groups of interesting free RV names from the posterior."""
+    var_groups = {
+        "biomass": [
+            "X0_batch",
+            "ls_X,scaling_X,log_X_factor||X-factor",
+            "Xend_dasgip",
+            "logdXdc|X",
+        ],
+        "biotransformation": [
+            "S0",
+            "time_delay",
+            "ls_k_design,scaling_k_design,log_k_design||k_design",
+            "run_effect",
+            "v_reaction",
+        ],
+    }
+    available = tuple(posterior.keys())
+    result = {}
+    for gname, expressions in var_groups.items():
+        selected = []
+        for expression in expressions:
+            for subset in expression.split("||"):
+                names = subset.split(",")
+                if set(names).issubset(available):
+                    selected += names
+                    break
+        result[gname] = selected
+    return result
 
 
 def plot_absorbance_heatmap(df_layout: pandas.DataFrame, df_360: pandas.DataFrame, df_600: pandas.DataFrame):
@@ -495,10 +526,18 @@ def plot_reactor_positions(data: Dict[str, xarray.Dataset], df_layout: pandas.Da
 
 
 def plot_3d_k_design(idata, azim=-65):
+    return plot_3d_by_design(idata, "k_design", azim=azim, label="specific activity\n$k_{design}$ [(mM/h)/(g/L)]")
+
+
+def plot_3d_v_design(idata, azim=-65):
+    return plot_3d_by_design(idata, "v_design", azim=azim, label="expected activity\n$v_{design}$ [mM/h]")
+
+
+def plot_3d_by_design(idata, var_name: str, *, label: str, azim=-65):
     # Extract relevant data arrays
     design_dims = list(idata.constant_data.design_dim.values)
     X = numpy.log10(idata.constant_data.X_design.sel(design_dim=design_dims))
-    Z = idata.posterior.k_design
+    Z = idata.posterior[var_name]
 
     D = len(design_dims)
     BOUNDS = numpy.array([
@@ -514,12 +553,12 @@ def plot_3d_k_design(idata, azim=-65):
     # Plot a basic wireframe.
     ax.set_xlabel(f'log10({design_dims[0]})')
     ax.set_ylabel(f'log10({design_dims[1]})')
-    ax.set_zlabel('specific activity\n$k_{design}$ [(mM/h)/(g/L)]')
+    ax.set_zlabel(label)
 
     # plot observations
     x = X.values
     z = Z.median(dim=("chain", "draw"))
-    hdi = arviz.hdi(Z, hdi_prob=0.9).k_design
+    hdi = arviz.hdi(Z, hdi_prob=0.9)[var_name]
     zerr = numpy.abs(hdi - z)
     ax.errorbar(
         x[:, 0], x[:, 1], z,
@@ -534,7 +573,7 @@ def plot_3d_k_design(idata, azim=-65):
         alpha=1
     )
     ax.view_init(elev=25, azim=azim)
-    return
+    return fig, ax
 
 
 def p_best_dataarray(var) -> xarray.DataArray:

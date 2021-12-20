@@ -524,3 +524,5 @@ MigrationBackup/
 *.nc
 *.xlsx
 *.svg
+results/**
+*Sandbox*.ipynb
