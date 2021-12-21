@@ -21,14 +21,16 @@ def interesting_groups(posterior) -> Dict[str, List[str]]:
     var_groups = {
         "biomass": [
             "X0_batch",
-            "ls_X,scaling_X,log_X_factor||X-factor",
+            "Xend_batch",
             "Xend_dasgip",
+            "ls_X,scaling_X,X_factor||X_factor",
             "logdXdc|X",
+            "mu_t|X",
         ],
         "biotransformation": [
             "S0",
             "time_delay",
-            "ls_k_design,scaling_k_design,log_k_design||k_design",
+            "ls_k_design,scaling_k_design,k_design||k_design",
             "run_effect",
             "v_reaction",
         ],
