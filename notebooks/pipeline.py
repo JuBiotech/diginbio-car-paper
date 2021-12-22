@@ -145,6 +145,8 @@ def fit_model(wd: pathlib.Path, **sample_kwargs):
     #_log.info("Saving the model graph")
     #modelgraph.render(filename=str(wd / "model.pdf"), format="pdf")
 
+    sample_kwargs.setdefault("discard_tuned_samples", False)
+
     _log.info("Running MCMC")
     with pmodel:
         idata = pm.sample(**sample_kwargs)
@@ -165,13 +167,20 @@ def plot_trace(wd: pathlib.Path):
     idata = arviz.from_netcdf(wd / "trace.nc")
     groups = plotting.interesting_groups(idata.posterior)
     for title, vars in groups.items():
-        _log.info("Plotting trace group %s with variables %s", title, vars)
-        axs = arviz.plot_trace(idata, var_names=vars)
-        fig = pyplot.gcf()
-        fig.suptitle(title)
-        fig.tight_layout()
-        fig.savefig(wd / f"plot_trace_{title}.png")
-        pyplot.close()
+        for key, prefix in [
+            ("posterior", "plot_trace"),
+            ("warmup_posterior", "plot_warmup"),
+        ]:
+            if not key in idata:
+                _log.warning("InferenceData object has no group %s.", key)
+                continue
+            _log.info("Plotting %s group %s with variables %s", key, title, vars)
+            axs = arviz.plot_trace(idata[key], var_names=vars)
+            fig = pyplot.gcf()
+            fig.suptitle(title)
+            fig.tight_layout()
+            fig.savefig(wd / f"{prefix}_{title}.png")
+            pyplot.close()
     return
 
 
