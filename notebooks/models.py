@@ -414,15 +414,15 @@ def build_model(
         "v_reaction",
         mu=at.log(
             #     [-]          [mM/h/CDW]          [CDW]
-            run_effect[irun_by_reaction] * k_design[idesign_by_reaction] * X[ireplicate_by_reaction, 0]
+            run_effect[irun_by_reaction, None] * k_design[idesign_by_reaction, None] * X[ireplicate_by_reaction, :]
         ),
         sd=0.05,
-        dims="reaction"
+        dims=("reaction", "cycle"),
     )
 
     P_in_R = pm.Deterministic(
         "P_in_R",
-        S0 * (1 - at.exp(-time_actual[mask_RinRID] * v_reaction[:, None])),
+        S0 * (1 - at.exp(-time_actual[mask_RinRID] * v_reaction)),
         dims=("reaction", "cycle"),
     )
 
