@@ -287,7 +287,7 @@ def build_model(
     if gp_X_factor:
         # The factor / glucose relationship hopefully has a sensitivity at around the order of magnitude of our design space.
         design_idx_glc = coords["design_dim"].index("glucose")
-        ls_X = pm.LogNormal("ls_X", mu=numpy.log(SPAN[design_idx_glc]/2), sd=0.1)
+        ls_X = pm.LogNormal("ls_X", mu=numpy.log(0.25), sd=0.5)
         # Within that design space, the factor possibly varies by ~30 %.
         scaling = pm.LogNormal('scaling_X', mu=numpy.log(0.3), sd=0.1)
         # Now build the GP for the log-factor:
