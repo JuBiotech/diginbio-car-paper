@@ -222,11 +222,14 @@ def plot_gp_X_factor(wd: pathlib.Path):
     idata = arviz.from_netcdf(wd / "trace.nc")
 
     _log.info("Adding high-resolution GP conditional")
-    dense = numpy.linspace(0, 6)
+    dense = numpy.linspace(0.01, 6)
     with pmodel:
+        if "cycle_segment" not in idata.posterior.coords:
+            # The plotting code below only works for models >= 2f12066bcea31f91c26cfe9aac6ec16aeaf58679.
+            raise NotImplementedError("This is an outdated InferenceData file!")
         log_X_factor = pmodel.gp_log_X_factor.conditional(
             "dense_log_X_factor",
-            Xnew=dense[:, None],
+            Xnew=numpy.log10(dense[:, None]),
             dims="dense_glucose",
         )
         X_factor = pm.Deterministic(
@@ -258,7 +261,7 @@ def plot_gp_X_factor(wd: pathlib.Path):
     ax.set(
         ylabel="$X_{end,2mag}\ \ \ [g_\mathrm{biomass}/L]$",
         xlabel="$\mathrm{glucose\ feed\ rate}\ \ \ [g_\mathrm{glucose}/L_\mathrm{reactor}/h]$",
-        xlim=(min(dense), max(dense)),
+        xlim=(0, max(dense)),
     )
     fig.savefig(wd / "plot_gp_X_factor.png")
     pyplot.close()

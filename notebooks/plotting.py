@@ -104,6 +104,7 @@ def plot_group_kinetics(df_layout, df_time, df_360, df_600, group: str):
     fig.tight_layout()
     return fig, axs
 
+
 def plot_gif(
     fn_plot: Callable[[Any], None],
     fp_out: os.PathLike,
@@ -609,6 +610,11 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
         df[name + "_lower"] = None
         df[name] = None
         df[name + "_upper"] = None
+
+        if "cycle" in var.coords:
+            # Newer model versions have cycle-wise v_reaction.
+            # Here we're just interested in the first cycle.
+            var = var.sel(cycle=0)
 
         for rid in df.index:
             if coord == "reaction":
