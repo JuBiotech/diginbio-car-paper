@@ -472,8 +472,12 @@ def plot_reaction(
     metric = "v_reaction"
     ylabel = "initial reaction rate   [mM/h]"
 
+    x = posterior[metric]
+    if "cycle" in x.coords:
+        # Consider cycle-wise metrics only in cycle 0.
+        x = x.sel(cycle=0)
     violins = ax.violinplot(
-        dataset=posterior[metric].sel(reaction=reaction_order).T,
+        dataset=x.sel(reaction=reaction_order).T,
         showextrema=False,
         positions=numpy.arange(len(reaction_order)),
     )
