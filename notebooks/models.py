@@ -404,7 +404,7 @@ def build_model(
         # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
         log_k_design = pmodel.gp_log_k_design.prior(
             "log_k_design",
-            X=X_design,
+            X=X_design_log10,
             size=int(pmodel.dim_lengths["design_id"].eval())
         )
         k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
