@@ -360,11 +360,11 @@ def plot_reaction(
 
     ax = axs[0,0]
     if cm_600 is not None:
-        loc, scale, df = cm_600.predict_dependent(posterior.X.sel(replicate_id=rid).values.T)
+        loc, scale = cm_600.predict_dependent(posterior.X.sel(replicate_id=rid).values.T)
         pm.gp.util.plot_gp_dist(
             ax=ax,
             x=time,
-            samples=scipy.stats.t.rvs(loc=loc, scale=scale, df=df),
+            samples=scipy.stats.norm.rvs(loc=loc, scale=scale),
             plot_samples=False,
             fill_alpha=None,
             palette=cm.Greens,

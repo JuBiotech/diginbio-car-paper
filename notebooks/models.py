@@ -1,6 +1,6 @@
 import aesara
 import logging
-from typing import Dict, Sequence, Union
+from typing import Dict, Optional, Sequence, Tuple, Union
 import pandas
 import calibr8
 import aesara.tensor as at
@@ -10,19 +10,90 @@ import numpy
 
 _log = logging.getLogger(__file__)
 
-class LinearBiomassAbsorbanceModel(calibr8.BasePolynomialModelT):
+
+class BasePolynomialModelN(calibr8.ContinuousUnivariateModel, calibr8.NormalNoise):
+    def __init__(
+        self, *,
+        independent_key: str, dependent_key: str,
+        mu_degree: int, scale_degree: int=0,
+        theta_names: Optional[Tuple[str]]=None,
+    ):
+        if mu_degree == 0:
+            raise ValueError("0-degree (constant) mu calibration models are useless.")
+        self.mu_degree = mu_degree
+        self.scale_degree = scale_degree
+        if theta_names is None:
+            theta_names = tuple(
+                f'mu_{d}'
+                for d in range(mu_degree + 1)
+            ) + tuple(
+                f'scale_{d}'
+                for d in range(scale_degree + 1)
+            )
+        super().__init__(independent_key=independent_key, dependent_key=dependent_key, theta_names=theta_names)
+
+    def predict_dependent(self, x, *, theta=None):
+        if theta is None:
+            theta = self.theta_fitted
+        mu = calibr8.polynomial(x, theta=theta[:self.mu_degree+1])
+        if self.scale_degree == 0:
+            scale = theta[-1]
+        else:
+            scale = calibr8.polynomial(mu, theta=theta[self.mu_degree+1:self.mu_degree+1 + self.scale_degree+1])
+        return mu, scale
+
+    def predict_independent(self, y, *, theta=None):
+        if theta is None:
+            theta = self.theta_fitted
+        if self.mu_degree > 1:
+            raise NotImplementedError('Inverse prediction of higher order polynomials are not implemented.')      
+        a, b = theta[:2]
+        return (y - a) / b
+
+
+class BaseLogIndependentAsymmetricLogisticN(calibr8.ContinuousUnivariateModel, calibr8.NormalNoise):
+    def __init__(
+        self, *,
+        independent_key:str, dependent_key:str,
+        scale_degree:int=0,
+        theta_names: Optional[Tuple[str]]=None,
+    ):
+        self.scale_degree = scale_degree
+        if theta_names is None:
+            theta_names = tuple('L_L,L_U,log_I_x,S,c'.split(',')) + tuple(
+                f'scale_{d}'
+                for d in range(scale_degree + 1)
+            )
+        super().__init__(independent_key, dependent_key, theta_names=theta_names)
+
+    def predict_dependent(self, x, *, theta=None):
+        if theta is None:
+            theta = self.theta_fitted
+        mu = calibr8.xlog_asymmetric_logistic(x, theta[:5])
+        if self.scale_degree == 0:
+            scale = theta[-1]
+        else:
+            scale = calibr8.polynomial(mu, theta[5:])
+        return mu, scale
+
+    def predict_independent(self, y, *, theta=None):
+        if theta is None:
+            theta = self.theta_fitted
+        return calibr8.inverse_xlog_asymmetric_logistic(y, theta[:5])
+
+class LinearBiomassAbsorbanceModel(BasePolynomialModelN):
     def __init__(self, *, independent_key="X", dependent_key="absorbance"):
-        super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=0, theta_names=["intercept", "slope", "sigma", "df"])
+        super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=0, theta_names=["intercept", "slope", "sigma"])
 
 
-class LogisticBiomassAbsorbanceModel(calibr8.BaseLogIndependentAsymmetricLogisticT):
+class LogisticBiomassAbsorbanceModel(BaseLogIndependentAsymmetricLogisticN):
     def __init__(self, *, independent_key="biomass", dependent_key="A600"):
         super().__init__(independent_key=independent_key, dependent_key=dependent_key, scale_degree=1)
 
 
-class LinearProductAbsorbanceModel(calibr8.BasePolynomialModelT):
+class LinearProductAbsorbanceModel(BasePolynomialModelN):
     def __init__(self, *, independent_key="P", dependent_key="absorbance"):
-        super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=0, theta_names=["intercept", "slope", "sigma", "df"])
+        super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, scale_degree=0, theta_names=["intercept", "slope", "sigma"])
 
 
 class BivariateProductCalibration(calibr8.ContinuousMultivariateModel, calibr8.NormalNoise):
@@ -58,8 +129,6 @@ class BivariateProductCalibration(calibr8.ContinuousMultivariateModel, calibr8.N
             values for the mu parameter of a student-t-distribution describing the dependent variable
         scale : array-like or float
             values for the scale parameter of a student-t-distribution describing the dependent variable
-        df : float
-            degree of freedom of student-t-distribution
         """
         if theta is None:
             theta = self.theta_fitted
@@ -440,8 +509,8 @@ def build_model(
     # The absorbance at 360 nm can be predicted as the sum of ABAO shift, product absorbance and biomass absorbance.
 
     # Biomass and product contributions
-    X_loc, X_scale, X_df = cmX_360.predict_dependent(X)
-    P_loc, P_scale, P_df = cmP_360.predict_dependent(P)
+    X_loc, X_scale = cmX_360.predict_dependent(X)
+    P_loc, P_scale = cmP_360.predict_dependent(P)
     A360_of_X = pm.Deterministic("A360_of_X", X_loc, dims=("replicate_id", "cycle"))
     A360_of_P = pm.Deterministic("A360_of_P", P_loc, dims=("replicate_id", "cycle"))
     A360 = pm.Deterministic(
@@ -454,12 +523,10 @@ def build_model(
     pm.Data("obs_A360", obs_A360, dims=("replicate_id", "cycle"))
     obs = pm.Data("obs_A360_notnan", obs_A360[mask_numericA360])
     sigma = pm.Deterministic("sigma", at.sqrt(X_scale**2 + P_scale**2)[mask_numericA360])
-    L_A360 = pm.StudentT(
+    L_A360 = pm.Normal(
         "L_of_A360",
         mu=A360[mask_numericA360],
-        # This 👇 calculates the scale as if the distributions were Normal ⚠
-        sigma=sigma,
-        nu=at.mean([X_df, P_df]),
+        sd=sigma,
         observed=obs
     )
 

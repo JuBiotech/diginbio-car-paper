@@ -39,7 +39,7 @@ def fit_biomass_calibration(wd: pathlib.Path, wavelength: int):
         cm,
         independent=df_cal.index.to_numpy(),
         dependent=df_cal[f"A{wavelength}"].to_numpy(),
-        theta_guess=[0, 5, 0, 2, -1] + [0.01, 0, 2],
+        theta_guess=[0, 2, 0.5, 1.5, -1] + [0.01, 0],
         theta_bounds=[
             (-numpy.inf, 0.2), # L_L
             (1.5, numpy.inf),  # L_U
@@ -48,10 +48,11 @@ def fit_biomass_calibration(wd: pathlib.Path, wavelength: int):
             (-3, 3),           # c
             (0.0001, 0.1),
             (0.0001, 0.1),
-            (1, 30),
         ],
     )
     cm.save(wd / f"cm_biomass_A{wavelength}.json")
+    # Monkeypatch until https://github.com/JuBiotech/calibr8/issues/21 is fixed
+    calibr8.utils.plot_t_band = lambda ax, independent, mu, scale, *args, **kwargs: calibr8.utils.plot_norm_band(ax, independent, mu, scale)
     fig, axs = calibr8.plot_model(cm)
     fig.suptitle(f"Biomass calibration at {wavelength} nm")
     fig.savefig(wd / f"cm_biomass_A{wavelength}.png")
@@ -66,15 +67,16 @@ def fit_product_calibration(wd: pathlib.Path):
         cm,
         independent=df["product"].to_numpy(),
         dependent=df["A360"].to_numpy(),
-        theta_guess=[0.2, 0.5, 0.1, 5],
+        theta_guess=[0.2, 0.5, 0.1],
         theta_bounds=[
             (0, 0.5), # intercept
             (0.2, 1),    # slope
             (0.01, 1),   # scale
-            (1, 30),     # df
         ],
     )
     cm.save(wd / "cm_product_A360.json")
+    # Monkeypatch until https://github.com/JuBiotech/calibr8/issues/21 is fixed
+    calibr8.utils.plot_t_band = lambda ax, independent, mu, scale, *args, **kwargs: calibr8.utils.plot_norm_band(ax, independent, mu, scale)
     fig, axs = calibr8.plot_model(cm)
     fig.suptitle(f"ABAO-product calibration at 360 nm")
     fig.savefig(wd / "cm_product_A360.png")
