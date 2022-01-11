@@ -220,12 +220,16 @@ def plot_kinetics(wd: pathlib.Path):
 
 
 def plot_gp_X_factor(wd: pathlib.Path):
-    pmodel = _build_model(wd)
     idata = arviz.from_netcdf(wd / "trace.nc")
 
+    _log.info("Creating the model")
+    pmodel = _build_model(wd)
+
     _log.info("Adding high-resolution GP conditional")
-    dense = numpy.linspace(0.01, 6)
+    dense = numpy.linspace(0.01, 6, 300)
     with pmodel:
+        _log.info("Adding variables for high-quality predictives")
+
         if "cycle_segment" not in idata.posterior.coords:
             # The plotting code below only works for models >= 2f12066bcea31f91c26cfe9aac6ec16aeaf58679.
             raise NotImplementedError("This is an outdated InferenceData file!")
@@ -246,24 +250,47 @@ def plot_gp_X_factor(wd: pathlib.Path):
         )
 
         _log.info("Sampling posterior predictive")
-        ipp = pm.sample_posterior_predictive(
-            idata, var_names=["dense_log_X_factor", "dense_X_factor", "dense_Xend_2mag"]
+        _log.info("Sampling prior predictive")
+        pprior = pm.sample_prior_predictive(
+            samples=1500,
+            var_names=["Xend_batch", "dense_log_X_factor", "dense_X_factor", "dense_Xend_2mag"],
+            return_inferencedata=False,
         )
+        _log.info("Sampling posterior predictive")
+        pposterior = pm.sample_posterior_predictive(
+            idata,
+            samples=1500,
+            var_names=["dense_log_X_factor", "dense_X_factor", "dense_Xend_2mag"],
+            return_inferencedata=False,
+        )
+        _log.info("Converting to InferenceData")
+        pp = pm.to_inference_data(prior=pprior, posterior_predictive=pposterior)
+        del pprior, pposterior
 
     _log.info("Plotting")
-    fig, ax = pyplot.subplots()
+    fig, axs = pyplot.subplots(dpi=200, ncols=2, figsize=(12, 6), sharey=True)
 
-    pm.gp.util.plot_gp_dist(
-        ax=ax,
-        x=dense,
-        samples=ipp.posterior_predictive["dense_Xend_2mag"].stack(sample=("chain", "draw")).values.T,
-        plot_samples=False,
-        palette=pyplot.cm.Greens,
-    )
-    ax.set(
+    for ax, ds in zip(axs, [pp.prior, pp.posterior_predictive]):
+        stackdims = ("chain", "draw") if "chain" in ds.dims else ("draw",)
+        pm.gp.util.plot_gp_dist(
+            ax=ax,
+            x=dense,
+            samples=ds["dense_Xend_2mag"].stack(sample=stackdims).values.T,
+            plot_samples=True,
+            palette=pyplot.cm.Greens,
+        )
+        ax.set(
+            xlabel="$\mathrm{glucose\ feed\ rate}\ \ \ [g_\mathrm{glucose}/L_\mathrm{reactor}/h]$",
+            xlim=(0, max(dense)),
+        )
+    axs[0].set(
         ylabel="$X_{end,2mag}\ \ \ [g_\mathrm{biomass}/L]$",
-        xlabel="$\mathrm{glucose\ feed\ rate}\ \ \ [g_\mathrm{glucose}/L_\mathrm{reactor}/h]$",
-        xlim=(0, max(dense)),
+        ylim=(0, 1.5),
+        title="prior",
+    )
+    axs[1].set(
+        ylim=(0, 1),
+        title="posterior",
     )
     fig.savefig(wd / "plot_gp_X_factor.png")
     pyplot.close()
