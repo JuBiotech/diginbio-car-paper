@@ -1,0 +1,9 @@
+.markdown-preview.markdown-preview {
+    font-size: 9pt;
+}
+table {
+    font-size: 6pt;
+}
+table, tr, td {
+    border: none;
+}
