@@ -1,11 +1,10 @@
-import arviz
+import pathlib
 import calibr8
-import copy
 import fastprogress
 import io
 import mpl_toolkits
 import pandas
-import pymc as pm
+import pathlib
 import pyrff
 import scipy
 import numpy
@@ -13,7 +12,114 @@ import os
 import xarray
 from PIL import Image
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
-from matplotlib import cm, pyplot
+from matplotlib import cm, pyplot, colors
+
+
+DP_ROOT = pathlib.Path(__file__).absolute().parent.parent
+DP_RESULTS = pathlib.Path(__file__).parent / "results"
+DP_RESULTS.mkdir(exist_ok=True)
+
+# TODO: @Nikolas
+# pyplot.style.use("diginbio")
+
+
+def savefig(fig, name: str, *, facecolor="white", **kwargs):
+    """Saves a bitmapped and vector version of the figure.
+    Parameters
+    ----------
+    fig
+        The figure object.
+    name : str
+        Filename without extension.
+    **kwargs
+        Additional kwargs for `pyplot.savefig`.
+    """
+    if not "facecolor" in kwargs:
+        kwargs["facecolor"] = facecolor
+    max_pixels = numpy.array([2250, 2625])
+    max_dpi = min(max_pixels / fig.get_size_inches())
+    if not "dpi" in kwargs:
+        kwargs["dpi"] = max_dpi
+    fig.savefig(DP_RESULTS / f"{name}.png", **kwargs)
+    fig.savefig(DP_RESULTS / f"{name}.pdf", **kwargs)
+    # Save with & without border to measure the "shrink".
+    # This is needed to rescale the dpi setting such that we get max pixels also without the border.
+    tkwargs = dict(
+        pil_kwargs={"compression": "tiff_lzw"},
+        bbox_inches="tight",
+        pad_inches=0.01,
+    )
+    tkwargs.update(kwargs)
+    fp = str(DP_RESULTS / f"{name}.tif")
+    fig.savefig(fp, **tkwargs)
+    # Measure the size
+    actual = numpy.array(pyplot.imread(fp).shape[:2][::-1])
+    tkwargs["dpi"] = int(tkwargs["dpi"] * min(max_pixels / actual))
+    fig.savefig(fp, **tkwargs)
+    return
+
+
+def to_colormap(dark):
+    N = 256
+    dark = numpy.array((*dark[:3], 1))
+    white = numpy.ones(4)
+    cvals = numpy.array([
+        (1 - n) * white + n * dark
+        for n in numpy.linspace(0, 1, N)
+    ])
+    # add transparency
+    cvals[:, 3] = numpy.linspace(0, 1, N)
+    return colors.ListedColormap(cvals)
+
+
+def transparentify(cmap: colors.Colormap) -> colors.ListedColormap:
+    """Creates a transparent->color version from a standard colormap.
+    
+    Stolen from https://stackoverflow.com/a/37334212/4473230
+    
+    Testing
+    -------
+    x = numpy.arange(256)
+    fig, ax = pyplot.subplots(figsize=(12,1))
+    ax.scatter(x, numpy.ones_like(x) - 0.01, s=100, c=[
+        cm.Reds(v)
+        for v in x
+    ])
+    ax.scatter(x, numpy.ones_like(x) + 0.01, s=100, c=[
+        redsT(v)
+        for v in x
+    ])
+    ax.set_ylim(0.9, 1.1)
+    pyplot.show()
+    """
+    # Get the colormap colors
+    #cm_new = numpy.zeros((256, 4))
+    #cm_new[:, :3] = numpy.array(cmap(cmap.N))[:3]
+    cm_new = numpy.array(cmap(numpy.arange(cmap.N)))
+    cm_new[:, 3] = numpy.linspace(0, 1, cmap.N)
+    return colors.ListedColormap(cm_new)
+
+
+redsT = transparentify(cm.Reds)
+greensT = transparentify(cm.Greens)
+bluesT = transparentify(cm.Blues)
+orangesT = transparentify(cm.Oranges)
+greysT = transparentify(cm.Greys)
+
+
+class FZcolors:
+    red = numpy.array((191, 21, 33)) / 255
+    green = numpy.array((0, 153, 102)) / 255
+    blue = numpy.array((2, 61, 107)) / 255
+    orange = numpy.array((220, 110, 0)) / 255
+
+
+class FZcmaps:
+    red = to_colormap(FZcolors.red)
+    green = to_colormap(FZcolors.green)
+    blue = to_colormap(FZcolors.blue)
+    orange = to_colormap(FZcolors.orange)
+    black = transparentify(cm.Greys)
 
 
 def interesting_groups(posterior) -> Dict[str, List[str]]:
@@ -101,6 +207,7 @@ def plot_group_kinetics(df_layout, df_time, df_360, df_600, group: str):
     )
     fig.tight_layout()
     return fig, axs
+
 
 def plot_gif(
     fn_plot: Callable[[Any], None],
@@ -331,6 +438,8 @@ def plot_reaction(
     reaction_order: Optional[Sequence[str]]=None,
     stacked: bool=True,
 ):
+    import pymc as pm
+
     if reaction_order is None:
         reaction_order = idata.posterior.reaction.values
     reaction_order = list(reaction_order)
@@ -534,6 +643,8 @@ def plot_3d_v_design(idata, azim=-65):
 
 
 def plot_3d_by_design(idata, var_name: str, *, label: str, azim=-65):
+    import arviz
+
     # Extract relevant data arrays
     design_dims = list(idata.constant_data.design_dim.values)
     X = numpy.log10(idata.constant_data.X_design.sel(design_dim=design_dims))
@@ -588,6 +699,8 @@ def p_best_dataarray(var) -> xarray.DataArray:
 
 
 def summarize(idata, df_layout) -> pandas.DataFrame:
+    import arviz
+
     def med_hdi(samples, ci_prob=0.9):
         hdi = arviz.hdi(samples, hdi_prob=ci_prob)
         name = tuple(hdi.data_vars)[0]
