@@ -6,6 +6,7 @@ import calibr8
 import aesara.tensor as at
 import pymc as pm
 import numpy
+import xarray
 
 
 _log = logging.getLogger(__file__)
@@ -80,6 +81,7 @@ class BaseLogIndependentAsymmetricLogisticN(calibr8.ContinuousUnivariateModel, c
         if theta is None:
             theta = self.theta_fitted
         return calibr8.inverse_xlog_asymmetric_logistic(y, theta[:5])
+
 
 class LinearBiomassAbsorbanceModel(BasePolynomialModelN):
     def __init__(self, *, independent_key="X", dependent_key="absorbance"):
@@ -167,6 +169,91 @@ def tidy_coords(
     for dname, rawvals in raw_coords.items():
         coords[dname] = numpy.unique(rawvals)
     return coords
+
+
+def bounds_to_grid(bounds: numpy.ndarray, n: int) -> numpy.ndarray:
+    """Creates an evenly-spaced grid inside bounds of a parameter space.
+
+    Parameters
+    ----------
+    bounds : array-like
+        A 2D array of shape (ndims, 2)
+        containing the (min, max) of the parameter space.
+    n : int
+        Number of steps for the linspace.
+
+    Returns
+    -------
+    grid : ndarray
+        A (n², ndim) shaped array with meshgrid coordinates.
+    """
+    grid = numpy.meshgrid(*[
+        numpy.linspace(lower, upper, n)
+        for lower, upper in bounds
+    ])
+    return numpy.array(grid).reshape(len(bounds), -1).T
+
+
+def reshape_dim(
+    var: xarray.DataArray,
+    *,
+    name: Optional[str]=None,
+    from_dim: str,
+    to_shape: Sequence[int],
+    to_dims: Sequence[str],
+    coords: Optional[Dict[str, Sequence]]=None,
+) -> xarray.DataArray:
+    """Reshapes one of multiple dims of an xarray DataArray.
+
+    Parameters
+    ----------
+    var : xarray.DataArray
+        An xarray array with named dimensions.
+    name : str
+        A name for the new array. Defaults to ``var.name``.
+    from_dim : str
+        The name of the dimension that's to be reshaped.
+    to_shape : array-like
+        Shape into which the ``from_dim`` shall be reshaped.
+    to_dims : array-like
+        Names of the new dimensions.
+    coords : dict, optional
+        (New) coordinate values.
+        If a dname is not in ``coords``, the ``var.coords``
+        is used as a fall-back.  If there's no entry either,
+        a ``numpy.arange`` is used as coordinate values.
+
+    Returns
+    -------
+    arr : xarray.DataArray
+        A new data array with the old data in the new shape.
+    """
+    if not from_dim in var.dims:
+        raise Exception(f"Variable has no dimension '{from_dim}'. Dims are: {var.dims}.")
+    newshape = []
+    newdims = []
+    for dim, length in zip(var.dims, var.shape):
+        if dim != from_dim:
+            newdims.append(dim)
+            newshape.append(length)
+        else:
+            newshape.extend(to_shape)
+            newdims.extend(to_dims)
+    newcoords = {}
+    for dname, dlength in zip(newdims, newshape):
+        if dname in (coords or {}):
+            newcoords[dname] = coords[dname]
+        elif dname in var.coords:
+            newcoords[dname] = var.coords[dname]
+        else:
+            newcoords[dname] = numpy.arange(dlength)
+    assert len(newshape) == len(newdims)
+    return xarray.DataArray(
+        var.values.reshape(*newshape),
+        name=name or var.name,
+        dims=newdims,
+        coords=newcoords
+    )
 
 
 def _add_or_assert_coords(
