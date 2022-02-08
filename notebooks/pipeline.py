@@ -15,6 +15,7 @@ import numpy
 import pandas
 import pymc as pm
 from matplotlib import pyplot
+import xarray
 
 import dataloading
 import models
@@ -294,4 +295,125 @@ def plot_gp_X_factor(wd: pathlib.Path):
     )
     fig.savefig(wd / "plot_gp_X_factor.png")
     pyplot.close()
+    return
+
+
+def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: int=30):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+
+    _log.info("Creating the model")
+    pmodel = _build_model(wd)
+
+    _log.info("Adding high-resolution GP conditional")
+    # Create a dense grid
+    dense_long = xarray.DataArray(
+        models.bounds_to_grid(idata.constant_data.X_design_log10_bounds.values, n),
+        dims=("dense_id", "design_dim"),
+        coords={
+            "dense_id": numpy.arange(n**2),
+            "design_dim": idata.posterior.design_dim.values
+        }
+    )
+    dense_grid = models.reshape_dim(
+        dense_long,
+        from_dim="dense_id",
+        to_shape=(n, n),
+        to_dims=idata.posterior.design_dim.values,
+    )
+    with pmodel:
+        _log.info("Adding variables for high-quality predictives")
+        log_k_design = pmodel.gp_log_k_design.conditional(
+            "dense_log_k_design",
+            Xnew=dense_long.values,
+            dims="dense_id",
+            jitter=pm.gp.util.JITTER_DEFAULT
+        )
+        k_design = pm.Deterministic("dense_k_design", at.exp(log_k_design), dims="dense_id")
+
+        _log.info("Sampling posterior predictive")
+        pp = pm.sample_posterior_predictive(
+            idata,
+            samples=draws,
+            var_names=["dense_log_k_design", "dense_k_design"],
+            return_inferencedata=False
+        )
+        _log.info("Saving to InferenceData")
+        pposterior = pm.to_inference_data(
+            posterior_predictive=pp
+        )
+        # Include the dense grid in the savefile
+        pposterior.posterior_predictive["dense_long"] = dense_long
+        pposterior.posterior_predictive["dense_grid"] = dense_grid
+        pposterior.to_netcdf(wd / "predictive_posterior.nc")
+    return
+
+
+def plot_gp_metric_posterior_predictive(wd: pathlib.Path, label="k_design", var_name="dense_k_design"):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    pposterior = arviz.from_netcdf(wd / "predictive_posterior.nc")
+
+    design_dims = idata.posterior.design_dim.values
+
+    # Extract relevant data arrays
+    design_dims = list(idata.constant_data.design_dim.values)
+    D = len(design_dims)
+    if not D == 2:
+        raise NotImplementedError(f"3D visualization for {D}-dimensional designs is not implemented.")
+    dense_long = pposterior.posterior_predictive["dense_long"]
+    dense_grid = pposterior.posterior_predictive["dense_grid"]
+    BOUNDS = numpy.array([
+        dense_long.min(dim="dense_id"),
+        dense_long.max(dim="dense_id"),
+    ]).T
+
+    # Reshape the long-form arrays into the dense 2D grid
+    gridshape = tuple(
+        dense_grid.sizes[design_dim]
+        for design_dim in design_dims
+    )
+    Z = models.reshape_dim(
+        pposterior.posterior_predictive[var_name],
+        from_dim="dense_id",
+        to_shape=gridshape,
+        to_dims=design_dims,
+    )
+
+    # Take the median and HDI of the samples in grid-layout
+    median = Z.median(("chain", "draw"))
+    hdi = arviz.hdi(Z, hdi_prob=0.9)[var_name]
+
+    def fn_plot(azim=-65):
+        fig = pyplot.figure(dpi=140)
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_xlabel(f'log10({design_dims[0]})')
+        ax.set_ylabel(f'log10({design_dims[1]})')
+        ax.set_zlabel(label)
+
+        # Plot surfaces for lower/median/upper
+        for q, z in [
+            (0.05, hdi.sel(hdi="lower")),
+            (0.5, median),
+            (0.95, hdi.sel(hdi="higher")),
+        ]:
+            ax.plot_surface(
+                dense_grid.sel(design_dim=design_dims[0]).values,
+                dense_grid.sel(design_dim=design_dims[1]).values,
+                z.values,
+                cmap=pyplot.cm.autumn,
+                linewidth=0,
+                antialiased=False,
+                alpha=1 - abs(q/100 - 0.5) - 0.25
+            )
+        ax.view_init(elev=25, azim=azim)
+        return fig, [[ax]]
+
+    def fn_plot3d(t):
+        fn_plot(azim=-45+30*numpy.sin(t*2*numpy.pi))
+    plotting.plot_gif(
+        fn_plot=fn_plot3d,
+        fp_out=wd / f"plot_3d_pp_{var_name}.gif",
+        data=numpy.arange(0, 1, 1/60),
+        fps=15,
+        delay_frames=0
+    )
     return
