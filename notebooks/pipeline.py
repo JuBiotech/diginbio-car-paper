@@ -15,6 +15,7 @@ import numpy
 import pandas
 import pymc as pm
 from matplotlib import pyplot
+import xarray
 
 import dataloading
 import models
@@ -39,7 +40,7 @@ def fit_biomass_calibration(wd: pathlib.Path, wavelength: int):
         cm,
         independent=df_cal.index.to_numpy(),
         dependent=df_cal[f"A{wavelength}"].to_numpy(),
-        theta_guess=[0, 5, 0, 2, -1] + [0.01, 0, 2],
+        theta_guess=[0, 2, 0.5, 1.5, -1] + [0.01, 0],
         theta_bounds=[
             (-numpy.inf, 0.2), # L_L
             (1.5, numpy.inf),  # L_U
@@ -48,10 +49,11 @@ def fit_biomass_calibration(wd: pathlib.Path, wavelength: int):
             (-3, 3),           # c
             (0.0001, 0.1),
             (0.0001, 0.1),
-            (1, 30),
         ],
     )
     cm.save(wd / f"cm_biomass_A{wavelength}.json")
+    # Monkeypatch until https://github.com/JuBiotech/calibr8/issues/21 is fixed
+    calibr8.utils.plot_t_band = lambda ax, independent, mu, scale, *args, **kwargs: calibr8.utils.plot_norm_band(ax, independent, mu, scale)
     fig, axs = calibr8.plot_model(cm)
     fig.suptitle(f"Biomass calibration at {wavelength} nm")
     fig.savefig(wd / f"cm_biomass_A{wavelength}.png")
@@ -66,15 +68,16 @@ def fit_product_calibration(wd: pathlib.Path):
         cm,
         independent=df["product"].to_numpy(),
         dependent=df["A360"].to_numpy(),
-        theta_guess=[0.2, 0.5, 0.1, 5],
+        theta_guess=[0.2, 0.5, 0.1],
         theta_bounds=[
             (0, 0.5), # intercept
             (0.2, 1),    # slope
             (0.01, 1),   # scale
-            (1, 30),     # df
         ],
     )
     cm.save(wd / "cm_product_A360.json")
+    # Monkeypatch until https://github.com/JuBiotech/calibr8/issues/21 is fixed
+    calibr8.utils.plot_t_band = lambda ax, independent, mu, scale, *args, **kwargs: calibr8.utils.plot_norm_band(ax, independent, mu, scale)
     fig, axs = calibr8.plot_model(cm)
     fig.suptitle(f"ABAO-product calibration at 360 nm")
     fig.savefig(wd / "cm_product_A360.png")
@@ -145,6 +148,8 @@ def fit_model(wd: pathlib.Path, **sample_kwargs):
     #_log.info("Saving the model graph")
     #modelgraph.render(filename=str(wd / "model.pdf"), format="pdf")
 
+    sample_kwargs.setdefault("discard_tuned_samples", False)
+
     _log.info("Running MCMC")
     with pmodel:
         idata = pm.sample(**sample_kwargs)
@@ -165,13 +170,20 @@ def plot_trace(wd: pathlib.Path):
     idata = arviz.from_netcdf(wd / "trace.nc")
     groups = plotting.interesting_groups(idata.posterior)
     for title, vars in groups.items():
-        _log.info("Plotting trace group %s with variables %s", title, vars)
-        axs = arviz.plot_trace(idata, var_names=vars)
-        fig = pyplot.gcf()
-        fig.suptitle(title)
-        fig.tight_layout()
-        fig.savefig(wd / f"plot_trace_{title}.png")
-        pyplot.close()
+        for key, prefix in [
+            ("posterior", "plot_trace"),
+            ("warmup_posterior", "plot_warmup"),
+        ]:
+            if not key in idata:
+                _log.warning("InferenceData object has no group %s.", key)
+                continue
+            _log.info("Plotting %s group %s with variables %s", key, title, vars)
+            axs = arviz.plot_trace(idata[key], var_names=vars)
+            fig = pyplot.gcf()
+            fig.suptitle(title)
+            fig.tight_layout()
+            fig.savefig(wd / f"{prefix}_{title}.png")
+            pyplot.close()
     return
 
 
@@ -209,15 +221,22 @@ def plot_kinetics(wd: pathlib.Path):
 
 
 def plot_gp_X_factor(wd: pathlib.Path):
-    pmodel = _build_model(wd)
     idata = arviz.from_netcdf(wd / "trace.nc")
 
+    _log.info("Creating the model")
+    pmodel = _build_model(wd)
+
     _log.info("Adding high-resolution GP conditional")
-    dense = numpy.linspace(0, 6)
+    dense = numpy.linspace(0.01, 6, 300)
     with pmodel:
+        _log.info("Adding variables for high-quality predictives")
+
+        if "cycle_segment" not in idata.posterior.coords:
+            # The plotting code below only works for models >= 2f12066bcea31f91c26cfe9aac6ec16aeaf58679.
+            raise NotImplementedError("This is an outdated InferenceData file!")
         log_X_factor = pmodel.gp_log_X_factor.conditional(
             "dense_log_X_factor",
-            Xnew=dense[:, None],
+            Xnew=numpy.log10(dense[:, None]),
             dims="dense_glucose",
         )
         X_factor = pm.Deterministic(
@@ -232,25 +251,169 @@ def plot_gp_X_factor(wd: pathlib.Path):
         )
 
         _log.info("Sampling posterior predictive")
-        ipp = pm.sample_posterior_predictive(
-            idata, var_names=["dense_log_X_factor", "dense_X_factor", "dense_Xend_2mag"]
+        _log.info("Sampling prior predictive")
+        pprior = pm.sample_prior_predictive(
+            samples=1500,
+            var_names=["Xend_batch", "dense_log_X_factor", "dense_X_factor", "dense_Xend_2mag"],
+            return_inferencedata=False,
         )
+        _log.info("Sampling posterior predictive")
+        pposterior = pm.sample_posterior_predictive(
+            idata,
+            samples=1500,
+            var_names=["dense_log_X_factor", "dense_X_factor", "dense_Xend_2mag"],
+            return_inferencedata=False,
+        )
+        _log.info("Converting to InferenceData")
+        pp = pm.to_inference_data(prior=pprior, posterior_predictive=pposterior)
+        del pprior, pposterior
 
     _log.info("Plotting")
-    fig, ax = pyplot.subplots()
+    fig, axs = pyplot.subplots(dpi=200, ncols=2, figsize=(12, 6), sharey=True)
 
-    pm.gp.util.plot_gp_dist(
-        ax=ax,
-        x=dense,
-        samples=ipp.posterior_predictive["dense_Xend_2mag"].stack(sample=("chain", "draw")).values.T,
-        plot_samples=False,
-        palette=pyplot.cm.Greens,
-    )
-    ax.set(
+    for ax, ds in zip(axs, [pp.prior, pp.posterior_predictive]):
+        stackdims = ("chain", "draw") if "chain" in ds.dims else ("draw",)
+        pm.gp.util.plot_gp_dist(
+            ax=ax,
+            x=dense,
+            samples=ds["dense_Xend_2mag"].stack(sample=stackdims).values.T,
+            plot_samples=True,
+            palette=pyplot.cm.Greens,
+        )
+        ax.set(
+            xlabel="$\mathrm{glucose\ feed\ rate}\ \ \ [g_\mathrm{glucose}/L_\mathrm{reactor}/h]$",
+            xlim=(0, max(dense)),
+        )
+    axs[0].set(
         ylabel="$X_{end,2mag}\ \ \ [g_\mathrm{biomass}/L]$",
-        xlabel="$\mathrm{glucose\ feed\ rate}\ \ \ [g_\mathrm{glucose}/L_\mathrm{reactor}/h]$",
-        xlim=(min(dense), max(dense)),
+        ylim=(0, 1.5),
+        title="prior",
+    )
+    axs[1].set(
+        ylim=(0, 1),
+        title="posterior",
     )
     fig.savefig(wd / "plot_gp_X_factor.png")
     pyplot.close()
+    return
+
+
+def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: int=30):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+
+    _log.info("Creating the model")
+    pmodel = _build_model(wd)
+
+    _log.info("Adding high-resolution GP conditional")
+    # Create a dense grid
+    dense_long = xarray.DataArray(
+        models.bounds_to_grid(idata.constant_data.X_design_log10_bounds.values, n),
+        dims=("dense_id", "design_dim"),
+        coords={
+            "dense_id": numpy.arange(n**2),
+            "design_dim": idata.posterior.design_dim.values
+        }
+    )
+    dense_grid = models.reshape_dim(
+        dense_long,
+        from_dim="dense_id",
+        to_shape=(n, n),
+        to_dims=idata.posterior.design_dim.values,
+    )
+    with pmodel:
+        _log.info("Adding variables for high-quality predictives")
+        log_k_design = pmodel.gp_log_k_design.conditional(
+            "dense_log_k_design",
+            Xnew=dense_long.values,
+            dims="dense_id",
+            jitter=pm.gp.util.JITTER_DEFAULT
+        )
+        k_design = pm.Deterministic("dense_k_design", at.exp(log_k_design), dims="dense_id")
+
+        _log.info("Sampling posterior predictive")
+        pp = pm.sample_posterior_predictive(
+            idata,
+            samples=draws,
+            var_names=["dense_log_k_design", "dense_k_design"],
+            return_inferencedata=False
+        )
+        _log.info("Saving to InferenceData")
+        pposterior = pm.to_inference_data(
+            posterior_predictive=pp
+        )
+        # Include the dense grid in the savefile
+        pposterior.posterior_predictive["dense_long"] = dense_long
+        pposterior.posterior_predictive["dense_grid"] = dense_grid
+        pposterior.to_netcdf(wd / "predictive_posterior.nc")
+    return
+
+
+def plot_gp_metric_posterior_predictive(wd: pathlib.Path, label="k_design", var_name="dense_k_design"):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    pposterior = arviz.from_netcdf(wd / "predictive_posterior.nc")
+
+    design_dims = idata.posterior.design_dim.values
+
+    # Extract relevant data arrays
+    design_dims = list(idata.constant_data.design_dim.values)
+    D = len(design_dims)
+    if not D == 2:
+        raise NotImplementedError(f"3D visualization for {D}-dimensional designs is not implemented.")
+    dense_long = pposterior.posterior_predictive["dense_long"]
+    dense_grid = pposterior.posterior_predictive["dense_grid"]
+    BOUNDS = numpy.array([
+        dense_long.min(dim="dense_id"),
+        dense_long.max(dim="dense_id"),
+    ]).T
+
+    # Reshape the long-form arrays into the dense 2D grid
+    gridshape = tuple(
+        dense_grid.sizes[design_dim]
+        for design_dim in design_dims
+    )
+    Z = models.reshape_dim(
+        pposterior.posterior_predictive[var_name],
+        from_dim="dense_id",
+        to_shape=gridshape,
+        to_dims=design_dims,
+    )
+
+    # Take the median and HDI of the samples in grid-layout
+    median = Z.median(("chain", "draw"))
+    hdi = arviz.hdi(Z, hdi_prob=0.9)[var_name]
+
+    def fn_plot(azim=-65):
+        fig = pyplot.figure(dpi=140)
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_xlabel(f'log10({design_dims[0]})')
+        ax.set_ylabel(f'log10({design_dims[1]})')
+        ax.set_zlabel(label)
+
+        # Plot surfaces for lower/median/upper
+        for q, z in [
+            (0.05, hdi.sel(hdi="lower")),
+            (0.5, median),
+            (0.95, hdi.sel(hdi="higher")),
+        ]:
+            ax.plot_surface(
+                dense_grid.sel(design_dim=design_dims[0]).values,
+                dense_grid.sel(design_dim=design_dims[1]).values,
+                z.values,
+                cmap=pyplot.cm.autumn,
+                linewidth=0,
+                antialiased=False,
+                alpha=1 - abs(q/100 - 0.5) - 0.25
+            )
+        ax.view_init(elev=25, azim=azim)
+        return fig, [[ax]]
+
+    def fn_plot3d(t):
+        fn_plot(azim=-45+30*numpy.sin(t*2*numpy.pi))
+    plotting.plot_gif(
+        fn_plot=fn_plot3d,
+        fp_out=wd / f"plot_3d_pp_{var_name}.gif",
+        data=numpy.arange(0, 1, 1/60),
+        fps=15,
+        delay_frames=0
+    )
     return

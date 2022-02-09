@@ -127,14 +127,16 @@ def interesting_groups(posterior) -> Dict[str, List[str]]:
     var_groups = {
         "biomass": [
             "X0_batch",
-            "ls_X,scaling_X,log_X_factor||X-factor",
+            "Xend_batch",
             "Xend_dasgip",
+            "ls_X,scaling_X,X_factor||X_factor",
             "logdXdc|X",
+            "mu_t|X",
         ],
         "biotransformation": [
             "S0",
             "time_delay",
-            "ls_k_design,scaling_k_design,log_k_design||k_design",
+            "ls_k_design,scaling_k_design,k_design||k_design",
             "run_effect",
             "v_reaction",
         ],
@@ -466,11 +468,11 @@ def plot_reaction(
 
     ax = axs[0,0]
     if cm_600 is not None:
-        loc, scale, df = cm_600.predict_dependent(posterior.X.sel(replicate_id=rid).values.T)
+        loc, scale = cm_600.predict_dependent(posterior.X.sel(replicate_id=rid).values.T)
         pm.gp.util.plot_gp_dist(
             ax=ax,
             x=time,
-            samples=scipy.stats.t.rvs(loc=loc, scale=scale, df=df),
+            samples=scipy.stats.norm.rvs(loc=loc, scale=scale),
             plot_samples=False,
             fill_alpha=None,
             palette=cm.Greens,
@@ -578,8 +580,12 @@ def plot_reaction(
     metric = "v_reaction"
     ylabel = "initial reaction rate   [mM/h]"
 
+    x = posterior[metric]
+    if "cycle" in x.coords:
+        # Consider cycle-wise metrics only in cycle 0.
+        x = x.sel(cycle=0)
     violins = ax.violinplot(
-        dataset=posterior[metric].sel(reaction=reaction_order).T,
+        dataset=x.sel(reaction=reaction_order).T,
         showextrema=False,
         positions=numpy.arange(len(reaction_order)),
     )
@@ -720,6 +726,11 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
         df[name + "_lower"] = None
         df[name] = None
         df[name + "_upper"] = None
+
+        if "cycle" in var.coords:
+            # Newer model versions have cycle-wise v_reaction.
+            # Here we're just interested in the first cycle.
+            var = var.sel(cycle=0)
 
         for rid in df.index:
             if coord == "reaction":
