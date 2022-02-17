@@ -207,10 +207,8 @@ def o2_plot(low_feed_position, medium_feed_position, high_feed_position):
     ax[0].yaxis.set_ticks(np.arange(0, 100.001, 20))
 
     savefig(fig1, "O2_overview")
-    #fig1.savefig(fr'{figure_path}\O2_overview.png', dpi = 800, bbox_inches='tight')
     
 if __name__ == "__main__":
-    plt.style.use('BIOVT_TUM')
     low_feed_position =15 # f2
     medium_feed_position = 25 #b4
     high_feed_position = 12 # e2

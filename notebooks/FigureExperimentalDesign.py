@@ -32,5 +32,5 @@ def ExperimentalDesign():
     
 
 if __name__ == "__main__":
-    plt.style.use('BIOVT_TUM')
+    #plt.style.use('BIOVT_TUM')
     ExperimentalDesign()
