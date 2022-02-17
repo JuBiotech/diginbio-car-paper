@@ -16,14 +16,14 @@ from matplotlib import cm, pyplot, colors
 
 
 DP_ROOT = pathlib.Path(__file__).absolute().parent.parent
-DP_RESULTS = pathlib.Path(__file__).parent / "results"
+DP_RESULTS = DP_ROOT / "results"
 DP_RESULTS.mkdir(exist_ok=True)
 
 # TODO: @Nikolas
 # pyplot.style.use("diginbio")
 
 
-def savefig(fig, name: str, *, facecolor="white", **kwargs):
+def savefig(fig, name: str, *, wd=DP_RESULTS, facecolor="white", **kwargs):
     """Saves a bitmapped and vector version of the figure.
     Parameters
     ----------
@@ -40,8 +40,8 @@ def savefig(fig, name: str, *, facecolor="white", **kwargs):
     max_dpi = min(max_pixels / fig.get_size_inches())
     if not "dpi" in kwargs:
         kwargs["dpi"] = max_dpi
-    fig.savefig(DP_RESULTS / f"{name}.png", **kwargs)
-    fig.savefig(DP_RESULTS / f"{name}.pdf", **kwargs)
+    fig.savefig(wd / f"{name}.png", **kwargs)
+    fig.savefig(wd / f"{name}.pdf", **kwargs)
     # Save with & without border to measure the "shrink".
     # This is needed to rescale the dpi setting such that we get max pixels also without the border.
     tkwargs = dict(
@@ -50,7 +50,7 @@ def savefig(fig, name: str, *, facecolor="white", **kwargs):
         pad_inches=0.01,
     )
     tkwargs.update(kwargs)
-    fp = str(DP_RESULTS / f"{name}.tif")
+    fp = str(wd / f"{name}.tif")
     fig.savefig(fp, **tkwargs)
     # Measure the size
     actual = numpy.array(pyplot.imread(fp).shape[:2][::-1])

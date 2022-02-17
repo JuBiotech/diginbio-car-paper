@@ -348,7 +348,11 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
     return
 
 
-def plot_gp_metric_posterior_predictive(wd: pathlib.Path, label="k_design", var_name="dense_k_design"):
+def plot_gp_metric_posterior_predictive(
+    wd: pathlib.Path,
+    label=r"$\mathrm{specific\ activity\ [\frac{mM}{h} / \frac{g_{CDW}}{L}]}$",
+    var_name="dense_k_design",
+):
     idata = arviz.from_netcdf(wd / "trace.nc")
     pposterior = arviz.from_netcdf(wd / "predictive_posterior.nc")
 
@@ -382,11 +386,14 @@ def plot_gp_metric_posterior_predictive(wd: pathlib.Path, label="k_design", var_
     median = Z.median(("chain", "draw"))
     hdi = arviz.hdi(Z, hdi_prob=0.9)[var_name]
 
+    assert design_dims[0] == "glucose"
+    assert design_dims[1] == "iptg"
+
     def fn_plot(azim=-65):
         fig = pyplot.figure(dpi=140)
         ax = fig.add_subplot(111, projection='3d')
-        ax.set_xlabel(f'log10({design_dims[0]})')
-        ax.set_ylabel(f'log10({design_dims[1]})')
+        ax.set_xlabel(r"$\mathrm{log_{10}(glucose\ feed\ rate\ [g/L/h])}$")
+        ax.set_ylabel(r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$")
         ax.set_zlabel(label)
 
         # Plot surfaces for lower/median/upper
@@ -406,6 +413,10 @@ def plot_gp_metric_posterior_predictive(wd: pathlib.Path, label="k_design", var_
             )
         ax.view_init(elev=25, azim=azim)
         return fig, [[ax]]
+
+    fig, _ = fn_plot()
+    plotting.savefig(fig, f"plot_3d_pp_{var_name}", wd=wd)
+    pyplot.close()
 
     def fn_plot3d(t):
         fn_plot(azim=-45+30*numpy.sin(t*2*numpy.pi))
