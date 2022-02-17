@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 import pathlib
+from plotting import savefig
 
 def ExperimentalDesign():
     """ This function plots the experimental design data for the CAR cultivation
@@ -26,7 +27,8 @@ def ExperimentalDesign():
 
     ax.set_ylabel('Feed rate, g L$^{-1}$ h$^{-1}$')
     ax.set_xlabel('IPTG, $\mu$M')
-    fig1.savefig(fr"{parent_path}\results\ExpDesign.png",  dpi = 600, bbox_inches='tight')
+    savefig(fig1, "ExpDesign")
+    #fig1.savefig(fr"{parent_path}\results\ExpDesign.png",  dpi = 600, bbox_inches='tight')
     
 
 if __name__ == "__main__":
