@@ -52,11 +52,25 @@ def fit_biomass_calibration(wd: pathlib.Path, wavelength: int):
         ],
     )
     cm.save(wd / f"cm_biomass_A{wavelength}.json")
-    # Monkeypatch until https://github.com/JuBiotech/calibr8/issues/21 is fixed
-    calibr8.utils.plot_t_band = lambda ax, independent, mu, scale, *args, **kwargs: calibr8.utils.plot_norm_band(ax, independent, mu, scale)
+    return
+
+
+def plot_biomass_calibration(wd: pathlib.Path, wavelength: int):
+    cm = models.LogisticBiomassAbsorbanceModel.load(wd / f"cm_biomass_A{wavelength}.json")
     fig, axs = calibr8.plot_model(cm)
-    fig.suptitle(f"Biomass calibration at {wavelength} nm")
-    fig.savefig(wd / f"cm_biomass_A{wavelength}.png")
+    xlabel = r"$\mathrm{biomass\ concentration\ [\frac{g_{CDW}}{L}]}$"
+    axs[0].set(
+        ylabel=r"$\mathrm{absorbance_{%s\ nm}}\ [-]$" % wavelength,
+        xlabel=xlabel,
+    )
+    axs[1].set(
+        xlabel=xlabel,
+    )
+    axs[2].set(
+        ylabel=r"$\mathrm{absolute\ residual\ [-]}$",
+        xlabel=xlabel,
+    )
+    plotting.savefig(fig, f"cm_biomass_A{wavelength}", wd=wd)
     pyplot.close()
     return
 
@@ -76,11 +90,25 @@ def fit_product_calibration(wd: pathlib.Path):
         ],
     )
     cm.save(wd / "cm_product_A360.json")
-    # Monkeypatch until https://github.com/JuBiotech/calibr8/issues/21 is fixed
-    calibr8.utils.plot_t_band = lambda ax, independent, mu, scale, *args, **kwargs: calibr8.utils.plot_norm_band(ax, independent, mu, scale)
+    return
+
+
+def plot_product_calibration(wd: pathlib.Path):
+    cm = models.LinearProductAbsorbanceModel.load(wd / "cm_product_A360.json")
     fig, axs = calibr8.plot_model(cm)
-    fig.suptitle(f"ABAO-product calibration at 360 nm")
-    fig.savefig(wd / "cm_product_A360.png")
+    xlabel = r"$\mathrm{product\ concentration\ [mM]}$"
+    axs[0].set(
+        ylabel=r"$\mathrm{absorbance_{360\ nm}}\ [-]$",
+        xlabel=xlabel,
+    )
+    axs[1].set(
+        xlabel=xlabel,
+    )
+    axs[2].set(
+        ylabel=r"$\mathrm{absolute\ residual\ [-]}$",
+        xlabel=xlabel,
+    )
+    plotting.savefig(fig, f"cm_product_A360", wd=wd)
     pyplot.close()
     return
 
