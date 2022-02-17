@@ -13,13 +13,12 @@ import xarray
 from PIL import Image
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 from matplotlib import cm, pyplot, colors
-pyplot.style.use('BIOVT_TUM.mplstyle')
 
 DP_ROOT = pathlib.Path(__file__).absolute().parent.parent
 DP_RESULTS = DP_ROOT / "results"
 DP_RESULTS.mkdir(exist_ok=True)
 
-
+pyplot.style.use(DP_ROOT / "notebooks" / "DigInBio.mplstyle")
 
 
 def savefig(fig, name: str, *, wd=DP_RESULTS, facecolor="white", **kwargs):
