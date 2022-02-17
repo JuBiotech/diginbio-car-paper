@@ -13,14 +13,13 @@ import xarray
 from PIL import Image
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 from matplotlib import cm, pyplot, colors
-
+pyplot.style.use('BIOVT_TUM.mplstyle')
 
 DP_ROOT = pathlib.Path(__file__).absolute().parent.parent
 DP_RESULTS = DP_ROOT / "results"
 DP_RESULTS.mkdir(exist_ok=True)
 
-# TODO: @Nikolas
-# pyplot.style.use("diginbio")
+
 
 
 def savefig(fig, name: str, *, wd=DP_RESULTS, facecolor="white", **kwargs):
@@ -34,6 +33,7 @@ def savefig(fig, name: str, *, wd=DP_RESULTS, facecolor="white", **kwargs):
     **kwargs
         Additional kwargs for `pyplot.savefig`.
     """
+
     if not "facecolor" in kwargs:
         kwargs["facecolor"] = facecolor
     max_pixels = numpy.array([2250, 2625])
