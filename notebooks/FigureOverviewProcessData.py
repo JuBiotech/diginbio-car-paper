@@ -11,6 +11,7 @@ import csv
 import bisect
 import time
 import pathlib
+from plotting import savefig
 
 def get_times(dataframe, filename):
     times = pandas.to_datetime(dataframe['Timestamp'], format = "%Y-%m-%d  %H:%M:%S")
@@ -141,8 +142,9 @@ def btm_overview():
     ax[0].legend()
     ax[1].legend()
     ax[2].legend()
-    
-    fig1.savefig(fr'{figure_path}\btm_overview.png', dpi = 800, bbox_inches='tight')
+
+    savefig(fig1, "btm_overview")
+    #fig1.savefig(fr'{figure_path}\btm_overview.png', dpi = 800, bbox_inches='tight')
 
 
 def ph_plot(low_feed_position, medium_feed_position, high_feed_position):
@@ -165,12 +167,17 @@ def ph_plot(low_feed_position, medium_feed_position, high_feed_position):
 
     ax[0].set_ylim(5,9)
     ax[2].set_xlim(0, 18)
+
+    ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
+
+    
     ax[0].set_ylabel("pH, -")
     ax[1].set_ylabel("pH, -")
     ax[2].set_ylabel("pH, -")
     ax[2].set_xlabel("Time, h")
-    
-    fig1.savefig(fr'{figure_path}\pH_overview.png', dpi = 800, bbox_inches='tight')
+
+    savefig(fig1, "pH_overview")
+    #fig1.savefig(fr'{figure_path}\pH_overview.png', dpi = 800, bbox_inches='tight')
 
 def o2_plot(low_feed_position, medium_feed_position, high_feed_position):
     fig1, ax = plt.subplots(nrows=3, ncols=1, sharex= True, sharey = True, figsize=(7,10))
@@ -198,10 +205,10 @@ def o2_plot(low_feed_position, medium_feed_position, high_feed_position):
     ax[2].set_xlabel("Time, h")
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
     ax[0].yaxis.set_ticks(np.arange(0, 100.001, 20))
-    fig1.savefig(fr'{figure_path}\O2_overview.png', dpi = 800, bbox_inches='tight')
+
+    savefig(fig1, "O2_overview")
     
 if __name__ == "__main__":
-    plt.style.use('BIOVT_TUM')
     low_feed_position =15 # f2
     medium_feed_position = 25 #b4
     high_feed_position = 12 # e2
