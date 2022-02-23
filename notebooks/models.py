@@ -205,7 +205,6 @@ def build_model(
     cmX_600: calibr8.CalibrationModel,
     cmP_360: calibr8.CalibrationModel,
     *,
-    gp_k_design: bool,
     design_cols: Sequence[str],
 ):
     """Constructs the full model for the analysis of one biotransformation experiment.
@@ -234,9 +233,6 @@ def build_model(
         A calibration model fitted for absolute biomass vs. absorbance at 600 nm.
     cmP_360 : calibr8.CalibrationModel
         A calibration model fitted for absolute ABAO reaction product vs. absorbance at 360 nm.
-    gp_k_design : bool
-        If `True` a gaussian process model will describe the design-wise specific activity.
-        Otherwise design-wise specific activities will be indepdent of each other.
     design_cols : array-like
         Names of columns that describe the experimental design.
     """
@@ -446,32 +442,29 @@ def build_model(
     time_delay = pm.HalfNormal("time_delay", sd=0.1)
     time_actual = time + time_delay
 
-    if not gp_k_design:
-        k_design = pm.HalfNormal("k_design", sd=1.5, dims="design_id")
-    else:
-        # Build a GP model of the underlying k, based on glucose and IPTG alone
-        ls_k_design = pm.Lognormal('ls_k_design', mu=numpy.log(SPAN/2), sd=0.5, dims="design_dim")
+    # Build a GP model of the underlying k, based on glucose and IPTG alone
+    ls_k_design = pm.Lognormal('ls_k_design', mu=numpy.log(SPAN/2), sd=0.5, dims="design_dim")
 
-        # The reaction rate k must be strictly positive. So our GP must describe log(k).
-        # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
-        # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
-        scaling_k_design = pm.Lognormal('scaling_k_design', mu=numpy.log(0.7), sd=0.2)
+    # The reaction rate k must be strictly positive. So our GP must describe log(k).
+    # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
+    # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
+    scaling_k_design = pm.Lognormal('scaling_k_design', mu=numpy.log(0.7), sd=0.2)
 
-        # the literature describes RFFs only for 0 mean !!!
-        mean_func = pm.gp.mean.Zero()
-        cov_func = scaling_k_design**2 * pm.gp.cov.ExpQuad(
-            input_dim=len(BOUNDS),
-            ls=ls_k_design
-        )
-        pmodel.gp_log_k_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
-        
-        # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
-        log_k_design = pmodel.gp_log_k_design.prior(
-            "log_k_design",
-            X=X_design_log10,
-            size=int(pmodel.dim_lengths["design_id"].eval())
-        )
-        k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
+    # the literature describes RFFs only for 0 mean !!!
+    mean_func = pm.gp.mean.Zero()
+    cov_func = scaling_k_design**2 * pm.gp.cov.ExpQuad(
+        input_dim=len(BOUNDS),
+        ls=ls_k_design
+    )
+    pmodel.gp_log_k_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+    
+    # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
+    log_k_design = pmodel.gp_log_k_design.prior(
+        "log_k_design",
+        X=X_design_log10,
+        size=int(pmodel.dim_lengths["design_id"].eval())
+    )
+    k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
 
     run_effect = pm.Lognormal("run_effect", mu=0, sd=0.1, dims="run")
     v_reaction = pm.Lognormal(

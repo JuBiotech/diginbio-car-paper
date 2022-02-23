@@ -161,7 +161,6 @@ def _build_model(wd: pathlib.Path):
             cmX360,
             cmX600,
             cmP360,
-            gp_k_design=True,
             design_cols=DESIGN_COLS,
         )
     return pmodel
