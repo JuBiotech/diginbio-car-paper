@@ -206,7 +206,6 @@ def build_model(
     cmP_360: calibr8.CalibrationModel,
     *,
     gp_k_design: bool,
-    random_walk_X: bool,
     design_cols: Sequence[str],
 ):
     """Constructs the full model for the analysis of one biotransformation experiment.
@@ -238,10 +237,6 @@ def build_model(
     gp_k_design : bool
         If `True` a gaussian process model will describe the design-wise specific activity.
         Otherwise design-wise specific activities will be indepdent of each other.
-    random_walk_X : bool
-        If `True` the cycle-wise biomass concentration in each reaction well
-        will be described by a Gaussian random walk of cycle-wise growth factor.
-        Otherwise the cycle-wise biomasses will be independent of each other.
     design_cols : array-like
         Names of columns that describe the experimental design.
     """
@@ -414,37 +409,28 @@ def build_model(
         dims="replicate_id",
     )
 
-    if random_walk_X:
-        # Describe biomass growth with a random walk
-        # TODO: Double check indexing/slicing to make sure that
-        #       1. the coords interpretation matches
-        #       2. the GRW doesn't have unidentifiable entries
-        #       3. there's no redundant parametrization of the first cycle biomass
-        mu_t__diff = pm.Normal(
-            'mu_t__diff',
-            mu=0, sd=0.1,
-            dims=("replicate_id", "cycle_segment")
-        )
-        mu_t = pm.Deterministic(
-            "mu_t",
-            at.cumsum(mu_t__diff, axis=1),
-            dims=("replicate_id", "cycle_segment")
-        )
-        X = pm.Deterministic(
-            "X", at.concatenate([
-                X0_replicate[:, None],
-                X0_replicate[:, None] * at.exp(at.cumsum(mu_t * dt, axis=1)),
-            ], axis=1),
-            dims=("replicate_id", "cycle"),
-        )
-    else:
-        # Cycle-wise biomasses are just centered around the initial biomass hyperprior
-        X = pm.LogNormal(
-            "X",
-            mu=at.repeat(at.log(X0_replicate)[:, None], repeats=len(coords["cycle"]), axis=1),
-            sd=0.2,
-            dims=("replicate_id", "cycle"),
-        )
+    # Describe biomass growth with a random walk
+    # TODO: Double check indexing/slicing to make sure that
+    #       1. the coords interpretation matches
+    #       2. the GRW doesn't have unidentifiable entries
+    #       3. there's no redundant parametrization of the first cycle biomass
+    mu_t__diff = pm.Normal(
+        'mu_t__diff',
+        mu=0, sd=0.1,
+        dims=("replicate_id", "cycle_segment")
+    )
+    mu_t = pm.Deterministic(
+        "mu_t",
+        at.cumsum(mu_t__diff, axis=1),
+        dims=("replicate_id", "cycle_segment")
+    )
+    X = pm.Deterministic(
+        "X", at.concatenate([
+            X0_replicate[:, None],
+            X0_replicate[:, None] * at.exp(at.cumsum(mu_t * dt, axis=1)),
+        ], axis=1),
+        dims=("replicate_id", "cycle"),
+    )
 
     # The initial substrate concentration is 👇 mM,
     # but we wouldn't be surprised if it was    ~10 % 👇 off.
