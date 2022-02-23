@@ -318,31 +318,31 @@ def build_model(
     i = TidySlices(df_layout, coords)
 
     # store some of these
-    pm.Data("irun_by_reaction", i.run_by_reaction, dims="reaction")
-    pm.Data("idesign_by_reaction", i.design_by_reaction, dims="reaction")
+    pm.ConstantData("irun_by_reaction", i.run_by_reaction, dims="reaction")
+    pm.ConstantData("idesign_by_reaction", i.design_by_reaction, dims="reaction")
 
     _log.info("Constructing model for %i wells out of which %i are reaction wells.", len(df_layout), len(coords["reaction"]))
 
-    # Track relevant experiment design information and corresponding parameter space metadata as pm.Data containers
+    # Track relevant experiment design information and corresponding parameter space metadata as pm.ConstantData containers
     # This information is relevant for GP model components and visualization.
     x_design = df_layout.set_index("design_id")[list(coords["design_dim"])].dropna().drop_duplicates().sort_index().to_numpy()
-    X_design = pm.Data("X_design", x_design, dims=("design_id", "design_dim"))
-    X_design_log10 = pm.Data("X_design_log10", numpy.log10(x_design), dims=("design_id", "design_dim"))
+    X_design = pm.ConstantData("X_design", x_design, dims=("design_id", "design_dim"))
+    X_design_log10 = pm.ConstantData("X_design_log10", numpy.log10(x_design), dims=("design_id", "design_dim"))
     del x_design # to keep a single source of truth
-    BOUNDS = numpy.percentile(X_design_log10.get_value(), [0, 100], axis=0).T
+    BOUNDS = numpy.percentile(X_design_log10.value, [0, 100], axis=0).T
     SPAN = numpy.ptp(BOUNDS, axis=1)
-    pm.Data("X_design_log10_bounds", BOUNDS, dims=("design_dim", "interval"))
-    pm.Data("X_design_log10_span", SPAN, dims=("design_dim",))
+    pm.ConstantData("X_design_log10_bounds", BOUNDS, dims=("design_dim", "interval"))
+    pm.ConstantData("X_design_log10_span", SPAN, dims=("design_dim",))
 
     # Data containers of unique marginal designs
-    X_design_glucose = pm.Data("X_design_glucose", coords["design_glucose"], dims="design_glucose")
-    X_design_iptg = pm.Data("X_design_iptg", coords["design_iptg"], dims="design_iptg")
+    X_design_glucose = pm.ConstantData("X_design_glucose", coords["design_glucose"], dims="design_glucose")
+    X_design_iptg = pm.ConstantData("X_design_iptg", coords["design_iptg"], dims="design_iptg")
 
     # The biomass & product concentration will be a function of the time ⌚.
     # Because all kinetics have the same length we can work with a time matrix.
     t = df_time.loc[replicates].to_numpy()
-    time = pm.Data("time", t, dims=("replicate_id", "cycle"))
-    dt = pm.Data('dt', numpy.diff(t, axis=1), dims=("replicate_id", "cycle_segment"))
+    time = pm.ConstantData("time", t, dims=("replicate_id", "cycle"))
+    dt = pm.ConstantData('dt', numpy.diff(t, axis=1), dims=("replicate_id", "cycle_segment"))
     del t
 
     ################ PROCESS MODEL ################
@@ -436,10 +436,10 @@ def build_model(
 
     # The initial substrate concentration is 👇 mM,
     # but we wouldn't be surprised if it was    ~10 % 👇 off.
-    S0 = pm.Lognormal("S0", mu=numpy.log(2.5), sd=0.02)
+    S0 = pm.LogNormal("S0", mu=numpy.log(2.5), sd=0.02)
 
     # But we have data for the product concentration:
-    P0 = pm.Data("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
+    P0 = pm.ConstantData("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
 
     # Instead of modeling an initial product concentration, we can model a time delay
     # since the actual start of the reaction. This way the total amount of substrate/product
@@ -449,12 +449,12 @@ def build_model(
     time_actual = time + time_delay
 
     # Build a GP model of the underlying k, based on glucose and IPTG alone
-    ls_k_design = pm.Lognormal('ls_k_design', mu=numpy.log(SPAN/2), sd=0.5, dims="design_dim")
+    ls_k_design = pm.LogNormal('ls_k_design', mu=numpy.log(SPAN/2), sd=0.5, dims="design_dim")
 
     # The reaction rate k must be strictly positive. So our GP must describe log(k).
     # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
     # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
-    scaling_k_design = pm.Lognormal('scaling_k_design', mu=numpy.log(0.7), sd=0.2)
+    scaling_k_design = pm.LogNormal('scaling_k_design', mu=numpy.log(0.7), sd=0.2)
 
     # the literature describes RFFs only for 0 mean !!!
     mean_func = pm.gp.mean.Zero()
@@ -472,8 +472,8 @@ def build_model(
     )
     k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
 
-    run_effect = pm.Lognormal("run_effect", mu=0, sd=0.1, dims="run")
-    v_reaction = pm.Lognormal(
+    run_effect = pm.LogNormal("run_effect", mu=0, sd=0.1, dims="run")
+    v_reaction = pm.LogNormal(
         "v_reaction",
         mu=at.log(
             #     [-]          [mM/h/CDW]          [CDW]
@@ -514,8 +514,8 @@ def build_model(
     )
 
     # connect with observations
-    pm.Data("obs_A360", obs_A360, dims=("replicate_id", "cycle"))
-    obs = pm.Data("obs_A360_notnan", obs_A360[mask_numericA360])
+    pm.ConstantData("obs_A360", obs_A360, dims=("replicate_id", "cycle"))
+    obs = pm.ConstantData("obs_A360_notnan", obs_A360[mask_numericA360])
     sigma = pm.Deterministic("sigma", at.sqrt(X_scale**2 + P_scale**2)[mask_numericA360])
     L_A360 = pm.Normal(
         "L_of_A360",
@@ -524,8 +524,8 @@ def build_model(
         observed=obs
     )
 
-    pm.Data("obs_A600", obs_A600, dims=("replicate_id", "cycle"))
-    obs = pm.Data("obs_A600_notnan", obs_A600[mask_numericA600])
+    pm.ConstantData("obs_A600", obs_A600, dims=("replicate_id", "cycle"))
+    obs = pm.ConstantData("obs_A600_notnan", obs_A600[mask_numericA600])
     L_cal_A600 = cmX_600.loglikelihood(
         x=X[mask_numericA600],
         y=obs,
