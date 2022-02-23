@@ -196,6 +196,50 @@ def _add_or_assert_coords(
             pmodel.add_coord(name=cname, values=cvalues)
 
 
+class TidySlices:
+    """Maps between dimensions according to the experimental layout."""
+
+    def __init__(self, df_layout: pandas.DataFrame, coords: Dict[str, numpy.ndarray]):
+        # by replicate
+        self.reactor_by_replicate = [
+            coords["reactor_id"].index(df_layout.loc[rid, "reactor_id"])
+            for rid in coords["replicate_id"]
+        ]
+
+        # by reaction
+        self.run_by_reaction = [
+            coords["run"].index(df_layout.loc[rid, "run"])
+            for rid in coords["reaction"]
+        ]
+        self.design_by_reaction = [
+            coords["design_id"].index(df_layout.loc[rid, "design_id"])
+            for rid in coords["reaction"]
+        ]
+        self.replicate_by_reaction = [
+            coords["replicate_id"].index(rid)
+            for rid in coords["reaction"]
+        ]
+
+        # by reactor_id
+        df_reactors = df_layout.drop_duplicates("reactor_id").set_index("reactor_id")
+        self.run_by_reactorid = [
+            coords["run"].index(df_reactors.loc[rea, "run"])
+            for rea in coords["reactor_id"]
+        ]
+        self.glucose_design_by_reactorid = [
+            coords["design_glucose"].index(df_reactors.loc[rea, "glucose"])
+            for rea in coords["reactor_id"]
+        ]
+
+        # by design_id
+        df_designs = df_layout.drop_duplicates("design_id").set_index("design_id")
+        self.glucose_by_design = [
+            coords["design_glucose"].index(df_designs.loc[did, "glucose"])
+            for did in coords["design_id"]
+        ]
+        super().__init__()
+
+
 def build_model(
     df_layout: pandas.DataFrame,
     df_time: pandas.DataFrame,
@@ -271,49 +315,11 @@ def build_model(
     mask_numericA360 = ~numpy.isnan(obs_A360)
     mask_numericA600 = ~numpy.isnan(obs_A360)
 
-    # by replicate
-    ireactor_by_replicate = [
-        coords["reactor_id"].index(df_layout.loc[rid, "reactor_id"])
-        for rid in coords["replicate_id"]
-    ]
-
-    # by reaction
-    irun_by_reaction = [
-        coords["run"].index(df_layout.loc[rid, "run"])
-        for rid in coords["reaction"]
-    ]
-    idesign_by_reaction = [
-        coords["design_id"].index(df_layout.loc[rid, "design_id"])
-        for rid in coords["reaction"]
-    ]
-    ireplicate_by_reaction = [
-        coords["replicate_id"].index(rid)
-        for rid in coords["reaction"]
-    ]
-
-    # by reactor_id
-    df_reactors = df_layout.drop_duplicates("reactor_id").set_index("reactor_id")
-    irun_by_reactorid = [
-        coords["run"].index(df_reactors.loc[rea, "run"])
-        for rea in coords["reactor_id"]
-    ]
-    iglucose_design_by_reactorid = [
-        coords["design_glucose"].index(df_reactors.loc[rea, "glucose"])
-        for rea in coords["reactor_id"]
-    ]
-    del df_reactors
-
-    # by design_id
-    df_designs = df_layout.drop_duplicates("design_id").set_index("design_id")
-    iglucose_by_design = [
-        coords["design_glucose"].index(df_designs.loc[did, "glucose"])
-        for did in coords["design_id"]
-    ]
-    del df_designs
+    i = TidySlices(df_layout, coords)
 
     # store some of these
-    pm.Data("irun_by_reaction", irun_by_reaction, dims="reaction")
-    pm.Data("idesign_by_reaction", idesign_by_reaction, dims="reaction")
+    pm.Data("irun_by_reaction", i.run_by_reaction, dims="reaction")
+    pm.Data("idesign_by_reaction", i.design_by_reaction, dims="reaction")
 
     _log.info("Constructing model for %i wells out of which %i are reaction wells.", len(df_layout), len(coords["reaction"]))
 
@@ -387,7 +393,7 @@ def build_model(
     # For the absolute activity metric we need design-wise biomass concentrations that we can multiply with specific activity
     Xend_design = pm.Deterministic(
         "Xend_design",
-        Xend_batch * X_factor[iglucose_by_design],
+        Xend_batch * X_factor[i.glucose_by_design],
         dims="design_id",
     )
 
@@ -396,12 +402,12 @@ def build_model(
     # final biomasses at the 2mag scale (initial reaction biomasses) follow by multiplication with the feed rate specific factor
     Xend_2mag = pm.Deterministic(
         "Xend_2mag",
-        Xend_dasgip[irun_by_reactorid] * X_factor[iglucose_design_by_reactorid],
+        Xend_dasgip[i.run_by_reactorid] * X_factor[i.glucose_design_by_reactorid],
         dims="reactor_id",
     )
     X0_replicate = pm.Deterministic(
         "X0_replicate",
-        Xend_2mag[ireactor_by_replicate],
+        Xend_2mag[i.reactor_by_replicate],
         dims="replicate_id",
     )
 
@@ -471,7 +477,7 @@ def build_model(
         "v_reaction",
         mu=at.log(
             #     [-]          [mM/h/CDW]          [CDW]
-            run_effect[irun_by_reaction, None] * k_design[idesign_by_reaction, None] * X[ireplicate_by_reaction, :]
+            run_effect[i.run_by_reaction, None] * k_design[i.design_by_reaction, None] * X[i.replicate_by_reaction, :]
         ),
         sd=0.05,
         dims=("reaction", "cycle"),
