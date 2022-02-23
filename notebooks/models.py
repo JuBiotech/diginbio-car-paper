@@ -240,6 +240,55 @@ class TidySlices:
         super().__init__()
 
 
+def X_factor_GP(
+    ls_mu: float,
+    glucose_feed_rates: numpy.ndarray,
+) -> Tuple[at.TensorVariable, pm.gp.Latent]:
+    """Creates a 1D Gaussian process modeling a multiplicative biomass factor
+    as a function of log10(glucose feed rate).
+
+    Parameters
+    ----------
+    ls_mu : float
+        Approximate lengthscale of fluctuations in the relationship.
+        In log10(glucose feed rate [g/L/h]).
+    glucose_feed_rates : array-like
+        Feed rates in [g/L/h] at which an X_factor should be predicted.
+
+    Returns
+    -------
+    X_factor : TensorVariable
+        Biomass factors predicted from feed rates.
+    gp_log_X_factor : pm.gp.Latent
+        The underlying Gaussian process describing log(X_factor) as
+        a function of log10(glucose feed rate).
+    """
+    pmodel = pm.modelcontext(None)
+
+    # The factor / glucose relationship hopefully has a sensitivity
+    # at around the order of magnitude of our design space.
+    ls_X = pm.LogNormal("ls_X", mu=numpy.log(ls_mu), sd=0.1)
+
+    # Within that design space, the factor possibly varies by ~30 %.
+    scaling = pm.LogNormal("scaling_X", mu=numpy.log(0.3), sd=0.1)
+
+    # Now build the GP for the log-factor:
+    mean_func = pm.gp.mean.Zero()
+    cov_func = scaling**2 * pm.gp.cov.ExpQuad(input_dim=1, ls=ls_X)
+    gp_log_X_factor = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+
+    # Condition the GP on actual glucose feed rates to obtain scaling
+    # factors for each unique glucose feed rate.
+    # Note that the GP is built on the log10(feed rate) !
+    log_X_factor = gp_log_X_factor.prior(
+        "log_X_factor",
+        at.log10(glucose_feed_rates)[:, None],
+        size=(len(pmodel.coords["design_glucose"]),)
+    )
+    X_factor = pm.Deterministic("X_factor", at.exp(log_X_factor), dims="design_glucose")
+    return X_factor, gp_log_X_factor
+
+
 def build_model(
     df_layout: pandas.DataFrame,
     df_time: pandas.DataFrame,
@@ -362,24 +411,11 @@ def build_model(
     #   The Gaussian process is the log(factor), so centered on 0, making it RFF-approximatable.
     # + Each reaction is a little different, so the glucose-design-wise biomass concentration is used as a hyperprior.
 
-    # The factor / glucose relationship hopefully has a sensitivity at around the order of magnitude of our design space.
-    design_idx_glc = coords["design_dim"].index("glucose")
-    ls_X = pm.LogNormal("ls_X", mu=numpy.log(SPAN[design_idx_glc]/2), sd=0.1)
-    # Within that design space, the factor possibly varies by ~30 %.
-    scaling = pm.LogNormal('scaling_X', mu=numpy.log(0.3), sd=0.1)
-    # Now build the GP for the log-factor:
-    mean_func = pm.gp.mean.Zero()
-    cov_func = scaling**2 * pm.gp.cov.ExpQuad(input_dim=1, ls=ls_X)
-    pmodel.gp_log_X_factor = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
-
-    # Condition the GP on actual glucose feed rates to obtain scaling factors for each unique glucose feed rate.
-    # Note that the GP is built on the log10(feed rate) !
-    log_X_factor = pmodel.gp_log_X_factor.prior(
-        "log_X_factor",
-        at.log10(X_design_glucose)[:, None],
-        size=(len(coords["design_glucose"]),)
+    design_idx_glc = pmodel.coords["design_dim"].index("glucose")
+    X_factor, pmodel.gp_log_X_factor = X_factor_GP(
+        ls_mu=SPAN[design_idx_glc]/2,
+        glucose_feed_rates=X_design_glucose,
     )
-    X_factor = pm.Deterministic("X_factor", at.exp(log_X_factor), dims="design_glucose")
 
     # Track dimnames so it shows up in the platemodel
     pmodel.RV_dims["log_X_factor_rotated_"] = ("design_glucose",)
