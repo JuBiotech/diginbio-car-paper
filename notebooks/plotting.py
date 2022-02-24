@@ -39,7 +39,6 @@ def savefig(fig, name: str, *, wd=DP_RESULTS, facecolor="white", **kwargs):
     max_dpi = min(max_pixels / fig.get_size_inches())
     if not "dpi" in kwargs:
         kwargs["dpi"] = max_dpi
-    fig.savefig(wd / f"{name}.png", **kwargs)
     fig.savefig(wd / f"{name}.pdf", **kwargs)
     # Save with & without border to measure the "shrink".
     # This is needed to rescale the dpi setting such that we get max pixels also without the border.
@@ -55,6 +54,9 @@ def savefig(fig, name: str, *, wd=DP_RESULTS, facecolor="white", **kwargs):
     actual = numpy.array(pyplot.imread(fp).shape[:2][::-1])
     tkwargs["dpi"] = int(tkwargs["dpi"] * min(max_pixels / actual))
     fig.savefig(fp, **tkwargs)
+
+    img = pyplot.imread(str(wd / f"{name}.tif"))
+    pyplot.imsave(str(wd / f"{name}.png"), img)
     return
 
 
