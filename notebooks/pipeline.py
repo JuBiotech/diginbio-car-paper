@@ -441,9 +441,13 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
 
 def plot_gp_metric_posterior_predictive(
     wd: pathlib.Path,
-    label=r"$\mathrm{specific\ activity\ [\frac{mM}{h} / \frac{g_{CDW}}{L}]}$",
     var_name="dense_k_design",
 ):
+    label = {
+        "dense_k_design": r"$\mathrm{specific\ activity\ [\frac{mM}{h} / \frac{g_{CDW}}{L}]}$",
+        "dense_v_design": r"$\mathrm{reaction\ rate\ [\frac{mM}{h}]}$",
+    }[var_name]
+
     idata = arviz.from_netcdf(wd / "trace.nc")
     pposterior = arviz.from_netcdf(wd / "predictive_posterior.nc")
 
@@ -505,7 +509,7 @@ def plot_gp_metric_posterior_predictive(
         ax.view_init(elev=25, azim=azim)
         return fig, [[ax]]
 
-    fig, _ = fn_plot()
+    fig, _ = fn_plot(azim=-18)
     plotting.savefig(fig, f"plot_3d_pp_{var_name}", wd=wd)
     pyplot.close()
 
