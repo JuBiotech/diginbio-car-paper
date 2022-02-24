@@ -19,8 +19,8 @@ def ExperimentalDesign():
 
     iptg = np.array(exp_data['iptg'])
     glucose =np.array( exp_data['glucose'])
-    fig1, ax = plt.subplots(figsize = (8.3, 6))
-    ax.plot(iptg, glucose)
+    fig1, ax = plt.subplots(figsize = (4.5, 2))
+    ax.plot(iptg, glucose, linestyle='', marker='o')
     ax.set_ylim(0, 5)
     ax.set_xlim(0, 35)
 

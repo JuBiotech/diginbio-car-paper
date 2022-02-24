@@ -2,8 +2,8 @@
 # set general box line with
 axes.linewidth : 2
 # define size of markers in plot, remove line between markers  
-lines.markersize : 12
-lines.linestyle : none
+#lines.markersize : 6
+lines.linestyle : -
 # define the outer part of the marker
 lines.markeredgecolor : auto
 lines.markeredgewidth : 1  
@@ -16,16 +16,16 @@ grid.linestyle : dashed
 grid.color : xkcd:black
 
 #define the size of the axes labels 
-axes.labelsize : xx-large
+axes.labelsize : large
 
 # define the color and marker cycle, i.e. the colors and markers that will be used automatically, the first three colors are taken from the default biovt colors
-axes.prop_cycle : cycler('color', ['0065BD', 'E53418', '50743C', 'BD5800', '654321', '21B5C5']) + cycler('marker', 'o, d, p, P, X, h')
-
+# axes.prop_cycle : cycler('color', ['0065BD', 'E53418', '50743C', 'BD5800', '654321', '21B5C5']) + cycler('marker', 'x, d, p, P, X, h')
+axes.prop_cycle : cycler('color', ['0065BD', 'E53418', '50743C', 'BD5800', '654321', '21B5C5'])
 
 
 # define the size of the labels on the x/y ticks
-xtick.labelsize : xx-large
-ytick.labelsize : xx-large
+xtick.labelsize : large
+ytick.labelsize : large
 
 # grid 
 axes.grid: True
@@ -48,4 +48,4 @@ xtick.direction : out
 ytick.direction : out
 
 # more definitions for the legend
-legend.fontsize : large 
+legend.fontsize : medium 
