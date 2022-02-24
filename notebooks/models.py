@@ -289,6 +289,57 @@ def X_factor_GP(
     return X_factor, gp_log_X_factor
 
 
+def k_design_GP(
+    ls_mu: Sequence[float],
+    X: numpy.ndarray,
+) -> Tuple[at.TensorVariable, pm.gp.Latent]:
+    """Construct a 2-dimensional Gaussian process model to predict specific activity
+    from real-valued experimental design.
+
+    Parameters
+    ----------
+    ls_mu : array-like
+        Approximate lengthscales of fluctuations in the relationship.
+        Refers to real-valued experimental design.
+    X : numpy.ndarray
+        Real-valued experimental design for which specific activity should be predicted.
+
+    Returns
+    -------
+    k_design : TensorVariable
+        Predicted specific activity for each experimental design.
+    gp_log_k_design : pm.gp.Latent
+        The underlying Gaussian process describing log(k_design) as
+        a function of real-valued experimental design.
+    """
+    pmodel = pm.modelcontext(None)
+
+    # Build a GP model of the underlying k, based on glucose and IPTG alone
+    ls_k_design = pm.LogNormal('ls_k_design', mu=numpy.log(ls_mu), sd=0.5, dims="design_dim")
+
+    # The reaction rate k must be strictly positive. So our GP must describe log(k).
+    # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
+    # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
+    scaling_k_design = pm.LogNormal('scaling_k_design', mu=numpy.log(0.7), sd=0.2)
+
+    # Build the 2D GP
+    mean_func = pm.gp.mean.Zero()
+    cov_func = scaling_k_design**2 * pm.gp.cov.ExpQuad(
+        input_dim=len(ls_mu),
+        ls=ls_k_design
+    )
+    gp_log_k_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+    
+    # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
+    log_k_design = gp_log_k_design.prior(
+        "log_k_design",
+        X=X,
+        size=int(pmodel.dim_lengths["design_id"].eval())
+    )
+    k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
+    return (k_design, gp_log_k_design)
+
+
 def build_model(
     df_layout: pandas.DataFrame,
     df_time: pandas.DataFrame,
@@ -484,29 +535,10 @@ def build_model(
     time_delay = pm.HalfNormal("time_delay", sd=0.1)
     time_actual = time + time_delay
 
-    # Build a GP model of the underlying k, based on glucose and IPTG alone
-    ls_k_design = pm.LogNormal('ls_k_design', mu=numpy.log(SPAN/2), sd=0.5, dims="design_dim")
-
-    # The reaction rate k must be strictly positive. So our GP must describe log(k).
-    # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
-    # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
-    scaling_k_design = pm.LogNormal('scaling_k_design', mu=numpy.log(0.7), sd=0.2)
-
-    # the literature describes RFFs only for 0 mean !!!
-    mean_func = pm.gp.mean.Zero()
-    cov_func = scaling_k_design**2 * pm.gp.cov.ExpQuad(
-        input_dim=len(BOUNDS),
-        ls=ls_k_design
-    )
-    pmodel.gp_log_k_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
-    
-    # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
-    log_k_design = pmodel.gp_log_k_design.prior(
-        "log_k_design",
+    k_design, pmodel.gp_log_k_design = k_design_GP(
+        ls_mu=SPAN / 2,
         X=X_design_log10,
-        size=int(pmodel.dim_lengths["design_id"].eval())
     )
-    k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
 
     run_effect = pm.LogNormal("run_effect", mu=0, sd=0.1, dims="run")
     v_reaction = pm.LogNormal(
