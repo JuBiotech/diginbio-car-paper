@@ -196,6 +196,150 @@ def _add_or_assert_coords(
             pmodel.add_coord(name=cname, values=cvalues)
 
 
+class TidySlices:
+    """Maps between dimensions according to the experimental layout."""
+
+    def __init__(self, df_layout: pandas.DataFrame, coords: Dict[str, numpy.ndarray]):
+        # by replicate
+        self.reactor_by_replicate = [
+            coords["reactor_id"].index(df_layout.loc[rid, "reactor_id"])
+            for rid in coords["replicate_id"]
+        ]
+
+        # by reaction
+        self.run_by_reaction = [
+            coords["run"].index(df_layout.loc[rid, "run"])
+            for rid in coords["reaction"]
+        ]
+        self.design_by_reaction = [
+            coords["design_id"].index(df_layout.loc[rid, "design_id"])
+            for rid in coords["reaction"]
+        ]
+        self.replicate_by_reaction = [
+            coords["replicate_id"].index(rid)
+            for rid in coords["reaction"]
+        ]
+
+        # by reactor_id
+        df_reactors = df_layout.drop_duplicates("reactor_id").set_index("reactor_id")
+        self.run_by_reactorid = [
+            coords["run"].index(df_reactors.loc[rea, "run"])
+            for rea in coords["reactor_id"]
+        ]
+        self.glucose_design_by_reactorid = [
+            coords["design_glucose"].index(df_reactors.loc[rea, "glucose"])
+            for rea in coords["reactor_id"]
+        ]
+
+        # by design_id
+        df_designs = df_layout.drop_duplicates("design_id").set_index("design_id")
+        self.glucose_by_design = [
+            coords["design_glucose"].index(df_designs.loc[did, "glucose"])
+            for did in coords["design_id"]
+        ]
+        super().__init__()
+
+
+def X_factor_GP(
+    ls_mu: float,
+    glucose_feed_rates: numpy.ndarray,
+) -> Tuple[at.TensorVariable, pm.gp.Latent]:
+    """Creates a 1D Gaussian process modeling a multiplicative biomass factor
+    as a function of log10(glucose feed rate).
+
+    Parameters
+    ----------
+    ls_mu : float
+        Approximate lengthscale of fluctuations in the relationship.
+        In log10(glucose feed rate [g/L/h]).
+    glucose_feed_rates : array-like
+        Feed rates in [g/L/h] at which an X_factor should be predicted.
+
+    Returns
+    -------
+    X_factor : TensorVariable
+        Biomass factors predicted from feed rates.
+    gp_log_X_factor : pm.gp.Latent
+        The underlying Gaussian process describing log(X_factor) as
+        a function of log10(glucose feed rate).
+    """
+    pmodel = pm.modelcontext(None)
+
+    # The factor / glucose relationship hopefully has a sensitivity
+    # at around the order of magnitude of our design space.
+    ls_X = pm.LogNormal("ls_X", mu=numpy.log(ls_mu), sd=0.1)
+
+    # Within that design space, the factor possibly varies by ~30 %.
+    scaling = pm.LogNormal("scaling_X", mu=numpy.log(0.3), sd=0.1)
+
+    # Now build the GP for the log-factor:
+    mean_func = pm.gp.mean.Zero()
+    cov_func = scaling**2 * pm.gp.cov.ExpQuad(input_dim=1, ls=ls_X)
+    gp_log_X_factor = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+
+    # Condition the GP on actual glucose feed rates to obtain scaling
+    # factors for each unique glucose feed rate.
+    # Note that the GP is built on the log10(feed rate) !
+    log_X_factor = gp_log_X_factor.prior(
+        "log_X_factor",
+        at.log10(glucose_feed_rates)[:, None],
+        size=(len(pmodel.coords["design_glucose"]),)
+    )
+    X_factor = pm.Deterministic("X_factor", at.exp(log_X_factor), dims="design_glucose")
+    return X_factor, gp_log_X_factor
+
+
+def k_design_GP(
+    ls_mu: Sequence[float],
+    X: numpy.ndarray,
+) -> Tuple[at.TensorVariable, pm.gp.Latent]:
+    """Construct a 2-dimensional Gaussian process model to predict specific activity
+    from real-valued experimental design.
+
+    Parameters
+    ----------
+    ls_mu : array-like
+        Approximate lengthscales of fluctuations in the relationship.
+        Refers to real-valued experimental design.
+    X : numpy.ndarray
+        Real-valued experimental design for which specific activity should be predicted.
+
+    Returns
+    -------
+    k_design : TensorVariable
+        Predicted specific activity for each experimental design.
+    gp_log_k_design : pm.gp.Latent
+        The underlying Gaussian process describing log(k_design) as
+        a function of real-valued experimental design.
+    """
+    pmodel = pm.modelcontext(None)
+
+    # Build a GP model of the underlying k, based on glucose and IPTG alone
+    ls_k_design = pm.LogNormal('ls_k_design', mu=numpy.log(ls_mu), sd=0.5, dims="design_dim")
+
+    # The reaction rate k must be strictly positive. So our GP must describe log(k).
+    # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
+    # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
+    scaling_k_design = pm.LogNormal('scaling_k_design', mu=numpy.log(0.7), sd=0.2)
+
+    # Build the 2D GP
+    mean_func = pm.gp.mean.Zero()
+    cov_func = scaling_k_design**2 * pm.gp.cov.ExpQuad(
+        input_dim=len(ls_mu),
+        ls=ls_k_design
+    )
+    gp_log_k_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+    
+    # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
+    log_k_design = gp_log_k_design.prior(
+        "log_k_design",
+        X=X,
+        size=int(pmodel.dim_lengths["design_id"].eval())
+    )
+    k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
+    return (k_design, gp_log_k_design)
+
+
 def build_model(
     df_layout: pandas.DataFrame,
     df_time: pandas.DataFrame,
@@ -205,9 +349,6 @@ def build_model(
     cmX_600: calibr8.CalibrationModel,
     cmP_360: calibr8.CalibrationModel,
     *,
-    gp_k_design: bool,
-    gp_X_factor: bool,
-    random_walk_X: bool,
     design_cols: Sequence[str],
 ):
     """Constructs the full model for the analysis of one biotransformation experiment.
@@ -236,16 +377,6 @@ def build_model(
         A calibration model fitted for absolute biomass vs. absorbance at 600 nm.
     cmP_360 : calibr8.CalibrationModel
         A calibration model fitted for absolute ABAO reaction product vs. absorbance at 360 nm.
-    gp_k_design : bool
-        If `True` a gaussian process model will describe the design-wise specific activity.
-        Otherwise design-wise specific activities will be indepdent of each other.
-    gp_X_factor : bool
-        If `True` the multiplicative effect of glucose feed on initial biomass will be a gaussian process model.
-        Otherwise glucose feed specific factors will be indepdent of each other.
-    random_walk_X : bool
-        If `True` the cycle-wise biomass concentration in each reaction well
-        will be described by a Gaussian random walk of cycle-wise growth factor.
-        Otherwise the cycle-wise biomasses will be independent of each other.
     design_cols : array-like
         Names of columns that describe the experimental design.
     """
@@ -284,72 +415,34 @@ def build_model(
     mask_numericA360 = ~numpy.isnan(obs_A360)
     mask_numericA600 = ~numpy.isnan(obs_A360)
 
-    # by replicate
-    ireactor_by_replicate = [
-        coords["reactor_id"].index(df_layout.loc[rid, "reactor_id"])
-        for rid in coords["replicate_id"]
-    ]
-
-    # by reaction
-    irun_by_reaction = [
-        coords["run"].index(df_layout.loc[rid, "run"])
-        for rid in coords["reaction"]
-    ]
-    idesign_by_reaction = [
-        coords["design_id"].index(df_layout.loc[rid, "design_id"])
-        for rid in coords["reaction"]
-    ]
-    ireplicate_by_reaction = [
-        coords["replicate_id"].index(rid)
-        for rid in coords["reaction"]
-    ]
-
-    # by reactor_id
-    df_reactors = df_layout.drop_duplicates("reactor_id").set_index("reactor_id")
-    irun_by_reactorid = [
-        coords["run"].index(df_reactors.loc[rea, "run"])
-        for rea in coords["reactor_id"]
-    ]
-    iglucose_design_by_reactorid = [
-        coords["design_glucose"].index(df_reactors.loc[rea, "glucose"])
-        for rea in coords["reactor_id"]
-    ]
-    del df_reactors
-
-    # by design_id
-    df_designs = df_layout.drop_duplicates("design_id").set_index("design_id")
-    iglucose_by_design = [
-        coords["design_glucose"].index(df_designs.loc[did, "glucose"])
-        for did in coords["design_id"]
-    ]
-    del df_designs
+    i = TidySlices(df_layout, coords)
 
     # store some of these
-    pm.Data("irun_by_reaction", irun_by_reaction, dims="reaction")
-    pm.Data("idesign_by_reaction", idesign_by_reaction, dims="reaction")
+    pm.ConstantData("irun_by_reaction", i.run_by_reaction, dims="reaction")
+    pm.ConstantData("idesign_by_reaction", i.design_by_reaction, dims="reaction")
 
     _log.info("Constructing model for %i wells out of which %i are reaction wells.", len(df_layout), len(coords["reaction"]))
 
-    # Track relevant experiment design information and corresponding parameter space metadata as pm.Data containers
+    # Track relevant experiment design information and corresponding parameter space metadata as pm.ConstantData containers
     # This information is relevant for GP model components and visualization.
     x_design = df_layout.set_index("design_id")[list(coords["design_dim"])].dropna().drop_duplicates().sort_index().to_numpy()
-    X_design = pm.Data("X_design", x_design, dims=("design_id", "design_dim"))
-    X_design_log10 = pm.Data("X_design_log10", numpy.log10(x_design), dims=("design_id", "design_dim"))
+    X_design = pm.ConstantData("X_design", x_design, dims=("design_id", "design_dim"))
+    X_design_log10 = pm.ConstantData("X_design_log10", numpy.log10(x_design), dims=("design_id", "design_dim"))
     del x_design # to keep a single source of truth
-    BOUNDS = numpy.percentile(X_design_log10.get_value(), [0, 100], axis=0).T
+    BOUNDS = numpy.percentile(X_design_log10.value, [0, 100], axis=0).T
     SPAN = numpy.ptp(BOUNDS, axis=1)
-    pm.Data("X_design_log10_bounds", BOUNDS, dims=("design_dim", "interval"))
-    pm.Data("X_design_log10_span", SPAN, dims=("design_dim",))
+    pm.ConstantData("X_design_log10_bounds", BOUNDS, dims=("design_dim", "interval"))
+    pm.ConstantData("X_design_log10_span", SPAN, dims=("design_dim",))
 
     # Data containers of unique marginal designs
-    X_design_glucose = pm.Data("X_design_glucose", coords["design_glucose"], dims="design_glucose")
-    X_design_iptg = pm.Data("X_design_iptg", coords["design_iptg"], dims="design_iptg")
+    X_design_glucose = pm.ConstantData("X_design_glucose", coords["design_glucose"], dims="design_glucose")
+    X_design_iptg = pm.ConstantData("X_design_iptg", coords["design_iptg"], dims="design_iptg")
 
     # The biomass & product concentration will be a function of the time ⌚.
     # Because all kinetics have the same length we can work with a time matrix.
     t = df_time.loc[replicates].to_numpy()
-    time = pm.Data("time", t, dims=("replicate_id", "cycle"))
-    dt = pm.Data('dt', numpy.diff(t, axis=1), dims=("replicate_id", "cycle_segment"))
+    time = pm.ConstantData("time", t, dims=("replicate_id", "cycle"))
+    dt = pm.ConstantData('dt', numpy.diff(t, axis=1), dims=("replicate_id", "cycle_segment"))
     del t
 
     ################ PROCESS MODEL ################
@@ -369,32 +462,16 @@ def build_model(
     #   The Gaussian process is the log(factor), so centered on 0, making it RFF-approximatable.
     # + Each reaction is a little different, so the glucose-design-wise biomass concentration is used as a hyperprior.
 
-    if gp_X_factor:
-        # The factor / glucose relationship hopefully has a sensitivity at around the order of magnitude of our design space.
-        design_idx_glc = coords["design_dim"].index("glucose")
-        ls_X = pm.LogNormal("ls_X", mu=numpy.log(SPAN[design_idx_glc]/2), sd=0.1)
-        # Within that design space, the factor possibly varies by ~30 %.
-        scaling = pm.LogNormal('scaling_X', mu=numpy.log(0.3), sd=0.1)
-        # Now build the GP for the log-factor:
-        mean_func = pm.gp.mean.Zero()
-        cov_func = scaling**2 * pm.gp.cov.ExpQuad(input_dim=1, ls=ls_X)
-        pmodel.gp_log_X_factor = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+    design_idx_glc = pmodel.coords["design_dim"].index("glucose")
+    X_factor, pmodel.gp_log_X_factor = X_factor_GP(
+        ls_mu=SPAN[design_idx_glc]/2,
+        glucose_feed_rates=X_design_glucose,
+    )
 
-        # Condition the GP on actual glucose feed rates to obtain scaling factors for each unique glucose feed rate.
-        # Note that the GP is built on the log10(feed rate) !
-        log_X_factor = pmodel.gp_log_X_factor.prior(
-            "log_X_factor",
-            at.log10(X_design_glucose)[:, None],
-            size=(len(coords["design_glucose"]),)
-        )
-        X_factor = pm.Deterministic("X_factor", at.exp(log_X_factor), dims="design_glucose")
-
-        # Track dimnames so it shows up in the platemodel
-        pmodel.RV_dims["log_X_factor_rotated_"] = ("design_glucose",)
-        pmodel.RV_dims["log_X_factor"] = ("design_glucose",)
-        pmodel.RV_dims["X_factor"] = ("design_glucose",)
-    else:
-        X_factor = pm.LogNormal("X_factor", mu=0, sd=0.1, dims="design_glucose")
+    # Track dimnames so it shows up in the platemodel
+    pmodel.RV_dims["log_X_factor_rotated_"] = ("design_glucose",)
+    pmodel.RV_dims["log_X_factor"] = ("design_glucose",)
+    pmodel.RV_dims["X_factor"] = ("design_glucose",)
 
     # Model the biomass story
     # starting from a DASGIP biomass concentration hyperprior
@@ -403,7 +480,7 @@ def build_model(
     # For the absolute activity metric we need design-wise biomass concentrations that we can multiply with specific activity
     Xend_design = pm.Deterministic(
         "Xend_design",
-        Xend_batch * X_factor[iglucose_by_design],
+        Xend_batch * X_factor[i.glucose_by_design],
         dims="design_id",
     )
 
@@ -412,53 +489,44 @@ def build_model(
     # final biomasses at the 2mag scale (initial reaction biomasses) follow by multiplication with the feed rate specific factor
     Xend_2mag = pm.Deterministic(
         "Xend_2mag",
-        Xend_dasgip[irun_by_reactorid] * X_factor[iglucose_design_by_reactorid],
+        Xend_dasgip[i.run_by_reactorid] * X_factor[i.glucose_design_by_reactorid],
         dims="reactor_id",
     )
     X0_replicate = pm.Deterministic(
         "X0_replicate",
-        Xend_2mag[ireactor_by_replicate],
+        Xend_2mag[i.reactor_by_replicate],
         dims="replicate_id",
     )
 
-    if random_walk_X:
-        # Describe biomass growth with a random walk
-        # TODO: Double check indexing/slicing to make sure that
-        #       1. the coords interpretation matches
-        #       2. the GRW doesn't have unidentifiable entries
-        #       3. there's no redundant parametrization of the first cycle biomass
-        mu_t__diff = pm.Normal(
-            'mu_t__diff',
-            mu=0, sd=0.1,
-            dims=("replicate_id", "cycle_segment")
-        )
-        mu_t = pm.Deterministic(
-            "mu_t",
-            at.cumsum(mu_t__diff, axis=1),
-            dims=("replicate_id", "cycle_segment")
-        )
-        X = pm.Deterministic(
-            "X", at.concatenate([
-                X0_replicate[:, None],
-                X0_replicate[:, None] * at.exp(at.cumsum(mu_t * dt, axis=1)),
-            ], axis=1),
-            dims=("replicate_id", "cycle"),
-        )
-    else:
-        # Cycle-wise biomasses are just centered around the initial biomass hyperprior
-        X = pm.LogNormal(
-            "X",
-            mu=at.repeat(at.log(X0_replicate)[:, None], repeats=len(coords["cycle"]), axis=1),
-            sd=0.2,
-            dims=("replicate_id", "cycle"),
-        )
+    # Describe biomass growth with a random walk
+    # TODO: Double check indexing/slicing to make sure that
+    #       1. the coords interpretation matches
+    #       2. the GRW doesn't have unidentifiable entries
+    #       3. there's no redundant parametrization of the first cycle biomass
+    mu_t__diff = pm.Normal(
+        'mu_t__diff',
+        mu=0, sd=0.1,
+        dims=("replicate_id", "cycle_segment")
+    )
+    mu_t = pm.Deterministic(
+        "mu_t",
+        at.cumsum(mu_t__diff, axis=1),
+        dims=("replicate_id", "cycle_segment")
+    )
+    X = pm.Deterministic(
+        "X", at.concatenate([
+            X0_replicate[:, None],
+            X0_replicate[:, None] * at.exp(at.cumsum(mu_t * dt, axis=1)),
+        ], axis=1),
+        dims=("replicate_id", "cycle"),
+    )
 
     # The initial substrate concentration is 👇 mM,
     # but we wouldn't be surprised if it was    ~10 % 👇 off.
-    S0 = pm.Lognormal("S0", mu=numpy.log(2.5), sd=0.02)
+    S0 = pm.LogNormal("S0", mu=numpy.log(2.5), sd=0.02)
 
     # But we have data for the product concentration:
-    P0 = pm.Data("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
+    P0 = pm.ConstantData("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
 
     # Instead of modeling an initial product concentration, we can model a time delay
     # since the actual start of the reaction. This way the total amount of substrate/product
@@ -467,39 +535,17 @@ def build_model(
     time_delay = pm.HalfNormal("time_delay", sd=0.1)
     time_actual = time + time_delay
 
-    if not gp_k_design:
-        k_design = pm.HalfNormal("k_design", sd=1.5, dims="design_id")
-    else:
-        # Build a GP model of the underlying k, based on glucose and IPTG alone
-        ls_k_design = pm.Lognormal('ls_k_design', mu=numpy.log(SPAN/2), sd=0.5, dims="design_dim")
+    k_design, pmodel.gp_log_k_design = k_design_GP(
+        ls_mu=SPAN / 2,
+        X=X_design_log10,
+    )
 
-        # The reaction rate k must be strictly positive. So our GP must describe log(k).
-        # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
-        # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
-        scaling_k_design = pm.Lognormal('scaling_k_design', mu=numpy.log(0.7), sd=0.2)
-
-        # the literature describes RFFs only for 0 mean !!!
-        mean_func = pm.gp.mean.Zero()
-        cov_func = scaling_k_design**2 * pm.gp.cov.ExpQuad(
-            input_dim=len(BOUNDS),
-            ls=ls_k_design
-        )
-        pmodel.gp_log_k_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
-        
-        # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
-        log_k_design = pmodel.gp_log_k_design.prior(
-            "log_k_design",
-            X=X_design_log10,
-            size=int(pmodel.dim_lengths["design_id"].eval())
-        )
-        k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
-
-    run_effect = pm.Lognormal("run_effect", mu=0, sd=0.1, dims="run")
-    v_reaction = pm.Lognormal(
+    run_effect = pm.LogNormal("run_effect", mu=0, sd=0.1, dims="run")
+    v_reaction = pm.LogNormal(
         "v_reaction",
         mu=at.log(
             #     [-]          [mM/h/CDW]          [CDW]
-            run_effect[irun_by_reaction, None] * k_design[idesign_by_reaction, None] * X[ireplicate_by_reaction, :]
+            run_effect[i.run_by_reaction, None] * k_design[i.design_by_reaction, None] * X[i.replicate_by_reaction, :]
         ),
         sd=0.05,
         dims=("reaction", "cycle"),
@@ -536,8 +582,8 @@ def build_model(
     )
 
     # connect with observations
-    pm.Data("obs_A360", obs_A360, dims=("replicate_id", "cycle"))
-    obs = pm.Data("obs_A360_notnan", obs_A360[mask_numericA360])
+    pm.ConstantData("obs_A360", obs_A360, dims=("replicate_id", "cycle"))
+    obs = pm.ConstantData("obs_A360_notnan", obs_A360[mask_numericA360])
     sigma = pm.Deterministic("sigma", at.sqrt(X_scale**2 + P_scale**2)[mask_numericA360])
     L_A360 = pm.Normal(
         "L_of_A360",
@@ -546,8 +592,8 @@ def build_model(
         observed=obs
     )
 
-    pm.Data("obs_A600", obs_A600, dims=("replicate_id", "cycle"))
-    obs = pm.Data("obs_A600_notnan", obs_A600[mask_numericA600])
+    pm.ConstantData("obs_A600", obs_A600, dims=("replicate_id", "cycle"))
+    obs = pm.ConstantData("obs_A600_notnan", obs_A600[mask_numericA600])
     L_cal_A600 = cmX_600.loglikelihood(
         x=X[mask_numericA600],
         y=obs,
