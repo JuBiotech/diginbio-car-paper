@@ -5,17 +5,22 @@ import pandas
 import pathlib
 from plotting import savefig
 
-def ExperimentalDesign():
+DP_ROOT = pathlib.Path(__file__).absolute().parent.parent
+DP_DATA = DP_ROOT / "data"
+DP_RESULTS = DP_ROOT / "results"
+
+
+def ExperimentalDesign(wd: pathlib.Path=DP_RESULTS):
     """ This function plots the experimental design data for the CAR cultivation
+
+    Parameters
+    ----------
+    wd : pathlib.Path
+        Working directory where to save the output.
     """
-    parent_path= pathlib.Path(__file__).absolute().parent.parent
-    curr_path = fr'{parent_path}\data'
-    print(curr_path)
-    
-    exp_raw_data = pandas.read_excel(fr'{curr_path}\FullWellDescription.xlsx')
+    exp_raw_data = pandas.read_excel(DP_DATA / 'FullWellDescription.xlsx')
     exp_data = exp_raw_data.dropna(subset=['iptg', 'glucose'])
     print(exp_data)
-
 
     iptg = np.array(exp_data['iptg'])
     glucose =np.array( exp_data['glucose'])
@@ -23,14 +28,11 @@ def ExperimentalDesign():
     ax.plot(iptg, glucose, linestyle='', marker='o')
     ax.set_ylim(0, 5)
     ax.set_xlim(0, 35)
-
-
     ax.set_ylabel('Feed rate, g L$^{-1}$ h$^{-1}$')
     ax.set_xlabel('IPTG, $\mu$M')
-    savefig(fig1, "ExpDesign")
-    #fig1.savefig(fr"{parent_path}\results\ExpDesign.png",  dpi = 600, bbox_inches='tight')
-    
+    savefig(fig1, "ExpDesign", wd=wd)
+    return
+
 
 if __name__ == "__main__":
-    #plt.style.use('BIOVT_TUM')
     ExperimentalDesign()
