@@ -371,19 +371,61 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
     )
     with pmodel:
         _log.info("Adding variables for high-quality predictives")
+
+        # Predict specific activity at the dense designs
         log_k_design = pmodel.gp_log_k_design.conditional(
             "dense_log_k_design",
             Xnew=dense_long.values,
             dims="dense_id",
             jitter=pm.gp.util.JITTER_DEFAULT
         )
-        k_design = pm.Deterministic("dense_k_design", at.exp(log_k_design), dims="dense_id")
+        dense_k_design = pm.Deterministic("dense_k_design", at.exp(log_k_design), dims="dense_id")
+
+        # Predict fedbatch factors for each glucose design
+        long_glucose = dense_long.sel(design_dim="glucose").values
+        dense_glucose = pm.ConstantData("dense_glucose", numpy.unique(long_glucose), dims="dense_design_glucose")
+        dense_glucose_log_X_factor = pmodel.gp_log_X_factor.conditional(
+            "dense_glucose_log_X_factor",
+            Xnew=dense_glucose[:, None],
+            dims="dense_design_glucose",
+            jitter=pm.gp.util.JITTER_DEFAULT
+        )
+        dense_glucose_X_factor = pm.Deterministic(
+            "dense_glucose_X_factor",
+            at.exp(dense_glucose_log_X_factor),
+            dims="dense_design_glucose",
+        )
+
+        # Subindex into a full-length vector
+        idenseglucose_by_design = [
+            tuple(dense_glucose.data).index(glc)
+            for glc in long_glucose
+        ]
+        dense_X_factor = pm.Deterministic(
+            "dense_X_factor",
+            dense_glucose_X_factor[idenseglucose_by_design],
+            dims="dense_id"
+        )
+
+        # Predict initial reaction rate from specific activity and biomass
+        dense_v_design = models.predict_v_design(
+            X0_fedbatch=pmodel["Xend_batch"],
+            fedbatch_factor=dense_X_factor,
+            specific_activity=dense_k_design,
+            dims="dense_id",
+            prefix="dense_",
+        )
 
         _log.info("Sampling posterior predictive")
         pp = pm.sample_posterior_predictive(
             idata,
             samples=draws,
-            var_names=["dense_log_k_design", "dense_k_design"],
+            var_names=[
+                n
+                for n, v in pmodel.named_vars.items()
+                if n.startswith("dense_")
+                and v in pmodel.free_RVs + pmodel.deterministics
+            ],
             return_inferencedata=False
         )
         _log.info("Saving to InferenceData")
