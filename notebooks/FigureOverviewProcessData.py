@@ -52,7 +52,7 @@ def btm_overview():
     correlation_factor = 0.85
     dilution_factor = 100
     blank = 0.035
-    fig1, ax = plt.subplots(nrows=3, ncols=1, sharex= True, sharey = True, figsize=(7,10))
+    fig1, ax = plt.subplots(nrows=3, ncols=1, sharex= True, sharey = True, figsize=(5,4))
 
     # first, plot 4.8 g/l*h feed rate from carboxylase 19 and 20
     def feed_rate_4_8_carb_20(ax):
@@ -78,7 +78,7 @@ def btm_overview():
         data_std = data_.groupby(['time']).std()
         data_mean = data_.groupby(['time']).mean()
         print(data_mean)
-        ax[0].errorbar(times, data_mean['DCW, g/L'], yerr = data_std['DCW, g/L'], label='IPTG = 0.48 \xb5M, F$_{in}$ = 4.8 g L$^{-1}$ h$^{-1}$') # plot stuff
+        ax[0].errorbar(times, data_mean['DCW, g/L'], yerr = data_std['DCW, g/L'], label='IPTG = 0.48 \xb5M, F$_{in}$ = 4.8 g L$^{-1}$ h$^{-1}$', linestyle ='', marker='o') # plot stuff
         return ax
     ax = feed_rate_4_8_carb_20(ax)
 
@@ -102,7 +102,7 @@ def btm_overview():
         data_mean = data_.groupby(['time']).mean()
 
         
-        ax[1].errorbar(times, data_mean['DCW, g/L'], yerr = data_std['DCW, g/L'], label='IPTG = 6 \xb5M, F$_{in}$ = 3 g L$^{-1}$ h$^{-1}$') # plot stuff
+        ax[1].errorbar(times, data_mean['DCW, g/L'], yerr = data_std['DCW, g/L'], label='IPTG = 6 \xb5M, F$_{in}$ = 3 g L$^{-1}$ h$^{-1}$', linestyle ='', marker='o') # plot stuff
         return ax
     ax = feed_rate_3_0_carb_23(ax)
 
@@ -125,7 +125,7 @@ def btm_overview():
         data_std = data_.groupby(['time']).std()
         data_mean = data_.groupby(['time']).mean()
         
-        ax[2].errorbar(times, data_mean['DCW, g/L'], yerr = data_std['DCW, g/L'], label='IPTG = 12 \xb5M, F$_{in}$ = 1 g L$^{-1}$ h$^{-1}$') # plot stuff
+        ax[2].errorbar(times, data_mean['DCW, g/L'], yerr = data_std['DCW, g/L'], label='IPTG = 12 \xb5M, F$_{in}$ = 1 g L$^{-1}$ h$^{-1}$', marker ='o', linestyle='') # plot stuff
         return ax
     ax = feed_rate_1_0_carb_21(ax)
 
@@ -139,16 +139,16 @@ def btm_overview():
     ax[1].set_ylabel('DCW, g L$^{-1}$')
     ax[2].set_ylabel('DCW, g L$^{-1}$')
     ax[2].set_xlabel('Time, h')
-    ax[0].legend()
-    ax[1].legend()
-    ax[2].legend()
+    #ax[0].legend()
+    #ax[1].legend()
+    #ax[2].legend()
 
     savefig(fig1, "btm_overview")
     #fig1.savefig(fr'{figure_path}\btm_overview.png', dpi = 800, bbox_inches='tight')
 
 
 def ph_plot(low_feed_position, medium_feed_position, high_feed_position):
-    fig1, ax = plt.subplots(nrows=3, ncols=1, sharex= True, sharey = True, figsize=(7,10))
+    fig1, ax = plt.subplots(nrows=3, ncols=1, sharex= True, sharey = True, figsize=(5,4))
     
 
     def pH_plot_data(ax, plot_number, filepath, reactor_position, starttime, label):
@@ -168,6 +168,7 @@ def ph_plot(low_feed_position, medium_feed_position, high_feed_position):
     ax[0].set_ylim(5,9)
     ax[2].set_xlim(0, 18)
 
+    ax[0].yaxis.set_ticks(np.arange(5,10,1))
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
 
     
@@ -180,7 +181,7 @@ def ph_plot(low_feed_position, medium_feed_position, high_feed_position):
     #fig1.savefig(fr'{figure_path}\pH_overview.png', dpi = 800, bbox_inches='tight')
 
 def o2_plot(low_feed_position, medium_feed_position, high_feed_position):
-    fig1, ax = plt.subplots(nrows=3, ncols=1, sharex= True, sharey = True, figsize=(7,10))
+    fig1, ax = plt.subplots(nrows=3, ncols=1, sharex= True, sharey = True, figsize=(5,4))
 
     def plot_o2_data(ax, label, path, ax_position, reactor_number, starttime):
         o2_raw_data = pandas.read_csv(path)
