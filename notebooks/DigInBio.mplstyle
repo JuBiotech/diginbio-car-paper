@@ -6,9 +6,7 @@ axes.linewidth : 2
 lines.linestyle : -
 # define the outer part of the marker
 lines.markeredgecolor : auto
-lines.markeredgewidth : 1  
-# define the size of the cap of the errorbar, unfortunately not the thickness  
-errorbar.capsize : 3
+lines.markeredgewidth : 1
 
 # define stuff for the grid
 grid.linewidth : 0.4
@@ -48,4 +46,4 @@ xtick.direction : out
 ytick.direction : out
 
 # more definitions for the legend
-legend.fontsize : medium 
+legend.fontsize : medium
