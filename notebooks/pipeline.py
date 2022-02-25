@@ -373,13 +373,13 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
         _log.info("Adding variables for high-quality predictives")
 
         # Predict specific activity at the dense designs
-        log_k_design = pmodel.gp_log_k_design.conditional(
-            "dense_log_k_design",
+        log_s_design = pmodel.gp_log_s_design.conditional(
+            "dense_log_s_design",
             Xnew=dense_long.values,
             dims="dense_id",
             jitter=pm.gp.util.JITTER_DEFAULT
         )
-        dense_k_design = pm.Deterministic("dense_k_design", at.exp(log_k_design), dims="dense_id")
+        dense_s_design = pm.Deterministic("dense_s_design", at.exp(log_s_design), dims="dense_id")
 
         # Predict fedbatch factors for each glucose design
         long_glucose = dense_long.sel(design_dim="glucose").values
@@ -411,7 +411,7 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
         dense_v_design = models.predict_v_design(
             X0_fedbatch=pmodel["Xend_batch"],
             fedbatch_factor=dense_X_factor,
-            specific_activity=dense_k_design,
+            specific_activity=dense_s_design,
             dims="dense_id",
             prefix="dense_",
         )
@@ -441,10 +441,10 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
 
 def plot_gp_metric_posterior_predictive(
     wd: pathlib.Path,
-    var_name="dense_k_design",
+    var_name="dense_s_design",
 ):
     label = {
-        "dense_k_design": r"$\mathrm{specific\ activity\ [\frac{1}{h} / \frac{g_{CDW}}{L}]}$",
+        "dense_s_design": r"$\mathrm{specific\ activity\ [\frac{1}{h} / \frac{g_{CDW}}{L}]}$",
         "dense_v_design": r"$\mathrm{rate\ constant\ [1/h]}$",
     }[var_name]
 
