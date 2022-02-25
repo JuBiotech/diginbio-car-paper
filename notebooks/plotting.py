@@ -139,7 +139,7 @@ def interesting_groups(posterior) -> Dict[str, List[str]]:
             "time_delay",
             "ls_s_design,scaling_s_design,s_design||s_design",
             "run_effect",
-            "v_reaction",
+            "k_reaction",
         ],
     }
     available = tuple(posterior.keys())
@@ -578,7 +578,7 @@ def plot_reaction(
 
 
     ax = axs[1, 1]
-    metric = "v_reaction"
+    metric = "k_reaction"
     ylabel = "rate constant   [mmol/L/h]"
 
     x = posterior[metric]
@@ -722,14 +722,14 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
     for name, var, coord in [
         ("s_design_mmol/g_CDW/h", idata.posterior.s_design, "design_id"),
         ("k_design_mmol/L_biotrafo/h", idata.posterior.k_design, "design_id"),
-        ("v_reaction_mmol/L_biotrafo_dwp/h", idata.posterior.v_reaction, "reaction"),
+        ("k_reaction_mmol/L_biotrafo_dwp/h", idata.posterior.k_reaction, "reaction"),
     ]:
         df[name + "_lower"] = None
         df[name] = None
         df[name + "_upper"] = None
 
         if "cycle" in var.coords:
-            # Newer model versions have cycle-wise v_reaction.
+            # Newer model versions have cycle-wise k_reaction.
             # Here we're just interested in the first cycle.
             var = var.sel(cycle=0)
 

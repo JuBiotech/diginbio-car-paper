@@ -535,8 +535,8 @@ def build_model(
     # Unit: [ (1/h) / (g/L) ] 👉 [L/g/h]
 
     run_effect = pm.LogNormal("run_effect", mu=0, sd=0.1, dims="run")
-    v_reaction = pm.LogNormal(
-        "v_reaction",
+    k_reaction = pm.LogNormal(
+        "k_reaction",
         mu=at.log(
             run_effect[i.run_by_reaction, None] *    # [-]
             s_design[i.design_by_reaction, None] *   # [L/g/h]
@@ -551,7 +551,7 @@ def build_model(
     P_in_R = pm.Deterministic(
         "P_in_R",
         # mmol/L * (1 - e^(         h              *    1/h    ))
-        S0 * (1 - at.exp(-time_actual[mask_RinRID] * v_reaction)),
+        S0 * (1 - at.exp(-time_actual[mask_RinRID] * k_reaction)),
         dims=("reaction", "cycle"),
     )
 
