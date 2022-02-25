@@ -407,7 +407,7 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
             dims="dense_id"
         )
 
-        # Predict initial reaction rate from specific activity and biomass
+        # Predict rate constants from specific activity and biomass
         dense_v_design = models.predict_v_design(
             X0_fedbatch=pmodel["Xend_batch"],
             fedbatch_factor=dense_X_factor,
@@ -444,8 +444,8 @@ def plot_gp_metric_posterior_predictive(
     var_name="dense_k_design",
 ):
     label = {
-        "dense_k_design": r"$\mathrm{specific\ activity\ [\frac{mM}{h} / \frac{g_{CDW}}{L}]}$",
-        "dense_v_design": r"$\mathrm{reaction\ rate\ [\frac{mM}{h}]}$",
+        "dense_k_design": r"$\mathrm{specific\ activity\ [\frac{1}{h} / \frac{g_{CDW}}{L}]}$",
+        "dense_v_design": r"$\mathrm{rate\ constant\ [1/h]}$",
     }[var_name]
 
     idata = arviz.from_netcdf(wd / "trace.nc")

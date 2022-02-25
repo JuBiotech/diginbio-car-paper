@@ -532,20 +532,25 @@ def build_model(
         ls_mu=SPAN / 2,
         X=X_design_log10,
     )
+    # Unit: [ (1/h) / (g/L) ] 👉 [L/g/h]
 
     run_effect = pm.LogNormal("run_effect", mu=0, sd=0.1, dims="run")
     v_reaction = pm.LogNormal(
         "v_reaction",
         mu=at.log(
-            #     [-]          [mM/h/CDW]          [CDW]
-            run_effect[i.run_by_reaction, None] * k_design[i.design_by_reaction, None] * X[i.replicate_by_reaction, :]
+            run_effect[i.run_by_reaction, None] *    # [-]
+            k_design[i.design_by_reaction, None] *   # [L/g/h]
+            X[i.replicate_by_reaction, :]            # [g/L]
+                                                     # 👉 [1/h]
         ),
         sd=0.05,
         dims=("reaction", "cycle"),
     )
 
+    # Unit of P: [mmol/L]
     P_in_R = pm.Deterministic(
         "P_in_R",
+        # mmol/L * (1 - e^(         h              *    1/h    ))
         S0 * (1 - at.exp(-time_actual[mask_RinRID] * v_reaction)),
         dims=("reaction", "cycle"),
     )
@@ -611,6 +616,30 @@ def predict_v_design(
     dims: str,
     prefix: str="",
 ) -> at.TensorVariable:
+    """Models a biotransformation rate constant from experiment-independent quantities.
+
+    Parameters
+    ----------
+    X0_fedbatch
+        Initial biomass concentration in the fed-batch phase.
+        Unit: [g_CDW / L]
+    fedbatch_factor
+        Multiplicative factor on the biomass due to the fedbatch strategy.
+        Unit: [-]
+    specific_activity
+        Specific catalytic activity of the whole-cell catalyst at the end of the fed-batch.
+        Unit: [(1/h)/(g/L)] (rate constant per g_CDW of catalyst)
+    dims
+        Dimension names of the symbolic variables.
+    prefix : str
+        A prefix to prepend to new variable names.
+
+    Returns
+    -------
+    v_design : at.TensorVariable
+        Predicted rate constant.
+        Unit: [1/h] (amount of product per biotransformation volume per hour)
+    """
     # Design-wise biomass concentrations
     Xend_design = pm.Deterministic(
         prefix + "Xend_design",
