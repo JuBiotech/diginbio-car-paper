@@ -27,6 +27,30 @@ _log = logging.getLogger(__file__)
 DESIGN_COLS = ["iptg", "glucose"]
 
 
+def plot_experiment_design(wd: pathlib.Path):
+    import FigureExperimentalDesign
+    FigureExperimentalDesign.ExperimentalDesign(wd)
+    return
+
+
+def plot_btm_overview(wd: pathlib.Path):
+    import FigureOverviewProcessData
+    FigureOverviewProcessData.btm_overview(wd)
+    return
+
+
+def plot_ph(wd: pathlib.Path):
+    import FigureOverviewProcessData
+    FigureOverviewProcessData.ph_plot(wd)
+    return
+
+
+def plot_o2(wd: pathlib.Path):
+    import FigureOverviewProcessData
+    FigureOverviewProcessData.o2_plot(wd)
+    return
+
+
 def load_biomass_calibration(wd: pathlib.Path):
     df_cal = dataloading.read_biomass_calibration().set_index("biomass")
     df_cal.to_excel(wd / "data_biomass_calibration.xlsx")
