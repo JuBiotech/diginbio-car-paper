@@ -645,8 +645,8 @@ def plot_3d_s_design(idata, azim=-65):
     return plot_3d_by_design(idata, "s_design", azim=azim, label="specific activity\n$k_{design}\ [(1/h) / (g_{CDW}/h)]$")
 
 
-def plot_3d_v_design(idata, azim=-65):
-    return plot_3d_by_design(idata, "v_design", azim=azim, label="rate constant\n$v_{design}\ [1/h]$")
+def plot_3d_k_design(idata, azim=-65):
+    return plot_3d_by_design(idata, "k_design", azim=azim, label="rate constant\n$v_{design}\ [1/h]$")
 
 
 def plot_3d_by_design(idata, var_name: str, *, label: str, azim=-65):
@@ -721,7 +721,7 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
 
     for name, var, coord in [
         ("s_design_mmol/g_CDW/h", idata.posterior.s_design, "design_id"),
-        ("v_design_mmol/L_biotrafo/h", idata.posterior.v_design, "design_id"),
+        ("k_design_mmol/L_biotrafo/h", idata.posterior.k_design, "design_id"),
         ("v_reaction_mmol/L_biotrafo_dwp/h", idata.posterior.v_reaction, "reaction"),
     ]:
         df[name + "_lower"] = None

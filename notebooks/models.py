@@ -599,7 +599,7 @@ def build_model(
     )
 
     # Additionally track an absolute activity metric based on the expected initial biomass concentration (no batch effects)
-    predict_v_design(
+    predict_k_design(
         X0_fedbatch=Xend_batch,
         fedbatch_factor=X_factor[i.glucose_by_design],
         specific_activity=s_design,
@@ -608,7 +608,7 @@ def build_model(
     return pmodel
 
 
-def predict_v_design(
+def predict_k_design(
     *,
     X0_fedbatch: at.TensorVariable,
     fedbatch_factor: at.TensorVariable,
@@ -636,7 +636,7 @@ def predict_v_design(
 
     Returns
     -------
-    v_design : at.TensorVariable
+    k_design : at.TensorVariable
         Predicted rate constant.
         Unit: [1/h] (amount of product per biotransformation volume per hour)
     """
@@ -648,9 +648,9 @@ def predict_v_design(
     )
 
     # Design-wise initial reaction rate
-    v_design = pm.Deterministic(
-        prefix + "v_design",
+    k_design = pm.Deterministic(
+        prefix + "k_design",
         specific_activity * Xend_design,
         dims=dims,
     )
-    return v_design
+    return k_design
