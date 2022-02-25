@@ -233,7 +233,7 @@ def o2_plot(wd: pathlib.Path=DP_RESULTS):
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
     ax[0].yaxis.set_ticks(np.arange(0, 100.001, 20))
 
-    savefig(fig1, "O2_overview")
+    savefig(fig1, "O2_overview", wd=wd)
     mpl.rcParams['errorbar.capsize'] = 0
     return
 
