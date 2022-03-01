@@ -579,7 +579,7 @@ def plot_reaction(
 
     ax = axs[1, 1]
     metric = "v_reaction"
-    ylabel = "initial reaction rate   [mM/h]"
+    ylabel = "rate constant   [mmol/L/h]"
 
     x = posterior[metric]
     if "cycle" in x.coords:
@@ -642,11 +642,11 @@ def plot_reactor_positions(data: Dict[str, xarray.Dataset], df_layout: pandas.Da
 
 
 def plot_3d_k_design(idata, azim=-65):
-    return plot_3d_by_design(idata, "k_design", azim=azim, label="specific activity\n$k_{design}$ [(mM/h)/(g/L)]")
+    return plot_3d_by_design(idata, "k_design", azim=azim, label="specific activity\n$k_{design}\ [(1/h) / (g_{CDW}/h)]$")
 
 
 def plot_3d_v_design(idata, azim=-65):
-    return plot_3d_by_design(idata, "v_design", azim=azim, label="expected activity\n$v_{design}$ [mM/h]")
+    return plot_3d_by_design(idata, "v_design", azim=azim, label="rate constant\n$v_{design}\ [1/h]$")
 
 
 def plot_3d_by_design(idata, var_name: str, *, label: str, azim=-65):
@@ -720,9 +720,9 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
     df["p_best_design"] = p_best_dataarray(idata.posterior.k_design).sel(design_id=list(df.design_id)).values
 
     for name, var, coord in [
-        ("k_design_mM/h/CDW", idata.posterior.k_design, "design_id"),
-        ("v_design_mM/h", idata.posterior.v_design, "design_id"),
-        ("v_reaction_mM/h", idata.posterior.v_reaction, "reaction"),
+        ("k_design_mmol/g_CDW/h", idata.posterior.k_design, "design_id"),
+        ("v_design_mmol/L_biotrafo/h", idata.posterior.v_design, "design_id"),
+        ("v_reaction_mmol/L_biotrafo_dwp/h", idata.posterior.v_reaction, "reaction"),
     ]:
         df[name + "_lower"] = None
         df[name] = None
@@ -744,5 +744,5 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
             
         assert numpy.all(df[name + "_lower"] < df[name])
         assert numpy.all(df[name + "_upper"] > df[name])
-    df = df.sort_values("k_design_mM/h/CDW")
+    df = df.sort_values("k_design_mmol/g_CDW/h")
     return df

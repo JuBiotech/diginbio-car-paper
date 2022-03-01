@@ -22,6 +22,8 @@ LOW_FEED_POSITION = 15   # f2
 MEDIUM_FEED_PSOTION = 25 # b4
 HIGH_FEED_POSITION = 12  # e2
 
+mpl.rcParams['lines.linewidth'] = 2
+
 
 def get_times(dataframe, filename, wd: pathlib.Path=DP_RESULTS):
     times = pandas.to_datetime(dataframe['Timestamp'], format = "%Y-%m-%d  %H:%M:%S")
@@ -67,6 +69,7 @@ def get_timeseries_influx(
 
 
 def btm_overview(wd: pathlib.Path=DP_RESULTS):
+    mpl.rcParams['errorbar.capsize'] = 3
     correlation_factor = 0.85
     dilution_factor = 100
     blank = 0.035
@@ -162,10 +165,12 @@ def btm_overview(wd: pathlib.Path=DP_RESULTS):
     #ax[2].legend()
 
     savefig(fig1, "btm_overview", wd=wd)
+    mpl.rcParams['errorbar.capsize'] = 0
     return
 
 
 def ph_plot(wd: pathlib.Path=DP_RESULTS):
+    mpl.rcParams['errorbar.capsize'] = 3
     fig1, ax = plt.subplots(nrows=3, ncols=1, sharex= True, sharey = True, figsize=(5,4))
     
 
@@ -196,10 +201,12 @@ def ph_plot(wd: pathlib.Path=DP_RESULTS):
     ax[2].set_xlabel("Time, h")
 
     savefig(fig1, "pH_overview", wd=wd)
+    mpl.rcParams['errorbar.capsize'] = 0
     return
 
 
 def o2_plot(wd: pathlib.Path=DP_RESULTS):
+    mpl.rcParams['errorbar.capsize'] = 3
     fig1, ax = plt.subplots(nrows=3, ncols=1, sharex= True, sharey = True, figsize=(5,4))
 
     def plot_o2_data(ax, label, path, ax_position, reactor_number, starttime, wd=wd):
@@ -226,7 +233,8 @@ def o2_plot(wd: pathlib.Path=DP_RESULTS):
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
     ax[0].yaxis.set_ticks(np.arange(0, 100.001, 20))
 
-    savefig(fig1, "O2_overview")
+    savefig(fig1, "O2_overview", wd=wd)
+    mpl.rcParams['errorbar.capsize'] = 0
     return
 
 

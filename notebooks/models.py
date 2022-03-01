@@ -286,6 +286,11 @@ def X_factor_GP(
         size=(len(pmodel.coords["design_glucose"]),)
     )
     X_factor = pm.Deterministic("X_factor", at.exp(log_X_factor), dims="design_glucose")
+
+    # Track dimnames so it shows up in the platemodel
+    pmodel.RV_dims["log_X_factor_rotated_"] = ("design_glucose",)
+    pmodel.RV_dims["log_X_factor"] = ("design_glucose",)
+    pmodel.RV_dims["X_factor"] = ("design_glucose",)
     return X_factor, gp_log_X_factor
 
 
@@ -468,21 +473,9 @@ def build_model(
         glucose_feed_rates=X_design_glucose,
     )
 
-    # Track dimnames so it shows up in the platemodel
-    pmodel.RV_dims["log_X_factor_rotated_"] = ("design_glucose",)
-    pmodel.RV_dims["log_X_factor"] = ("design_glucose",)
-    pmodel.RV_dims["X_factor"] = ("design_glucose",)
-
     # Model the biomass story
     # starting from a DASGIP biomass concentration hyperprior
     Xend_batch = pm.LogNormal("Xend_batch", mu=numpy.log(0.5), sd=0.5)
-
-    # For the absolute activity metric we need design-wise biomass concentrations that we can multiply with specific activity
-    Xend_design = pm.Deterministic(
-        "Xend_design",
-        Xend_batch * X_factor[i.glucose_by_design],
-        dims="design_id",
-    )
 
     # every run may have its own final DASGIP biomass concentration (5 % error)
     Xend_dasgip = pm.LogNormal("Xend_dasgip", mu=at.log(Xend_batch), sd=0.05, dims="run")
@@ -539,20 +532,25 @@ def build_model(
         ls_mu=SPAN / 2,
         X=X_design_log10,
     )
+    # Unit: [ (1/h) / (g/L) ] 👉 [L/g/h]
 
     run_effect = pm.LogNormal("run_effect", mu=0, sd=0.1, dims="run")
     v_reaction = pm.LogNormal(
         "v_reaction",
         mu=at.log(
-            #     [-]          [mM/h/CDW]          [CDW]
-            run_effect[i.run_by_reaction, None] * k_design[i.design_by_reaction, None] * X[i.replicate_by_reaction, :]
+            run_effect[i.run_by_reaction, None] *    # [-]
+            k_design[i.design_by_reaction, None] *   # [L/g/h]
+            X[i.replicate_by_reaction, :]            # [g/L]
+                                                     # 👉 [1/h]
         ),
         sd=0.05,
         dims=("reaction", "cycle"),
     )
 
+    # Unit of P: [mmol/L]
     P_in_R = pm.Deterministic(
         "P_in_R",
+        # mmol/L * (1 - e^(         h              *    1/h    ))
         S0 * (1 - at.exp(-time_actual[mask_RinRID] * v_reaction)),
         dims=("reaction", "cycle"),
     )
@@ -601,9 +599,58 @@ def build_model(
     )
 
     # Additionally track an absolute activity metric based on the expected initial biomass concentration (no batch effects)
-    pm.Deterministic(
-        "v_design",
-        k_design * Xend_design,
-        dims="design_id",
+    predict_v_design(
+        X0_fedbatch=Xend_batch,
+        fedbatch_factor=X_factor[i.glucose_by_design],
+        specific_activity=k_design,
+        dims="design_id"
     )
     return pmodel
+
+
+def predict_v_design(
+    *,
+    X0_fedbatch: at.TensorVariable,
+    fedbatch_factor: at.TensorVariable,
+    specific_activity: at.TensorVariable,
+    dims: str,
+    prefix: str="",
+) -> at.TensorVariable:
+    """Models a biotransformation rate constant from experiment-independent quantities.
+
+    Parameters
+    ----------
+    X0_fedbatch
+        Initial biomass concentration in the fed-batch phase.
+        Unit: [g_CDW / L]
+    fedbatch_factor
+        Multiplicative factor on the biomass due to the fedbatch strategy.
+        Unit: [-]
+    specific_activity
+        Specific catalytic activity of the whole-cell catalyst at the end of the fed-batch.
+        Unit: [(1/h)/(g/L)] (rate constant per g_CDW of catalyst)
+    dims
+        Dimension names of the symbolic variables.
+    prefix : str
+        A prefix to prepend to new variable names.
+
+    Returns
+    -------
+    v_design : at.TensorVariable
+        Predicted rate constant.
+        Unit: [1/h] (amount of product per biotransformation volume per hour)
+    """
+    # Design-wise biomass concentrations
+    Xend_design = pm.Deterministic(
+        prefix + "Xend_design",
+        X0_fedbatch * fedbatch_factor,
+        dims=dims,
+    )
+
+    # Design-wise initial reaction rate
+    v_design = pm.Deterministic(
+        prefix + "v_design",
+        specific_activity * Xend_design,
+        dims=dims,
+    )
+    return v_design
