@@ -294,7 +294,7 @@ def X_factor_GP(
     return X_factor, gp_log_X_factor
 
 
-def k_design_GP(
+def s_design_GP(
     ls_mu: Sequence[float],
     X: numpy.ndarray,
 ) -> Tuple[at.TensorVariable, pm.gp.Latent]:
@@ -311,38 +311,38 @@ def k_design_GP(
 
     Returns
     -------
-    k_design : TensorVariable
+    s_design : TensorVariable
         Predicted specific activity for each experimental design.
-    gp_log_k_design : pm.gp.Latent
-        The underlying Gaussian process describing log(k_design) as
+    gp_log_s_design : pm.gp.Latent
+        The underlying Gaussian process describing log(s_design) as
         a function of real-valued experimental design.
     """
     pmodel = pm.modelcontext(None)
 
     # Build a GP model of the underlying k, based on glucose and IPTG alone
-    ls_k_design = pm.LogNormal('ls_k_design', mu=numpy.log(ls_mu), sd=0.5, dims="design_dim")
+    ls_s_design = pm.LogNormal('ls_s_design', mu=numpy.log(ls_mu), sd=0.5, dims="design_dim")
 
     # The reaction rate k must be strictly positive. So our GP must describe log(k).
     # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
     # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
-    scaling_k_design = pm.LogNormal('scaling_k_design', mu=numpy.log(0.7), sd=0.2)
+    scaling_s_design = pm.LogNormal('scaling_s_design', mu=numpy.log(0.7), sd=0.2)
 
     # Build the 2D GP
     mean_func = pm.gp.mean.Zero()
-    cov_func = scaling_k_design**2 * pm.gp.cov.ExpQuad(
+    cov_func = scaling_s_design**2 * pm.gp.cov.ExpQuad(
         input_dim=len(ls_mu),
-        ls=ls_k_design
+        ls=ls_s_design
     )
-    gp_log_k_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+    gp_log_s_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
     
     # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
-    log_k_design = gp_log_k_design.prior(
-        "log_k_design",
+    log_s_design = gp_log_s_design.prior(
+        "log_s_design",
         X=X,
         size=int(pmodel.dim_lengths["design_id"].eval())
     )
-    k_design = pm.Deterministic("k_design", at.exp(log_k_design), dims="design_id")
-    return (k_design, gp_log_k_design)
+    s_design = pm.Deterministic("s_design", at.exp(log_s_design), dims="design_id")
+    return (s_design, gp_log_s_design)
 
 
 def build_model(
@@ -528,18 +528,18 @@ def build_model(
     time_delay = pm.HalfNormal("time_delay", sd=0.1)
     time_actual = time + time_delay
 
-    k_design, pmodel.gp_log_k_design = k_design_GP(
+    s_design, pmodel.gp_log_s_design = s_design_GP(
         ls_mu=SPAN / 2,
         X=X_design_log10,
     )
     # Unit: [ (1/h) / (g/L) ] 👉 [L/g/h]
 
     run_effect = pm.LogNormal("run_effect", mu=0, sd=0.1, dims="run")
-    v_reaction = pm.LogNormal(
-        "v_reaction",
+    k_reaction = pm.LogNormal(
+        "k_reaction",
         mu=at.log(
             run_effect[i.run_by_reaction, None] *    # [-]
-            k_design[i.design_by_reaction, None] *   # [L/g/h]
+            s_design[i.design_by_reaction, None] *   # [L/g/h]
             X[i.replicate_by_reaction, :]            # [g/L]
                                                      # 👉 [1/h]
         ),
@@ -551,7 +551,7 @@ def build_model(
     P_in_R = pm.Deterministic(
         "P_in_R",
         # mmol/L * (1 - e^(         h              *    1/h    ))
-        S0 * (1 - at.exp(-time_actual[mask_RinRID] * v_reaction)),
+        S0 * (1 - at.exp(-time_actual[mask_RinRID] * k_reaction)),
         dims=("reaction", "cycle"),
     )
 
@@ -599,16 +599,16 @@ def build_model(
     )
 
     # Additionally track an absolute activity metric based on the expected initial biomass concentration (no batch effects)
-    predict_v_design(
+    predict_k_design(
         X0_fedbatch=Xend_batch,
         fedbatch_factor=X_factor[i.glucose_by_design],
-        specific_activity=k_design,
+        specific_activity=s_design,
         dims="design_id"
     )
     return pmodel
 
 
-def predict_v_design(
+def predict_k_design(
     *,
     X0_fedbatch: at.TensorVariable,
     fedbatch_factor: at.TensorVariable,
@@ -636,7 +636,7 @@ def predict_v_design(
 
     Returns
     -------
-    v_design : at.TensorVariable
+    k_design : at.TensorVariable
         Predicted rate constant.
         Unit: [1/h] (amount of product per biotransformation volume per hour)
     """
@@ -648,9 +648,9 @@ def predict_v_design(
     )
 
     # Design-wise initial reaction rate
-    v_design = pm.Deterministic(
-        prefix + "v_design",
+    k_design = pm.Deterministic(
+        prefix + "k_design",
         specific_activity * Xend_design,
         dims=dims,
     )
-    return v_design
+    return k_design

@@ -198,6 +198,9 @@ def fit_model(wd: pathlib.Path, **sample_kwargs):
     #modelgraph.render(filename=str(wd / "model.pdf"), format="pdf")
 
     sample_kwargs.setdefault("discard_tuned_samples", False)
+    sample_kwargs.setdefault("tune", 1000)
+    sample_kwargs.setdefault("draws", 500)
+    sample_kwargs.setdefault("target_accept", 0.95)
 
     _log.info("Running MCMC")
     with pmodel:
@@ -373,13 +376,13 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
         _log.info("Adding variables for high-quality predictives")
 
         # Predict specific activity at the dense designs
-        log_k_design = pmodel.gp_log_k_design.conditional(
-            "dense_log_k_design",
+        log_s_design = pmodel.gp_log_s_design.conditional(
+            "dense_log_s_design",
             Xnew=dense_long.values,
             dims="dense_id",
             jitter=pm.gp.util.JITTER_DEFAULT
         )
-        dense_k_design = pm.Deterministic("dense_k_design", at.exp(log_k_design), dims="dense_id")
+        dense_s_design = pm.Deterministic("dense_s_design", at.exp(log_s_design), dims="dense_id")
 
         # Predict fedbatch factors for each glucose design
         long_glucose = dense_long.sel(design_dim="glucose").values
@@ -408,10 +411,10 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
         )
 
         # Predict rate constants from specific activity and biomass
-        dense_v_design = models.predict_v_design(
+        dense_k_design = models.predict_k_design(
             X0_fedbatch=pmodel["Xend_batch"],
             fedbatch_factor=dense_X_factor,
-            specific_activity=dense_k_design,
+            specific_activity=dense_s_design,
             dims="dense_id",
             prefix="dense_",
         )
@@ -441,11 +444,11 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
 
 def plot_gp_metric_posterior_predictive(
     wd: pathlib.Path,
-    var_name="dense_k_design",
+    var_name="dense_s_design",
 ):
     label = {
-        "dense_k_design": r"$\mathrm{specific\ activity\ [\frac{1}{h} / \frac{g_{CDW}}{L}]}$",
-        "dense_v_design": r"$\mathrm{rate\ constant\ [1/h]}$",
+        "dense_s_design": r"$\mathrm{specific\ activity\ [\frac{1}{h} / \frac{g_{CDW}}{L}]}$",
+        "dense_k_design": r"$\mathrm{rate\ constant\ [1/h]}$",
     }[var_name]
 
     idata = arviz.from_netcdf(wd / "trace.nc")

@@ -15,8 +15,8 @@ def test_interesting_groups():
     assert result["biotransformation"] == ["S0"]
 
     result = plotting.interesting_groups(
-        MockPosterior(["ls_X", "scaling_X", "log_X_factor", "k_design"])
+        MockPosterior(["ls_X", "scaling_X", "log_X_factor", "s_design"])
     )
     assert result["biomass"] == ["ls_X", "scaling_X", "log_X_factor"], result
-    assert result["biotransformation"] == ["k_design"]
+    assert result["biotransformation"] == ["s_design"]
     pass

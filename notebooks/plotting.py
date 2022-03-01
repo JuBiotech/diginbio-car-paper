@@ -137,9 +137,9 @@ def interesting_groups(posterior) -> Dict[str, List[str]]:
         "biotransformation": [
             "S0",
             "time_delay",
-            "ls_k_design,scaling_k_design,k_design||k_design",
+            "ls_s_design,scaling_s_design,s_design||s_design",
             "run_effect",
-            "v_reaction",
+            "k_reaction",
         ],
     }
     available = tuple(posterior.keys())
@@ -578,7 +578,7 @@ def plot_reaction(
 
 
     ax = axs[1, 1]
-    metric = "v_reaction"
+    metric = "k_reaction"
     ylabel = "rate constant   [mmol/L/h]"
 
     x = posterior[metric]
@@ -641,12 +641,12 @@ def plot_reactor_positions(data: Dict[str, xarray.Dataset], df_layout: pandas.Da
     return
 
 
+def plot_3d_s_design(idata, azim=-65):
+    return plot_3d_by_design(idata, "s_design", azim=azim, label="specific activity\n$k_{design}\ [(1/h) / (g_{CDW}/h)]$")
+
+
 def plot_3d_k_design(idata, azim=-65):
-    return plot_3d_by_design(idata, "k_design", azim=azim, label="specific activity\n$k_{design}\ [(1/h) / (g_{CDW}/h)]$")
-
-
-def plot_3d_v_design(idata, azim=-65):
-    return plot_3d_by_design(idata, "v_design", azim=azim, label="rate constant\n$v_{design}\ [1/h]$")
+    return plot_3d_by_design(idata, "k_design", azim=azim, label="rate constant\n$v_{design}\ [1/h]$")
 
 
 def plot_3d_by_design(idata, var_name: str, *, label: str, azim=-65):
@@ -717,19 +717,19 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
     df = df_layout.loc[idata.posterior.reaction.values]
 
     # Add columns with probability of being the best
-    df["p_best_design"] = p_best_dataarray(idata.posterior.k_design).sel(design_id=list(df.design_id)).values
+    df["p_best_design"] = p_best_dataarray(idata.posterior.s_design).sel(design_id=list(df.design_id)).values
 
     for name, var, coord in [
-        ("k_design_mmol/g_CDW/h", idata.posterior.k_design, "design_id"),
-        ("v_design_mmol/L_biotrafo/h", idata.posterior.v_design, "design_id"),
-        ("v_reaction_mmol/L_biotrafo_dwp/h", idata.posterior.v_reaction, "reaction"),
+        ("s_design_mmol/g_CDW/h", idata.posterior.s_design, "design_id"),
+        ("k_design_mmol/L_biotrafo/h", idata.posterior.k_design, "design_id"),
+        ("k_reaction_mmol/L_biotrafo_dwp/h", idata.posterior.k_reaction, "reaction"),
     ]:
         df[name + "_lower"] = None
         df[name] = None
         df[name + "_upper"] = None
 
         if "cycle" in var.coords:
-            # Newer model versions have cycle-wise v_reaction.
+            # Newer model versions have cycle-wise k_reaction.
             # Here we're just interested in the first cycle.
             var = var.sel(cycle=0)
 
@@ -744,5 +744,5 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
             
         assert numpy.all(df[name + "_lower"] < df[name])
         assert numpy.all(df[name + "_upper"] > df[name])
-    df = df.sort_values("k_design_mmol/g_CDW/h")
+    df = df.sort_values("s_design_mmol/g_CDW/h")
     return df
