@@ -100,6 +100,7 @@ def btm_overview(wd: pathlib.Path=DP_RESULTS):
         data_mean = data_.groupby(['time']).mean()
         print(data_mean)
         ax[0].errorbar(times, data_mean['DCW, g/L'], yerr = data_std['DCW, g/L'], label='IPTG = 0.48 \xb5M, F$_{in}$ = 4.8 g L$^{-1}$ h$^{-1}$', linestyle ='', marker='o') # plot stuff
+        ax[0].axvline(1, linestyle='--', linewidth = 1.0, color='black')
         return ax
     ax = feed_rate_4_8_carb_20(ax)
 
@@ -124,6 +125,7 @@ def btm_overview(wd: pathlib.Path=DP_RESULTS):
 
         
         ax[1].errorbar(times, data_mean['DCW, g/L'], yerr = data_std['DCW, g/L'], label='IPTG = 6 \xb5M, F$_{in}$ = 3 g L$^{-1}$ h$^{-1}$', linestyle ='', marker='o') # plot stuff
+        ax[1].axvline(1, linestyle='--', linewidth =1.0, color='black')
         return ax
     ax = feed_rate_3_0_carb_23(ax)
 
@@ -147,6 +149,7 @@ def btm_overview(wd: pathlib.Path=DP_RESULTS):
         data_mean = data_.groupby(['time']).mean()
         
         ax[2].errorbar(times, data_mean['DCW, g/L'], yerr = data_std['DCW, g/L'], label='IPTG = 12 \xb5M, F$_{in}$ = 1 g L$^{-1}$ h$^{-1}$', marker ='o', linestyle='') # plot stuff
+        ax[2].axvline(1, linestyle='--', linewidth =1.0, color ='black')
         return ax
     ax = feed_rate_1_0_carb_21(ax)
 
