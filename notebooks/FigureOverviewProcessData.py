@@ -159,9 +159,9 @@ def btm_overview(wd: pathlib.Path=DP_RESULTS):
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
     ax[2].set_xlim(0, 18)
 
-    ax[0].set_ylabel('DCW, g L$^{-1}$')
-    ax[1].set_ylabel('DCW, g L$^{-1}$')
-    ax[2].set_ylabel('DCW, g L$^{-1}$')
+    ax[0].set_ylabel('CDW, g L$^{-1}$')
+    ax[1].set_ylabel('CDW, g L$^{-1}$')
+    ax[2].set_ylabel('CDW, g L$^{-1}$')
     ax[2].set_xlabel('Time, h')
     #ax[0].legend()
     #ax[1].legend()
