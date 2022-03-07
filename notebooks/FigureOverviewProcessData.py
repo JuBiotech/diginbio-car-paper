@@ -214,7 +214,7 @@ def o2_plot(wd: pathlib.Path=DP_RESULTS):
         rel_timedata, abs_time_data = get_timeseries_influx(o2_raw_data['time'], starttime, wd=wd)
         full_data = pandas.concat([rel_timedata, o2_raw_data], axis = 1)
         active_position = full_data[full_data.position == reactor_number] 
-        ax[ax_position].errorbar(active_position['Time, relative, h'], active_position['Presens_data.O2_value'], marker = '', linestyle = '-', label=label)
+        ax[ax_position].errorbar(active_position['Time, relative, h'], active_position['Presens_data.O2_value'], marker = '', linestyle = '-', linewidth= 1.0 label=label)
         return ax
     ax = plot_o2_data(ax=ax, label='IPTG = 0.48 \xb5M, F$_{in}$ = 4.8 g L$^{-1}$ h$^{-1}$', path = DP_DATA / 'Carboxylase_20' / 'O2_2021-09-23-09-34 Chronograf Data.csv',
                       ax_position=0, reactor_number= HIGH_FEED_POSITION, starttime= datetime.datetime (2021,9, 22, 15, 26, 0)) 
