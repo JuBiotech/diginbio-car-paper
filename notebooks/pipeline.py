@@ -526,3 +526,100 @@ def plot_gp_metric_posterior_predictive(
         delay_frames=0
     )
     return
+
+
+def _dense_lookup(pp, feed_rate: float, iptg: float):
+    """Look up a dense_id given untransformed process parameters."""
+
+    design_dims = tuple(pp.design_dim.values)
+    iglucose = design_dims.index("glucose")
+    iiptg = design_dims.index("iptg")
+    if not numpy.log10(feed_rate) in pp.dense_long.values[:, iglucose]:
+        raise ValueError(
+            f"The selected feed rate of {feed_rate} was not included in the posterior predictive."
+            f" Available options are: {10**numpy.unique(pp.dense_long.values[:, iglucose])}."
+        )
+    if not numpy.log10(iptg) in pp.dense_long.values[:, iiptg]:
+        raise ValueError(
+            f"The selected feed rate of {iptg} was not included in the posterior predictive."
+            f" Available options are: {10**numpy.unique(pp.dense_long.values[:, iiptg])}."
+        )
+
+    design_dict = {
+        "glucose": numpy.log10(feed_rate),
+        "iptg": numpy.log10(iptg),
+    }
+    design_arr = numpy.array([design_dict[ddim] for ddim in design_dims])
+    imatch = numpy.argmax(numpy.all(pp.dense_long.values == design_arr, axis=1))
+    dense_id = pp.dense_id.values[imatch]
+    numpy.testing.assert_array_equal(design_arr, pp.dense_long.sel(dense_id=dense_id))
+
+    return dense_id
+
+
+def predict_units(
+    wd: pathlib.Path,
+    S0: float=2.5,
+    feed_rate: float=4.8,
+    iptg: float=32,
+):
+    """Writes a summary of derived metrics at a particular process design.
+
+    ⚠ The process design must be a subset of the dense posterior predictive prediction.
+
+    Parameters
+    ----------
+    wd: pathlib.Path
+        Current working directory containing the results.
+    S0 : float
+        Initial 2-hydroxy benzoic acid concentration in the biotransformation.
+        Unit: mmol/L
+    feed_rate : float
+        Glucose feed rate in g/L/h during the expression phase.
+    iptg : float
+        IPTG concentration in µM.
+    """
+    postpred = arviz.from_netcdf(wd / "predictive_posterior.nc")
+    pp = postpred.posterior_predictive
+
+    # Find the dense_id corresponding to the selected process parameters
+    dense_id = _dense_lookup(pp, feed_rate, iptg)
+
+    # Select the rate constant at just that one experimental design
+    k_design = pp.dense_k_design.sel(dense_id=dense_id)
+
+    #             mM/h = mM * 1/h
+    init_reaction_rate = S0 * k_design
+
+    #   U = µmol/L/min = mmol/L/h * 1000 mmol/mol / (60 min/h)
+    units = init_reaction_rate * 1000 / 60
+
+    #           U/mL = U / mL
+    volumetric_units = units / 0.025
+
+    # Summarize median and 90 % HDI
+    def summarize(var, decimals):
+        lower, upper = arviz.hdi(var, hdi_prob=0.9)
+        med = numpy.median(var)
+        if decimals > 0:
+            _round = lambda x: numpy.round(x, decimals)
+        else:
+            _round = round
+        return _round(med), _round(lower), _round(upper)
+
+    summaries = [
+        ("Initial reaction rate", *summarize(init_reaction_rate.values.flatten(), 2), "mmol/h"),
+        ("Enzymatic activity", *summarize(units.values.flatten(), 1), "U"),
+        ("Volumetric enzymatic activity", *summarize(volumetric_units.values.flatten(), 0), "U/mL"),
+    ]
+
+    # Write summaries to a text file
+    with open(wd / "summary_units.txt", "w", encoding="utf-8") as file:
+        line = f"Summarized prediction for\n  {feed_rate} g/L/h glucose feed rate\n  {iptg} µM IPTG\n  {S0} mM 2-hydroxy benzoic acid\n"
+        print(line)
+        file.write(line)
+        for label, med, low, high, unit in summaries:
+            line = f"{label} of {med} with 90 % HDI [{low}, {high}] {unit}."
+            file.write(line)
+            print(line)
+    return
