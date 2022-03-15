@@ -660,4 +660,4 @@ def plot_p_best_heatmap(wd: pathlib.Path):
         title="",
     )
     plotting.savefig(fig, "p_best_k_design", wd=wd)
-    return
+    return best.to_dataframe().dense_long.to_dict()
