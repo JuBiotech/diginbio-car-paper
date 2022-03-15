@@ -654,3 +654,35 @@ def predict_k_design(
         dims=dims,
     )
     return k_design
+
+
+def to_unit_metrics(S0, k, v_catalyst=0.025):
+    """Calculates metrix at fixed biotransformation condition.
+    
+    Parameters
+    ----------
+    S0
+        Initial 2-hydroxy benzoic acid concentration [mmol/L] in the biotransformation.
+    k
+        Rate constant [1/h] of the whole-cell biocatalyst.
+    v_catalyst
+        Volume [mL] of the biocatalyst suspension in the biotransformation reaction.
+
+    Returns
+    -------
+    v0
+        Initial reaction rate [mmol/L/h].
+    units
+        Enzymatic activity [U] = [µmol/L/min].
+    volumetric_units
+        Enzymatic activity per catalyst volume [U/mL].
+    """
+    # mM/h = mM * 1/h
+    v0 = S0 * k
+
+    #   U = µmol/L/min = mmol/L/h * 1000 mmol/mol / (60 min/h)
+    units = v0 * 1000 / 60
+
+    #           U/mL = U / mL
+    volumetric_units = units / v_catalyst
+    return v0, units, volumetric_units
