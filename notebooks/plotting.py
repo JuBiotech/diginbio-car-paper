@@ -719,10 +719,16 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
     # Add columns with probability of being the best
     df["p_best_design"] = p_best_dataarray(idata.posterior.s_design).sel(design_id=list(df.design_id)).values
 
+    import models
+    v0, units, volumetric_units = models.to_unit_metrics(S0=2.5, k=idata.posterior.k_design)
+
     for name, var, coord in [
-        ("s_design_mmol/g_CDW/h", idata.posterior.s_design, "design_id"),
-        ("k_design_mmol/L_biotrafo/h", idata.posterior.k_design, "design_id"),
-        ("k_reaction_mmol/L_biotrafo_dwp/h", idata.posterior.k_reaction, "reaction"),
+        ("s_design_1/h_per_gCDW/L", idata.posterior.s_design, "design_id"),
+        ("k_design_1/h", idata.posterior.k_design, "design_id"),
+        ("k_reaction_1/h", idata.posterior.k_reaction, "reaction"),
+        ("v0_mmol/L/h", v0, "design_id"),
+        ("units_U", units, "design_id"),
+        ("volumetric_units_U/mL", volumetric_units, "design_id"),
     ]:
         df[name + "_lower"] = None
         df[name] = None
@@ -744,5 +750,5 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
             
         assert numpy.all(df[name + "_lower"] < df[name])
         assert numpy.all(df[name + "_upper"] > df[name])
-    df = df.sort_values("s_design_mmol/g_CDW/h")
+    df = df.sort_values("s_design_1/h_per_gCDW/L")
     return df
