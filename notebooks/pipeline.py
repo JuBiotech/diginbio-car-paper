@@ -588,14 +588,7 @@ def predict_units(
     # Select the rate constant at just that one experimental design
     k_design = pp.dense_k_design.sel(dense_id=dense_id)
 
-    #             mM/h = mM * 1/h
-    init_reaction_rate = S0 * k_design
-
-    #   U = µmol/L/min = mmol/L/h * 1000 mmol/mol / (60 min/h)
-    units = init_reaction_rate * 1000 / 60
-
-    #           U/mL = U / mL
-    volumetric_units = units / 0.025
+    v0, units, volumetric_units = models.to_unit_metrics(S0, k_design)
 
     # Summarize median and 90 % HDI
     def summarize(var, decimals):
@@ -608,7 +601,7 @@ def predict_units(
         return _round(med), _round(lower), _round(upper)
 
     summaries = [
-        ("Initial reaction rate", *summarize(init_reaction_rate.values.flatten(), 2), "mmol/h"),
+        ("Initial reaction rate", *summarize(v0.values.flatten(), 2), "mmol/h"),
         ("Enzymatic activity", *summarize(units.values.flatten(), 1), "U"),
         ("Volumetric enzymatic activity", *summarize(volumetric_units.values.flatten(), 0), "U/mL"),
     ]
