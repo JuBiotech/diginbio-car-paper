@@ -564,6 +564,7 @@ def predict_units(
     S0: float=2.5,
     feed_rate: float=4.8,
     iptg: float=32,
+    design_log10: dict=None,
 ):
     """Writes a summary of derived metrics at a particular process design.
 
@@ -580,7 +581,14 @@ def predict_units(
         Glucose feed rate in g/L/h during the expression phase.
     iptg : float
         IPTG concentration in µM.
+    design_log10
+        Dictionary mapping "iptg" and "glucose" to log10 transformed process design coordinates.
+        If provided, this dictionary overrides `feed_rate` and `iptg`.
     """
+    if design_log10:
+        feed_rate = 10**design_log10["glucose"]
+        iptg = 10**design_log10["iptg"]
+
     postpred = arviz.from_netcdf(wd / "predictive_posterior.nc")
     pp = postpred.posterior_predictive
 
