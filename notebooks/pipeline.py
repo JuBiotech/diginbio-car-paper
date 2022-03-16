@@ -11,9 +11,11 @@ import pathlib
 import aesara.tensor as at
 import arviz
 import calibr8
+import mpl_toolkits.axes_grid1
 import numpy
 import pandas
 import pymc as pm
+import pyrff
 from matplotlib import pyplot
 import xarray
 
@@ -562,6 +564,7 @@ def predict_units(
     S0: float=2.5,
     feed_rate: float=4.8,
     iptg: float=32,
+    design_log10: dict=None,
 ):
     """Writes a summary of derived metrics at a particular process design.
 
@@ -578,7 +581,14 @@ def predict_units(
         Glucose feed rate in g/L/h during the expression phase.
     iptg : float
         IPTG concentration in µM.
+    design_log10
+        Dictionary mapping "iptg" and "glucose" to log10 transformed process design coordinates.
+        If provided, this dictionary overrides `feed_rate` and `iptg`.
     """
+    if design_log10:
+        feed_rate = 10**design_log10["glucose"]
+        iptg = 10**design_log10["iptg"]
+
     postpred = arviz.from_netcdf(wd / "predictive_posterior.nc")
     pp = postpred.posterior_predictive
 
@@ -616,3 +626,46 @@ def predict_units(
             file.write(line)
             print(line)
     return
+
+
+def plot_p_best_heatmap(wd: pathlib.Path):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    ipp = arviz.from_netcdf(wd / "predictive_posterior.nc")
+    pp = ipp.posterior_predictive
+
+    # For each dense design determine the probability that it's the best
+    probs = pyrff.sampling_probabilities(pp.dense_k_design.stack(sample=("chain", "draw")), correlated=True)
+    probs1d = xarray.DataArray(probs, name="p_best", dims="dense_id")
+    best_did = pp.dense_id.values[numpy.argmax(probs)]
+    best = pp.dense_long.sel(dense_id=best_did)
+
+    # Reshape into 2D
+    probs2d = models.dense_1d_to_2d(probs1d, pp.dense_long)
+
+    # Plot it as a heatmap
+    fig, ax = pyplot.subplots(figsize=(5, 5))
+    img = plotting.xarrshow(
+        ax,
+        probs2d.transpose("glucose", "iptg"),
+        aspect="auto",
+        vmin=0,
+    )
+    ax.scatter(*idata.constant_data.X_design_log10.values[:,::-1].T, marker="x")
+
+    # Draw a colorbar that matches the height of the image
+    divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
+    cbar_kw = dict(
+        mappable=img,
+        ax=ax,
+        cax=divider.append_axes("right", size="5%", pad=0.05),
+    )
+    cbar = ax.figure.colorbar(**cbar_kw)
+    cbar.ax.set_ylabel("$\mathrm{probability(best)\ [-]}$", rotation=90, va="top")
+
+    ax.set(
+        ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ [g/L/h])}$",
+        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$",
+        title="",
+    )
+    plotting.savefig(fig, "p_best_k_design", wd=wd)
+    return best.to_dataframe().dense_long.to_dict()

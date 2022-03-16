@@ -752,3 +752,43 @@ def summarize(idata, df_layout) -> pandas.DataFrame:
         assert numpy.all(df[name + "_upper"] > df[name])
     df = df.sort_values("s_design_1/h_per_gCDW/L")
     return df
+
+
+def xarrshow(ax, xarr: xarray.DataArray, **kwargs):
+    """Plots a DataArray as a heatmap and labels it.
+    
+    Parameters
+    ----------
+    ax
+        Matplotlib Axes to use.
+    xarr
+        A 2-dimensional data array.
+    **kwargs
+        Will be forwarded to `ax.imshow`.
+    
+    Returns
+    -------
+    img
+        The return value of `ax.imshow`.
+    """
+    assert xarr.ndim == 2
+
+    dv, dh = xarr.dims
+    dx = numpy.diff(xarr[dh].values)[0]
+    dy = numpy.diff(xarr[dv].values)[0]
+
+    extent = [
+        min(xarr[dh]) - dx/2,
+        max(xarr[dh]) + dx/2,
+        max(xarr[dv]) + dy/2,
+        min(xarr[dv]) - dx/2,
+    ]
+    kwargs.setdefault("extent", extent)
+
+    img = ax.imshow(xarr, **kwargs)
+    ax.set(
+        ylabel=dv,
+        xlabel=dh,
+        title=xarr.name,
+    )
+    return img
