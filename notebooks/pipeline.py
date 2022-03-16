@@ -167,6 +167,17 @@ def load_observations(wd: pathlib.Path):
     return
 
 
+def plot_A600_kinetics(wd: pathlib.Path):
+    df_layout = pandas.read_excel(wd / "layout.xlsx", sheet_name="layout", index_col="replicate_id")
+    df_time = pandas.read_excel(wd / "observations.xlsx", sheet_name="time", index_col="replicate_id")
+    df_A600 = pandas.read_excel(wd / "observations.xlsx", sheet_name="A600", index_col="replicate_id")
+
+    fig, _ = plotting.plot_calibration_A600(df_layout, df_A600, df_time)
+
+    plotting.savefig(fig, "plot_A600_kinetics", wd=wd)
+    return
+
+
 def _build_model(wd: pathlib.Path):
     _log.info("Loading calibrations")
     cmX360 = models.LogisticBiomassAbsorbanceModel.load(wd / "cm_biomass_A360.json")

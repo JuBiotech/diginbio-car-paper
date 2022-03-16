@@ -2,6 +2,7 @@ import pathlib
 import calibr8
 import fastprogress
 import io
+import logging
 import mpl_toolkits
 import pandas
 import pathlib
@@ -17,6 +18,8 @@ from matplotlib import cm, pyplot, colors
 DP_ROOT = pathlib.Path(__file__).absolute().parent.parent
 DP_RESULTS = DP_ROOT / "results"
 DP_RESULTS.mkdir(exist_ok=True)
+
+_log = logging.getLogger(__file__)
 
 pyplot.style.use(DP_ROOT / "notebooks" / "DigInBio.mplstyle")
 
@@ -277,21 +280,24 @@ def plot_gif(
 
 
 def plot_calibration_A600(df_layout, df_A600, df_time):
-    fig, ax = pyplot.subplots(dpi=100)
+    fig, ax = pyplot.subplots()
 
     groups = list(df_layout.sort_values("product").groupby("product"))
     for g, (concentration, df) in enumerate(groups):
         rids = list(df.index)
+        _log.info("Plotting for RIDs %s", rids)
         color = cm.autumn(0.1 + g / len(groups))
         label = f"{concentration} mM"
-        ax.plot(df_time.loc[rids].T, df_A600.loc[rids].T, color=color)
+        t = df_time.loc[rids].T.to_numpy()
+        y = df_A600.loc[rids].T.to_numpy()
+        ax.plot(t, y, color=color)
         ax.plot([], [], color=color, label=label)
     ax.legend(frameon=False)
     ax.set(
-        title="A600 kinetics by product concentrations",
         xlabel="time   [h]",
-        ylabel="absorbance at 600 nm",
+        ylabel="absorbance at 600 nm   [a.u.]",
         ylim=(0, None),
+        xlim=(0, None),
     )
     return fig, ax
 
