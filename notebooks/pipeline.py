@@ -382,7 +382,7 @@ def plot_gp_X_factor(wd: pathlib.Path):
     return
 
 
-def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: int=30):
+def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: int=50):
     idata = arviz.from_netcdf(wd / "trace.nc")
 
     _log.info("Creating the model")
@@ -402,9 +402,17 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
         dense_long,
         from_dim="dense_id",
         to_shape=(n, n),
-        to_dims=idata.posterior.design_dim.values,
+        to_dims=["dense_design_" + dname for dname in idata.posterior.design_dim.values],
+        coords={
+            "dense_design_iptg": numpy.unique(dense_long.sel(design_dim="iptg")),
+            "dense_design_glucose": numpy.unique(dense_long.sel(design_dim="glucose")),
+        }
     )
     with pmodel:
+        _log.info("Registering new dense coordinates")
+        pmodel.add_coord("dense_design_iptg", dense_grid.dense_design_iptg.values)
+        pmodel.add_coord("dense_design_glucose", dense_grid.dense_design_glucose.values)
+
         _log.info("Adding variables for high-quality predictives")
 
         # Predict specific activity at the dense designs
