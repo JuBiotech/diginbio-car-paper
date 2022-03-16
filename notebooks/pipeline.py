@@ -96,6 +96,7 @@ def plot_biomass_calibration(wd: pathlib.Path, wavelength: int):
         ylabel=r"$\mathrm{absolute\ residual\ [-]}$",
         xlabel=xlabel,
     )
+    axs[1].legend(frameon=False)
     plotting.savefig(fig, f"cm_biomass_A{wavelength}", wd=wd)
     pyplot.close()
     return
@@ -134,6 +135,7 @@ def plot_product_calibration(wd: pathlib.Path):
         ylabel=r"$\mathrm{absolute\ residual\ [-]}$",
         xlabel=xlabel,
     )
+    axs[1].legend(frameon=False)
     plotting.savefig(fig, f"cm_product_A360", wd=wd)
     pyplot.close()
     return
