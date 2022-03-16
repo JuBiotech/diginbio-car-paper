@@ -97,6 +97,18 @@ def plot_biomass_calibration(wd: pathlib.Path, wavelength: int):
         xlabel=xlabel,
     )
     axs[1].legend(frameon=False)
+    if wavelength == 360:
+        axs[0].axhline(1.3, xmin=0, xmax=0.8, ls="--", color="black")
+        axs[0].text(3, 1.18, "↓ experimentally relevant ↓")
+        axs[1].axhline(1.3, xmin=0, xmax=0.9, ls="--", color="black")
+        axs[1].text(0.005, 1.18, "↓ experimentally relevant ↓")
+    elif wavelength == 600:
+        axs[0].axhline(0.9, xmin=0, xmax=0.72, ls="--", color="black")
+        axs[0].text(2, 0.78, "↓ experimentally relevant ↓")
+        axs[1].axhline(0.9, xmin=0, xmax=0.8, ls="--", color="black")
+        axs[1].text(0.003, 0.78, "↓ experimentally relevant ↓")
+    else:
+        raise ValueError("Unsupported wavelength.")
     plotting.savefig(fig, f"cm_biomass_A{wavelength}", wd=wd)
     pyplot.close()
     return
@@ -136,6 +148,10 @@ def plot_product_calibration(wd: pathlib.Path):
         xlabel=xlabel,
     )
     axs[1].legend(frameon=False)
+    axs[0].axhline(1.3, xmin=0.17, xmax=1, ls="--", color="black")
+    axs[0].text(0.40, 1.22, "↓ experimentally relevant ↓")
+    axs[1].axhline(1.3, xmin=0.25, xmax=1, ls="--", color="black")
+    axs[1].text(0.001, 1.22, "↓ experimentally relevant ↓")
     plotting.savefig(fig, f"cm_product_A360", wd=wd)
     pyplot.close()
     return
