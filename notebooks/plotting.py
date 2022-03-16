@@ -585,7 +585,7 @@ def plot_reaction(
 
     ax = axs[1, 1]
     metric = "k_reaction"
-    ylabel = "rate constant   [mmol/L/h]"
+    ylabel = "rate constant   [1/h]"
 
     x = posterior[metric]
     if "cycle" in x.coords:
