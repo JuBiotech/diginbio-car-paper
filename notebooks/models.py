@@ -673,7 +673,7 @@ def to_unit_metrics(S0, k, v_catalyst=0.025):
     Parameters
     ----------
     S0
-        Initial 2-hydroxy benzoic acid concentration [mmol/L] in the biotransformation.
+        Initial 3-hydroxy benzoic acid concentration [mmol/L] in the biotransformation.
     k
         Rate constant [1/h] of the whole-cell biocatalyst.
     v_catalyst

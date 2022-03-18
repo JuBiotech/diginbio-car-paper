@@ -611,7 +611,7 @@ def predict_units(
     wd: pathlib.Path
         Current working directory containing the results.
     S0 : float
-        Initial 2-hydroxy benzoic acid concentration in the biotransformation.
+        Initial 3-hydroxy benzoic acid concentration in the biotransformation.
         Unit: mmol/L
     feed_rate : float
         Glucose feed rate in g/L/h during the expression phase.
@@ -654,7 +654,7 @@ def predict_units(
 
     # Write summaries to a text file
     with open(wd / "summary_units.txt", "w", encoding="utf-8") as file:
-        line = f"Summarized prediction for\n  {feed_rate} g/L/h glucose feed rate\n  {iptg} µM IPTG\n  {S0} mM 2-hydroxy benzoic acid\n"
+        line = f"Summarized prediction for\n  {feed_rate} g/L/h glucose feed rate\n  {iptg} µM IPTG\n  {S0} mM 3-hydroxy benzoic acid\n"
         print(line)
         file.write(line)
         for label, med, low, high, unit in summaries:
