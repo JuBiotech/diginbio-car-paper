@@ -510,7 +510,7 @@ def plot_gp_metric_posterior_predictive(
 
     # Reshape the long-form arrays into the dense 2D grid
     gridshape = tuple(
-        dense_grid.sizes[design_dim]
+        dense_grid.sizes["dense_design_" + design_dim]
         for design_dim in design_dims
     )
     Z = models.reshape_dim(
@@ -572,17 +572,15 @@ def _dense_lookup(pp, feed_rate: float, iptg: float):
     """Look up a dense_id given untransformed process parameters."""
 
     design_dims = tuple(pp.design_dim.values)
-    iglucose = design_dims.index("glucose")
-    iiptg = design_dims.index("iptg")
-    if not numpy.log10(feed_rate) in pp.dense_long.values[:, iglucose]:
+    if not round(numpy.log10(feed_rate), 6) in numpy.round(pp.dense_design_glucose.values, 6):
         raise ValueError(
             f"The selected feed rate of {feed_rate} was not included in the posterior predictive."
-            f" Available options are: {10**numpy.unique(pp.dense_long.values[:, iglucose])}."
+            f" Available options are: {10**pp.dense_design_glucose.values}."
         )
-    if not numpy.log10(iptg) in pp.dense_long.values[:, iiptg]:
+    if not round(numpy.log10(iptg), 6) in numpy.round(pp.dense_design_iptg.values, 6):
         raise ValueError(
             f"The selected feed rate of {iptg} was not included in the posterior predictive."
-            f" Available options are: {10**numpy.unique(pp.dense_long.values[:, iiptg])}."
+            f" Available options are: {10**pp.dense_design_iptg.values}."
         )
 
     design_dict = {
@@ -590,9 +588,9 @@ def _dense_lookup(pp, feed_rate: float, iptg: float):
         "iptg": numpy.log10(iptg),
     }
     design_arr = numpy.array([design_dict[ddim] for ddim in design_dims])
-    imatch = numpy.argmax(numpy.all(pp.dense_long.values == design_arr, axis=1))
+    imatch = numpy.argmin(numpy.abs(numpy.sum(pp.dense_long.values - design_arr, axis=1)))
     dense_id = pp.dense_id.values[imatch]
-    numpy.testing.assert_array_equal(design_arr, pp.dense_long.sel(dense_id=dense_id))
+    numpy.testing.assert_allclose(design_arr, pp.dense_long.sel(dense_id=dense_id))
 
     return dense_id
 
