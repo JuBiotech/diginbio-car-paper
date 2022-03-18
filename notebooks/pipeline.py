@@ -377,7 +377,7 @@ def plot_gp_X_factor(wd: pathlib.Path):
         ylim=(0, 1),
         title="posterior",
     )
-    fig.savefig(wd / "plot_gp_X_factor.png")
+    plotting.savefig(fig, "plot_gp_X_factor", wd=wd)
     pyplot.close()
     return
 
