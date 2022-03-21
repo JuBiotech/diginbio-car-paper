@@ -14,17 +14,28 @@ _log = logging.getLogger(__file__)
 
 class LinearBiomassAbsorbanceModel(calibr8.BasePolynomialModelN):
     def __init__(self, *, independent_key="X", dependent_key="absorbance"):
-        super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, sigma_degree=0, theta_names=["intercept", "slope", "sigma"])
+        super().__init__(
+            independent_key=independent_key, dependent_key=dependent_key,
+            mu_degree=1, sigma_degree=1,
+            theta_names=["intercept", "slope", "sigma_i", "sigma_s"]
+        )
 
 
 class LogisticBiomassAbsorbanceModel(calibr8.BaseLogIndependentAsymmetricLogisticN):
     def __init__(self, *, independent_key="biomass", dependent_key="A600"):
-        super().__init__(independent_key=independent_key, dependent_key=dependent_key, sigma_degree=1)
+        super().__init__(
+            independent_key=independent_key, dependent_key=dependent_key,
+            sigma_degree=1
+        )
 
 
 class LinearProductAbsorbanceModel(calibr8.BasePolynomialModelN):
     def __init__(self, *, independent_key="P", dependent_key="absorbance"):
-        super().__init__(independent_key=independent_key, dependent_key=dependent_key, mu_degree=1, sigma_degree=0, theta_names=["intercept", "slope", "sigma"])
+        super().__init__(
+            independent_key=independent_key, dependent_key=dependent_key,
+            mu_degree=1, sigma_degree=1,
+            theta_names=["intercept", "slope", "sigma_i", "sigma_s"]
+        )
 
 
 class BivariateProductCalibration(calibr8.ContinuousMultivariateModel, calibr8.NormalNoise):
@@ -662,7 +673,7 @@ def to_unit_metrics(S0, k, v_catalyst=0.025):
     Parameters
     ----------
     S0
-        Initial 2-hydroxy benzoic acid concentration [mmol/L] in the biotransformation.
+        Initial 3-hydroxy benzoic acid concentration [mmol/L] in the biotransformation.
     k
         Rate constant [1/h] of the whole-cell biocatalyst.
     v_catalyst

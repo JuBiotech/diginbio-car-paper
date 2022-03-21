@@ -66,7 +66,7 @@ def fit_biomass_calibration(wd: pathlib.Path, wavelength: int):
         cm,
         independent=df_cal.index.to_numpy(),
         dependent=df_cal[f"A{wavelength}"].to_numpy(),
-        theta_guess=[0, 2, 0.5, 1.5, -1] + [0.01, 0],
+        theta_guess=[0, 2, 0.2, 1.5, 0] + [0.01, 0],
         theta_bounds=[
             (-numpy.inf, 0.2), # L_L
             (1.5, numpy.inf),  # L_U
@@ -74,7 +74,7 @@ def fit_biomass_calibration(wd: pathlib.Path, wavelength: int):
             (0.5, 3),          # dy/dlog10(x)
             (-3, 3),           # c
             (0.0001, 0.1),
-            (0.0001, 0.1),
+            (0, 0.1),
         ],
     )
     cm.save(wd / f"cm_biomass_A{wavelength}.json")
@@ -121,11 +121,12 @@ def fit_product_calibration(wd: pathlib.Path):
         cm,
         independent=df["product"].to_numpy(),
         dependent=df["A360"].to_numpy(),
-        theta_guess=[0.2, 0.5, 0.1],
+        theta_guess=[0.2, 0.5, 0.1, 0],
         theta_bounds=[
             (0, 0.5), # intercept
             (0.2, 1),    # slope
-            (0.01, 1),   # scale
+            (0.001, 1),  # scale intercept
+            (0, 1),      # scale slope
         ],
     )
     cm.save(wd / "cm_product_A360.json")
@@ -376,12 +377,12 @@ def plot_gp_X_factor(wd: pathlib.Path):
         ylim=(0, 1),
         title="posterior",
     )
-    fig.savefig(wd / "plot_gp_X_factor.png")
+    plotting.savefig(fig, "plot_gp_X_factor", wd=wd)
     pyplot.close()
     return
 
 
-def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: int=30):
+def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: int=50):
     idata = arviz.from_netcdf(wd / "trace.nc")
 
     _log.info("Creating the model")
@@ -401,9 +402,17 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
         dense_long,
         from_dim="dense_id",
         to_shape=(n, n),
-        to_dims=idata.posterior.design_dim.values,
+        to_dims=["dense_design_" + dname for dname in idata.posterior.design_dim.values],
+        coords={
+            "dense_design_iptg": numpy.unique(dense_long.sel(design_dim="iptg")),
+            "dense_design_glucose": numpy.unique(dense_long.sel(design_dim="glucose")),
+        }
     )
     with pmodel:
+        _log.info("Registering new dense coordinates")
+        pmodel.add_coord("dense_design_iptg", dense_grid.dense_design_iptg.values)
+        pmodel.add_coord("dense_design_glucose", dense_grid.dense_design_glucose.values)
+
         _log.info("Adding variables for high-quality predictives")
 
         # Predict specific activity at the dense designs
@@ -501,7 +510,7 @@ def plot_gp_metric_posterior_predictive(
 
     # Reshape the long-form arrays into the dense 2D grid
     gridshape = tuple(
-        dense_grid.sizes[design_dim]
+        dense_grid.sizes["dense_design_" + design_dim]
         for design_dim in design_dims
     )
     Z = models.reshape_dim(
@@ -563,17 +572,15 @@ def _dense_lookup(pp, feed_rate: float, iptg: float):
     """Look up a dense_id given untransformed process parameters."""
 
     design_dims = tuple(pp.design_dim.values)
-    iglucose = design_dims.index("glucose")
-    iiptg = design_dims.index("iptg")
-    if not numpy.log10(feed_rate) in pp.dense_long.values[:, iglucose]:
+    if not round(numpy.log10(feed_rate), 6) in numpy.round(pp.dense_design_glucose.values, 6):
         raise ValueError(
             f"The selected feed rate of {feed_rate} was not included in the posterior predictive."
-            f" Available options are: {10**numpy.unique(pp.dense_long.values[:, iglucose])}."
+            f" Available options are: {10**pp.dense_design_glucose.values}."
         )
-    if not numpy.log10(iptg) in pp.dense_long.values[:, iiptg]:
+    if not round(numpy.log10(iptg), 6) in numpy.round(pp.dense_design_iptg.values, 6):
         raise ValueError(
             f"The selected feed rate of {iptg} was not included in the posterior predictive."
-            f" Available options are: {10**numpy.unique(pp.dense_long.values[:, iiptg])}."
+            f" Available options are: {10**pp.dense_design_iptg.values}."
         )
 
     design_dict = {
@@ -581,9 +588,9 @@ def _dense_lookup(pp, feed_rate: float, iptg: float):
         "iptg": numpy.log10(iptg),
     }
     design_arr = numpy.array([design_dict[ddim] for ddim in design_dims])
-    imatch = numpy.argmax(numpy.all(pp.dense_long.values == design_arr, axis=1))
+    imatch = numpy.argmin(numpy.abs(numpy.sum(pp.dense_long.values - design_arr, axis=1)))
     dense_id = pp.dense_id.values[imatch]
-    numpy.testing.assert_array_equal(design_arr, pp.dense_long.sel(dense_id=dense_id))
+    numpy.testing.assert_allclose(design_arr, pp.dense_long.sel(dense_id=dense_id))
 
     return dense_id
 
@@ -604,7 +611,7 @@ def predict_units(
     wd: pathlib.Path
         Current working directory containing the results.
     S0 : float
-        Initial 2-hydroxy benzoic acid concentration in the biotransformation.
+        Initial 3-hydroxy benzoic acid concentration in the biotransformation.
         Unit: mmol/L
     feed_rate : float
         Glucose feed rate in g/L/h during the expression phase.
@@ -647,7 +654,7 @@ def predict_units(
 
     # Write summaries to a text file
     with open(wd / "summary_units.txt", "w", encoding="utf-8") as file:
-        line = f"Summarized prediction for\n  {feed_rate} g/L/h glucose feed rate\n  {iptg} µM IPTG\n  {S0} mM 2-hydroxy benzoic acid\n"
+        line = f"Summarized prediction for\n  {feed_rate} g/L/h glucose feed rate\n  {iptg} µM IPTG\n  {S0} mM 3-hydroxy benzoic acid\n"
         print(line)
         file.write(line)
         for label, med, low, high, unit in summaries:
