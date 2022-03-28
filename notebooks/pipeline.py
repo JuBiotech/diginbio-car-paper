@@ -754,3 +754,54 @@ def plot_p_best_tested(wd: pathlib.Path):
     )
     plotting.savefig(fig, "plot_p_best_tested", wd=wd)
     return
+
+
+def report_tested_vs_predicted_probabilities(wd: pathlib.Path):
+    # Load posterior and posterior predictive
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    ipp = arviz.from_netcdf(wd / "predictive_posterior.nc")
+
+    # Combine chains
+    pst = idata.posterior.stack(sample=("chain", "draw"))
+    pp = ipp.posterior_predictive.stack(sample=("chain", "draw"))
+
+    # Select the best tested design and corresponding posterior samples
+    pst_probs = pyrff.sampling_probabilities(
+        candidate_samples=pst.k_design.values,
+        correlated=True,
+    )
+    i_best_tested = numpy.argmax(pst_probs)
+    k_best_tested = pst.k_design.sel(design_id=pst.k_design.design_id[i_best_tested])
+    x_best_tested = idata.constant_data.X_design.sel(design_id=k_best_tested.design_id)
+
+    # Select the best predicted design and corresponding posterior samples
+    pp_probs = pyrff.sampling_probabilities(
+        candidate_samples=pp.dense_k_design.values,
+        correlated=True,
+    )
+    i_best_predicted = numpy.argmax(pp_probs)
+    k_best_predicted = pp.dense_k_design.sel(dense_id=pp.dense_k_design.dense_id[i_best_predicted])
+    x_best_predicted = (10**pp.dense_long).sel(dense_id=pp.dense_k_design.dense_id[i_best_predicted])
+
+    # Compare posterior samples to obtain probabilities for the direct comparison
+    p_tested, p_predicted = pyrff.sampling_probabilities(
+        candidate_samples=[
+            k_best_tested.values,
+            k_best_predicted.values,
+        ],
+        # TODO: Sample the full PP and then pass correllated=True
+        correlated=False,
+    )
+
+    # Write a report
+    with open(wd / "summary_tested_vs_predicted.txt", "w", encoding="utf-8") as file:
+        lines = [
+            f"The best tested design was {x_best_tested.to_pandas().to_dict()}.\n",
+            f"The best predicted design was {x_best_predicted.to_pandas().to_dict()}.\n",
+            f"With a {p_predicted*100:.1f} % probability, the predicted design is better.\n"
+        ]
+        for line in lines:
+            print(line)
+            file.write(line)
+    return
+
