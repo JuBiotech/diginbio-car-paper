@@ -290,7 +290,7 @@ def plot_calibration_A600(df_layout, df_A600, df_time):
         label = f"{concentration} mM"
         t = df_time.loc[rids].T.to_numpy()
         y = df_A600.loc[rids].T.to_numpy()
-        ax.plot(t, y, color=color)
+        ax.plot(t, y, color=color, marker="x")
         ax.plot([], [], color=color, label=label)
     ax.legend(frameon=False)
     ax.set(
