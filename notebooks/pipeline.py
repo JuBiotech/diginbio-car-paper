@@ -664,7 +664,7 @@ def predict_units(
     return
 
 
-def plot_p_best_heatmap(wd: pathlib.Path):
+def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
     idata = arviz.from_netcdf(wd / "trace.nc")
     ipp = arviz.from_netcdf(wd / "predictive_posterior.nc")
     pp = ipp.posterior_predictive
@@ -687,6 +687,29 @@ def plot_p_best_heatmap(wd: pathlib.Path):
         vmin=0,
     )
     ax.scatter(*idata.constant_data.X_design_log10.values[:,::-1].T, marker="x")
+    ax.scatter(
+        [best.sel(design_dim="iptg")],
+        [best.sel(design_dim="glucose")],
+        marker="o",
+        s=80,
+        facecolor="none",
+        edgecolor="red",
+    )
+    if ts_seed and ts_batch_size:
+        next_dids = pyrff.sample_batch(
+            pp.dense_k_design.stack(sample=("chain", "draw")),
+            ids=probs1d.dense_id.values,
+            correlated=True,
+            batch_size=ts_batch_size,
+            seed=ts_seed,
+        )
+        next_x = pp.dense_long.sel(dense_id=list(next_dids))
+        ax.scatter(
+            next_x.sel(design_dim="iptg"),
+            next_x.sel(design_dim="glucose"),
+            marker="+",
+            color="orange"
+        )
 
     # Draw a colorbar that matches the height of the image
     divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
