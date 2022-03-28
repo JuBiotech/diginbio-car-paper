@@ -728,3 +728,29 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
     )
     plotting.savefig(fig, "p_best_k_design", wd=wd)
     return best.to_dataframe().dense_long.to_dict()
+
+
+def plot_p_best_tested(wd: pathlib.Path):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+
+    pst = idata.posterior.stack(sample=("chain", "draw"))
+    probs = pyrff.sampling_probabilities(
+        candidate_samples=pst.k_design.values,
+        correlated=True,
+    )
+
+    x = numpy.arange(len(probs))
+    labels = [
+        f"{float(glc)} g/L/h\n{float(iptg)} µM"
+        for glc, iptg in idata.constant_data.X_design.sel(design_id=pst.k_design.design_id)
+    ]
+
+    fig, ax = pyplot.subplots()
+    ax.bar(x, probs)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=90, fontsize=4)
+    ax.set(
+        ylabel="p(best tested design)"
+    )
+    plotting.savefig(fig, "plot_p_best_tested", wd=wd)
+    return
