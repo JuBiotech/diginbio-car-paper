@@ -278,10 +278,10 @@ def X_factor_GP(
 
     # The factor / glucose relationship hopefully has a sensitivity
     # at around the order of magnitude of our design space.
-    ls_X = pm.LogNormal("ls_X", mu=numpy.log(ls_mu), sd=0.1)
+    ls_X = pm.LogNormal("ls_X", mu=numpy.log(ls_mu), sigma=0.1)
 
     # Within that design space, the factor possibly varies by ~30 %.
-    scaling = pm.LogNormal("scaling_X", mu=numpy.log(0.3), sd=0.1)
+    scaling = pm.LogNormal("scaling_X", mu=numpy.log(0.3), sigma=0.1)
 
     # Now build the GP for the log-factor:
     mean_func = pm.gp.mean.Zero()
@@ -331,12 +331,12 @@ def s_design_GP(
     pmodel = pm.modelcontext(None)
 
     # Build a GP model of the underlying k, based on glucose and IPTG alone
-    ls_s_design = pm.LogNormal('ls_s_design', mu=numpy.log(ls_mu), sd=0.5, dims="design_dim")
+    ls_s_design = pm.LogNormal('ls_s_design', mu=numpy.log(ls_mu), sigma=0.5, dims="design_dim")
 
     # The reaction rate k must be strictly positive. So our GP must describe log(k).
     # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
     # So the variance of the underlying k(iptg, glucose) function is somewhere around 0.7.
-    scaling_s_design = pm.LogNormal('scaling_s_design', mu=numpy.log(0.7), sd=0.2)
+    scaling_s_design = pm.LogNormal('scaling_s_design', mu=numpy.log(0.7), sigma=0.2)
 
     # Build the 2D GP
     mean_func = pm.gp.mean.Zero()
@@ -486,10 +486,10 @@ def build_model(
 
     # Model the biomass story
     # starting from a DASGIP biomass concentration hyperprior
-    Xend_batch = pm.LogNormal("Xend_batch", mu=numpy.log(0.5), sd=0.5)
+    Xend_batch = pm.LogNormal("Xend_batch", mu=numpy.log(0.5), sigma=0.5)
 
     # every run may have its own final DASGIP biomass concentration (5 % error)
-    Xend_dasgip = pm.LogNormal("Xend_dasgip", mu=at.log(Xend_batch), sd=0.05, dims="run")
+    Xend_dasgip = pm.LogNormal("Xend_dasgip", mu=at.log(Xend_batch), sigma=0.05, dims="run")
     # final biomasses at the 2mag scale (initial reaction biomasses) follow by multiplication with the feed rate specific factor
     Xend_2mag = pm.Deterministic(
         "Xend_2mag",
@@ -509,7 +509,7 @@ def build_model(
     #       3. there's no redundant parametrization of the first cycle biomass
     mu_t__diff = pm.Normal(
         'mu_t__diff',
-        mu=0, sd=0.1,
+        mu=0, sigma=0.1,
         dims=("replicate_id", "cycle_segment")
     )
     mu_t = pm.Deterministic(
@@ -527,7 +527,7 @@ def build_model(
 
     # The initial substrate concentration is 👇 mM,
     # but we wouldn't be surprised if it was    ~10 % 👇 off.
-    S0 = pm.LogNormal("S0", mu=numpy.log(2.5), sd=0.02)
+    S0 = pm.LogNormal("S0", mu=numpy.log(2.5), sigma=0.02)
 
     # But we have data for the product concentration:
     P0 = pm.ConstantData("P0", df_layout.loc[replicates, "product"], dims="replicate_id")
@@ -536,7 +536,7 @@ def build_model(
     # since the actual start of the reaction. This way the total amount of substrate/product
     # is preserved and it's a little easier to encode prior knowledge.
     # Here we expect a time delay of about 0.1 hours 👇
-    time_delay = pm.HalfNormal("time_delay", sd=0.1)
+    time_delay = pm.HalfNormal("time_delay", sigma=0.1)
     time_actual = time + time_delay
 
     s_design, pmodel.gp_log_s_design = s_design_GP(
@@ -545,7 +545,7 @@ def build_model(
     )
     # Unit: [ (1/h) / (g/L) ] 👉 [L/g/h]
 
-    run_effect = pm.LogNormal("run_effect", mu=0, sd=0.1, dims="run")
+    run_effect = pm.LogNormal("run_effect", mu=0, sigma=0.1, dims="run")
     k_reaction = pm.LogNormal(
         "k_reaction",
         mu=at.log(
@@ -554,7 +554,7 @@ def build_model(
             X[i.replicate_by_reaction, :]            # [g/L]
                                                      # 👉 [1/h]
         ),
-        sd=0.05,
+        sigma=0.05,
         dims=("reaction", "cycle"),
     )
 
@@ -597,7 +597,7 @@ def build_model(
     L_A360 = pm.Normal(
         "L_of_A360",
         mu=A360[mask_numericA360],
-        sd=sigma,
+        sigma=sigma,
         observed=obs
     )
 
