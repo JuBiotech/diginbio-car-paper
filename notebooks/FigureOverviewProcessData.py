@@ -159,10 +159,10 @@ def btm_overview(wd: pathlib.Path=DP_RESULTS):
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
     ax[2].set_xlim(0, 18)
 
-    ax[0].set_ylabel('CDW, g L$^{-1}$')
-    ax[1].set_ylabel('CDW, g L$^{-1}$')
-    ax[2].set_ylabel('CDW, g L$^{-1}$')
-    ax[2].set_xlabel('Time, h')
+    ax[0].set_ylabel('CDW  [g L$^{-1}$]')
+    ax[1].set_ylabel('CDW [g L$^{-1}$]')
+    ax[2].set_ylabel('CDW [g L$^{-1}$]')
+    ax[2].set_xlabel('Time [h]')
     #ax[0].legend()
     #ax[1].legend()
     #ax[2].legend()
@@ -198,10 +198,10 @@ def ph_plot(wd: pathlib.Path=DP_RESULTS):
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
 
     
-    ax[0].set_ylabel("pH, -")
-    ax[1].set_ylabel("pH, -")
-    ax[2].set_ylabel("pH, -")
-    ax[2].set_xlabel("Time, h")
+    ax[0].set_ylabel("pH")
+    ax[1].set_ylabel("pH")
+    ax[2].set_ylabel("pH")
+    ax[2].set_xlabel("Time [h]")
 
     savefig(fig1, "pH_overview", wd=wd)
     mpl.rcParams['errorbar.capsize'] = 0
@@ -228,11 +228,11 @@ def o2_plot(wd: pathlib.Path=DP_RESULTS):
         
     ax[0].set_ylim(0,100)
     ax[2].set_xlim(0, 18)
-    ax[0].set_ylabel("O$_{2}$, %")
-    ax[1].set_ylabel("O$_{2}$, %")
-    ax[2].set_ylabel("O$_{2}$, %")
+    ax[0].set_ylabel("O$_{2}$ [%]")
+    ax[1].set_ylabel("O$_{2}$ [%]")
+    ax[2].set_ylabel("O$_{2}$ [%]")
 
-    ax[2].set_xlabel("Time, h")
+    ax[2].set_xlabel("Time [h]")
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
     ax[0].yaxis.set_ticks(np.arange(0, 100.001, 20))
 

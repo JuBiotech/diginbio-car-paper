@@ -32,8 +32,8 @@ def ExperimentalDesign(wd: pathlib.Path=DP_RESULTS):
     ax.yaxis.set_ticks(np.arange(0, 40.000001, 10))
     ax.xaxis.set_ticks(np.arange(0, 5.001, 1))
     
-    ax.set_xlabel('Feed rate, g L$^{-1}$ h$^{-1}$')
-    ax.set_ylabel('IPTG, $\mu$M')
+    ax.set_xlabel('Feed rate [g L$^{-1}$ h$^{-1}$]')
+    ax.set_ylabel('IPTG [$\mu$M]')
     savefig(fig1, "ExpDesign", wd=wd)
     return
 
