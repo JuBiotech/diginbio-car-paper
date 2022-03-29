@@ -19,5 +19,5 @@ RUN mkdir /wd
 WORKDIR /wd
 
 
-# docker run --rm -it -v %cd%:/wd pandocstuff pandoc /wd/methods.md -o /wd/methods.docx
-# docker run --rm -it -v %cd%:/wd pandocstuff pandoc /wd/methods.md --pdf-engine=xelatex -o /wd/methods.pdf
+# docker run --rm -it -v %cd%:/wd pandocstuff pandoc /wd/main.md -o /wd/main.docx
+# docker run --rm -it -v %cd%:/wd pandocstuff pandoc /wd/main.md --pdf-engine=xelatex -o /wd/main.pdf
