@@ -88,36 +88,35 @@ A generative hierarchical Bayesian model of the experimental process was built u
 # Results & Discussion
 
 ## Experimental design
-Two variables were investigated during four parallel experiments, the glucose feed rate and the inductor concentration at the mL-scale. 
+Two variables were investigated during four parallel experiments, the glucose feed rate and the inducer concentration at the mL-scale. In total, 42 unique combinations of inducer concentration (IPTG) and feed rate (Fig. 1) were investigated with 4 to 8 biological replicates per unique combination. For controlling of the sequential reproducibility of the mL-scale experiments, the reaction conditions at the feed rate of 
+2 g L-1 h-1 were investigated twice in two sequential experiments.
 
 
 ![](https://iffmd.fz-juelich.de/uploads/upload_8f72e1bcce5b159049339d8b54de9f17.png)
 __Figure 1: Experimental design of the conducted experiments to identify enhanced protein production conditions for *E. coli* NoCAR.__ Each point depicts one unique combination of feed rate and inductor concentration that was applied during protein expression on the mL-scale. Each combination was tested in 4 to 8 biological replicates in total.
 
-In total, 42 unique combinations of inductor concentration and feed rate were investigated with 4 to 8 biological replicates per unique combination. To get an idea of the sequential reproducibility of the experiment, the reaction conditions at the feed rate of $2\ g\ L^{-1} h^{-1}$ were investigated twice in two sequential experiments.
-
 ## Experimental data
 
-The conditions for the cell production phase at the L-scale and the transfer stayed the same throughout all four parallel experiments. After 22.75 h process time, a biomass density of $13.35 \pm 1.4\ g\ L^{-1}$ was measured with four biological replicates. 
-This indicates that it was possible to get similar start conditions for each parallel mL-scale protein expression.
+The conditions for the cell production phase at the L-scale and the cell transfer stayed the same throughout all four parallel experiments. After a process time of 22.75 h , a cell dry weight concentration of $13.35 \pm 1.4\ g\ L^{-1}$ was achieved with four biological replicates. 
+This indicates that it was possible to get similar initial conditions for each of the parallel mL-scale protein expression studies.
 
-In order not to show 42 process conditions on a mL-scale, three example process conditions are shown with their cell dry weight concentrations (CDW) and with their pH and DO signals.
+Cell dry weight concentrations (CDW), pH and DO signals of three fed-btach processes performed on a mL-scale are shown exemplarily.
 
 ![](https://iffmd.fz-juelich.de/uploads/upload_2da0b0f3996127dfca9491d9eb826188.png)
 __Figure 2: CDW concentrations of *E. coli* NoCAR in fed-batch operated stirred-tank bioreactors on a mL-scale at three exemplary combinations of constant feed rates and inductor concentrations.__ CDW concentrations were estimated based on at-line measured $OD_{600}$. The vertical dashed lines indicate the IPTG induction. Each graph shows the mean and standard deviation of 4 parallel bioreactors. (V = 10 mL, T = 30 °C, n = 3000 rpm)
 
-As expected, there is a positive correlation between the applied feed rate and the cell growth. However, the biomass yield ($0.25\ g_{cells}\ g^{-1}$ glucose, $0.22\ g_{cells}\ g^{-1}$ glucose and $0.28\ g_{cells}\ g^{-1}$ glucose for feed rates of $4.8\ g\ L^{-1} h^{-1}$, $3\ g\ L^{-1} h^{-1}$ and $1\ g\ L^{-1} h^{-1}$, respectively) is lower than expected for *E. coli* growing on glucose [schmideder2015novel]. This may be due to the starvation period between intermittent glucose additions with a step-time of approximately 10 min or due to the protein production. 
+As expected, there is a positive correlation between the applied feed rate and the cell growth. However, the biomass yields ($0.25\ g_{cells}\ g^{-1}$ glucose, $0.22\ g_{cells}\ g^{-1}$ glucose and $0.28\ g_{cells}\ g^{-1}$ glucose at feed rates of $4.8\ g\ L^{-1} h^{-1}$, $3\ g\ L^{-1} h^{-1}$ and $1\ g\ L^{-1} h^{-1}$, respectively) is lower than expected for *E. coli* growing on glucose [@schmideder2015novel]. This may be due to the starvation period between intermittent glucose additions with a step-time of approximately 10 min or due to the protein production. 
 
 ![](https://iffmd.fz-juelich.de/uploads/upload_913f4babe714b8dce77a08274678cf34.png)
 __Figure 3: DO of three exemplary fed-batch operated stirred-tank bioreactors on a mL-scale.__ The graphs depict a feed rate of $4.8\ g\ L^{-1} h^{-1}$, $3\ g\ L^{-1} h^{-1}$ and $1\ g\ L^{-1} h^{-1}$ and inductor concentrations of 0.48 µM, 6 µM and 12 µM, respectively. The feeding frequency was $6\ h^{-1}$. The vertical dashed lines indicate the IPTG induction. (V = 10 mL, T = 30 °C, n = 3000 rpm)
 
-After process start, the DO rises to about 90 % air saturation. After that, the DO drops to about 40-60 % air saturation after each substrate addition (step-time 10 min) followed by an increase after a few minutes due to the consumption of the glucose in the reactor. The DO drop seems to be proportional to the glucose feed rate. During the first hour at the feed rate of $4.8\ g\ L^{-1} h^{-1}$, the increase of the DO signal after the substrate depletion is not observable, maybe because the cells are still adapting to the new cultivation temperature (37 °C in the L-scale, 30 °C in the mL-scale).
+After process start, the DO rises to about 90 % air saturation (Fig 3.). After that, the DO drops to about 40-60 % air saturation after each substrate addition with a step-time of ~ 10 min followed by an increase after a few minutes due to the consumption of the glucose added intermittendly. The DO drop seems to be proportional to the glucose feed rate (HIER IST NOCH ERKLÄRUNG nötig). During the first hour at a feed rate of $4.8\ g\ L^{-1} h^{-1}$, there is no increase of the DO signal indicating no limiting substrate concentrations between the substrate additions. The initially reduced metabolic activity of the recombinant E. coli observed at the highest feed rate may be caused by adapting of the cells to the new cultivation temperature (37 °C in the L-scale, 30 °C in the mL-scale).
 
 
 ![](https://iffmd.fz-juelich.de/uploads/upload_29fe73b236cbb639bf328447a421e350.png)
 __Figure 4: pH of three exemplary fed-batch operated stirred-tank bioreactors on a mL-scale.__ The graphs depict a feed rate of $4.8\ g\ L^{-1} h^{-1}$, $3\ g\ L^{-1} h^{-1}$ and $1\ g\ L^{-1} h^{-1}$ and inductor concentrations of 0.48 µM, 6 µM and 12 µM, respectively. The feeding frequency was $6\ h^{-1}$. The frequency at which the LHS added 12.5 % (v/v) $NH_{3}$ to adjust the pH value was $6\ h^{-1}$. The vertical dashed lines indicate the IPTG induction. (V = 10 mL, T = 30 °C, n = 3000 rpm)
 
-The setpoint for the proportional controller of the pH was 7.0. Due to the nature of a proportional controller, a small deviation (~0.1) from the setpoint was observed. Apart from that, the pH values oscillate due to the intermittent pH correction by the LHS and the intermittent metabolic activity by the cells due to the intermittent feeding [@kim2004high]. Overall, the pH is tightly controlled at about pH 6.9. The small pH deviations from that value will most likely be too small to have biological impact on *E. coli* growth [@presser1997modelling;@gale1942effect]. However, there might be an influence on protein expression and enzyme activity [@cui2009influence;@strandberg1991factors]. Due to the intermittent dosage by the LHS and the limited LHS time, those pH oscillations can not be avoided with this setup. 
+The pH setpoint for the proportional controller was pH 7.0. Due to the nature of a proportional controller, a small deviation (~ pH 0.1) from the setpoint was observed. Apart from that, the pH oscillates due to the intermittent pH correction by the LHS and the intermittent metabolic activity by the cells due to the intermittent feeding [@kim2004high]. Overall, the pH was tightly controlled at about pH 6.9. The small pH deviations from that value will most likely be too small to have biological impact on *E. coli* growth [@presser1997modelling;@gale1942effect]. However, there might be an influence on protein expression and enzyme activity [@cui2009influence;@strandberg1991factors]. Due to the intermittent dosage by the LHS and the limited LHS time, those pH oscillations can not be avoided with this setup. 
 
 After 17 hour protein expression phase at the mL-scale a biotransformation was prepared for each bioreactor. Additionally, a calibration curve with a total of 18 positions was prepared based with the biomass from the first mL-scale bioreactor in the current experiment (A1).
 Samples were taken every 1.1 h to measure the product concentration (360 nm) and biomass growth (600 nm) photometrically.
