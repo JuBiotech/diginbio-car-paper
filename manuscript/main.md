@@ -1,6 +1,5 @@
 ---
-title: Screening and probabilistic quantification of Carboxylic Acid Reductase activity for whole-cell biocatalysis
-date: 2022-03-29
+title: Screening and Probabilistic Quantification of Carboxylic Acid Reductase Activity for Whole-Cell Biocatalysis
 output: pdf_document
 ---
 
@@ -8,7 +7,7 @@ output: pdf_document
 __Nikolas von den Eichen^1,4^__ | __Michael Osthege^2,3,4^__ | __Michaela Dölle^1^__ | __Lukas Bromig^1^__ | __Marco Oldiges^2,3^__ | __Dirk Weuster-Botz^1^__
 
 
-^1^ Technische Universität München, München, Germany
+^1^ Technical University of Munich, Chair of Biochemical Engineering, Garching, Germany
 ^2^ Forschungszentrum Jülich GmbH, Jülich, Germany
 ^3^ Institute of Biotechnology, RWTH Aachen University, Aachen, Germany
 ^4^ Contributed equally
