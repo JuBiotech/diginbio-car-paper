@@ -3,6 +3,7 @@ import calibr8
 import fastprogress
 import io
 import logging
+from matplotlib import patches
 import mpl_toolkits
 import pandas
 import pathlib
@@ -159,6 +160,42 @@ def interesting_groups(posterior) -> Dict[str, List[str]]:
     return result
 
 
+def mark_relevant(ax, from_y, upto_y, cm: calibr8.CalibrationModel, as_rect=True):
+    """Marks a relevant range in a calibration model."""
+    from_x = cm.predict_independent(from_y)
+    upto_x = cm.predict_independent(upto_y)
+    if as_rect:
+        ax.add_patch(
+            patches.Rectangle(
+                xy=(from_x, from_y),
+                width=upto_x - from_x,
+                height=upto_y - from_y,
+                linewidth=1,
+                linestyle="--",
+                facecolor="black",
+                alpha=0.1,
+                zorder=-1000
+            )
+        )
+        return
+    xmin, ymin = (ax.transScale + ax.transLimits).transform([from_x, from_y])
+    xmax, ymax = (ax.transScale + ax.transLimits).transform([upto_x, upto_y])
+    line_kwargs = dict(ls="--", color="black")
+    ax.axhline(upto_y, xmin=xmin, xmax=xmax, **line_kwargs)
+    ax.axvline(upto_x, ymin=ymin, ymax=ymax, **line_kwargs)
+
+
+def simplified_calibration_legend(ax):
+    handles, labels = ax.get_legend_handles_labels()
+    labels = [
+        labels[0].replace(".0", ""),
+        labels[1].replace(".0", "").replace(" likelihood band", ""),
+        labels[2].replace(".0", "").replace(" likelihood band", ""),
+    ]
+    ax.legend(handles=handles, labels=labels, frameon=False)
+    return
+
+
 def plot_absorbance_heatmap(df_layout: pandas.DataFrame, df_360: pandas.DataFrame, df_600: pandas.DataFrame):
     rids = df_layout[df_layout["product"].isna()].index
 
@@ -291,11 +328,13 @@ def plot_calibration_A600(df_layout, df_A600, df_time):
         t = df_time.loc[rids].T.to_numpy()
         y = df_A600.loc[rids].T.to_numpy()
         ax.plot(t, y, color=color, marker="x")
+        if g == 0:
+            label += " 3-hydroxy benzaldehyde"
         ax.plot([], [], color=color, label=label)
     ax.legend(frameon=False)
     ax.set(
-        xlabel="time   [h]",
-        ylabel="absorbance at 600 nm   [a.u.]",
+        xlabel="Time [h]",
+        ylabel="Absorbance at 600 nm [a.u.]",
         ylim=(0, None),
         xlim=(0, None),
     )

@@ -84,33 +84,34 @@ def fit_biomass_calibration(wd: pathlib.Path, wavelength: int):
 def plot_biomass_calibration(wd: pathlib.Path, wavelength: int):
     cm = models.LogisticBiomassAbsorbanceModel.load(wd / f"cm_biomass_A{wavelength}.json")
     fig, axs = calibr8.plot_model(cm)
-    xlabel = r"$\mathrm{biomass\ concentration\ [\frac{g_{CDW}}{L}]}$"
+    xlabel = r"$\mathrm{Biomass\ [g_{CDW}\ L^{-1}]}$"
     axs[0].set(
-        ylabel=r"$\mathrm{absorbance_{%s\ nm}}\ [-]$" % wavelength,
+        ylabel=r"$\mathrm{Absorbance_{%s\ nm}}\ [-]$" % wavelength,
         xlabel=xlabel,
+        xlim=(0, None),
+        ylim=(0, None),
     )
     axs[1].set(
         xlabel=xlabel,
+        xlim=(0, None),
+        ylim=(0, None),
     )
     axs[2].set(
-        ylabel=r"$\mathrm{absolute\ residual\ [-]}$",
+        ylabel=r"$\mathrm{Absolute\ residual\ [-]}$",
         xlabel=xlabel,
+        xlim=(0, None),
     )
-    axs[1].legend(frameon=False)
+    plotting.simplified_calibration_legend(axs[1])
+
     if wavelength == 360:
-        axs[0].axhline(1.3, xmin=0, xmax=0.8, ls="--", color="black")
-        axs[0].text(3, 1.18, "↓ experimentally relevant ↓")
-        axs[1].axhline(1.3, xmin=0, xmax=0.9, ls="--", color="black")
-        axs[1].text(0.005, 1.18, "↓ experimentally relevant ↓")
+        plotting.mark_relevant(axs[0], 0.1, 1.3, cm)
+        plotting.mark_relevant(axs[1], 0.1, 1.3, cm)
     elif wavelength == 600:
-        axs[0].axhline(0.9, xmin=0, xmax=0.72, ls="--", color="black")
-        axs[0].text(2, 0.78, "↓ experimentally relevant ↓")
-        axs[1].axhline(0.9, xmin=0, xmax=0.8, ls="--", color="black")
-        axs[1].text(0.003, 0.78, "↓ experimentally relevant ↓")
+        plotting.mark_relevant(axs[0], 0.1, 0.9, cm)
+        plotting.mark_relevant(axs[1], 0.1, 0.9, cm)
     else:
         raise ValueError("Unsupported wavelength.")
     plotting.savefig(fig, f"cm_biomass_A{wavelength}", wd=wd)
-    pyplot.close()
     return
 
 
@@ -136,25 +137,25 @@ def fit_product_calibration(wd: pathlib.Path):
 def plot_product_calibration(wd: pathlib.Path):
     cm = models.LinearProductAbsorbanceModel.load(wd / "cm_product_A360.json")
     fig, axs = calibr8.plot_model(cm)
-    xlabel = r"$\mathrm{product\ concentration\ [mM]}$"
+    xlabel = r"$\mathrm{Product\ [mM]}$"
     axs[0].set(
-        ylabel=r"$\mathrm{absorbance_{360\ nm}}\ [-]$",
+        ylabel=r"$\mathrm{Absorbance_{360\ nm}}\ [-]$",
         xlabel=xlabel,
+        xlim=(0, None),
+        ylim=(0, None),
     )
     axs[1].set(
         xlabel=xlabel,
+        ylim=(0, None),
     )
     axs[2].set(
-        ylabel=r"$\mathrm{absolute\ residual\ [-]}$",
+        ylabel=r"$\mathrm{Absolute\ residual\ [-]}$",
         xlabel=xlabel,
     )
-    axs[1].legend(frameon=False)
-    axs[0].axhline(1.3, xmin=0.17, xmax=1, ls="--", color="black")
-    axs[0].text(0.40, 1.22, "↓ experimentally relevant ↓")
-    axs[1].axhline(1.3, xmin=0.25, xmax=1, ls="--", color="black")
-    axs[1].text(0.001, 1.22, "↓ experimentally relevant ↓")
+    plotting.simplified_calibration_legend(axs[1])
+    plotting.mark_relevant(axs[0], 0.2, 1.3, cm)
+    plotting.mark_relevant(axs[1], 0.2, 1.3, cm)
     plotting.savefig(fig, f"cm_product_A360", wd=wd)
-    pyplot.close()
     return
 
 
@@ -355,7 +356,7 @@ def plot_gp_X_factor(wd: pathlib.Path):
     _log.info("Plotting")
     fig, axs = pyplot.subplots(dpi=200, ncols=2, figsize=(12, 6), sharey=True)
 
-    for ax, ds in zip(axs, [pp.prior, pp.posterior_predictive]):
+    for ax, ds, letter in zip(axs, [pp.prior, pp.posterior_predictive], "AB"):
         stackdims = ("chain", "draw") if "chain" in ds.dims else ("draw",)
         pm.gp.util.plot_gp_dist(
             ax=ax,
@@ -365,17 +366,16 @@ def plot_gp_X_factor(wd: pathlib.Path):
             palette=pyplot.cm.Greens,
         )
         ax.set(
-            xlabel="$\mathrm{glucose\ feed\ rate}\ \ \ [g_\mathrm{glucose}/L_\mathrm{reactor}/h]$",
+            xlabel="$\mathrm{Glucose\ feed\ rate}\ \ \ [g_\mathrm{glucose}\ L_\mathrm{reactor}^{-1}\ h^{-1}]}$",
             xlim=(0, max(dense)),
         )
+        ax.text(0.02, 0.92, letter, size=24, weight="bold", transform=ax.transAxes)
     axs[0].set(
-        ylabel="$X_{end,2mag}\ \ \ [g_\mathrm{biomass}/L]$",
+        ylabel="$X_{end,2mag}\ \ \ [g_\mathrm{CDW}\ L^{-1}]$",
         ylim=(0, 1.5),
-        title="prior",
     )
     axs[1].set(
         ylim=(0, 1),
-        title="posterior",
     )
     plotting.savefig(fig, "plot_gp_X_factor", wd=wd)
     pyplot.close()
@@ -487,8 +487,8 @@ def plot_gp_metric_posterior_predictive(
     var_name="dense_s_design",
 ):
     label = {
-        "dense_s_design": r"$\mathrm{specific\ activity\ [\frac{1}{h} / \frac{g_{CDW}}{L}]}$",
-        "dense_k_design": r"$\mathrm{rate\ constant\ [1/h]}$",
+        "dense_s_design": r"$\mathrm{Specific\ activity\ [h^{-1}\ g_{CDW}^{-1}\ L]}$",
+        "dense_k_design": r"$\mathrm{Rate\ constant\ [h^{-1}]}$",
     }[var_name]
 
     idata = arviz.from_netcdf(wd / "trace.nc")
@@ -530,7 +530,7 @@ def plot_gp_metric_posterior_predictive(
     def fn_plot(azim=-65):
         fig = pyplot.figure(dpi=140)
         ax = fig.add_subplot(111, projection='3d')
-        ax.set_xlabel(r"$\mathrm{log_{10}(glucose\ feed\ rate\ [g/L/h])}$")
+        ax.set_xlabel(r"$\mathrm{log_{10}(Glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$")
         ax.set_ylabel(r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$")
         ax.set_zlabel(label)
 
@@ -686,12 +686,12 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
         aspect="auto",
         vmin=0,
     )
-    ax.scatter(*idata.constant_data.X_design_log10.values[:,::-1].T, marker="x")
+    ax.scatter(*idata.constant_data.X_design_log10.values[:,::-1].T, marker="x", color="white")
     ax.scatter(
         [best.sel(design_dim="iptg")],
         [best.sel(design_dim="glucose")],
         marker="o",
-        s=80,
+        s=100,
         facecolor="none",
         edgecolor="red",
     )
@@ -719,10 +719,10 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
         cax=divider.append_axes("right", size="5%", pad=0.05),
     )
     cbar = ax.figure.colorbar(**cbar_kw)
-    cbar.ax.set_ylabel("$\mathrm{probability(best)\ [-]}$", rotation=90, va="top")
+    cbar.ax.set_ylabel("$\mathrm{Probability(best)\ [-]}$", rotation=90, va="top")
 
     ax.set(
-        ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ [g/L/h])}$",
+        ylabel=r"$\mathrm{log_{10}(Glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$",
         xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$",
         title="",
     )
