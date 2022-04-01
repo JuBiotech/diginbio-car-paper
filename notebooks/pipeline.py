@@ -595,6 +595,17 @@ def _dense_lookup(pp, feed_rate: float, iptg: float):
     return dense_id
 
 
+def _summarize_median_hdi(var, decimals):
+    """Summarize median and 90 % HDI"""
+    lower, upper = arviz.hdi(var, hdi_prob=0.9)
+    med = numpy.median(var)
+    if decimals > 0:
+        _round = lambda x: numpy.round(x, decimals)
+    else:
+        _round = round
+    return _round(med), _round(lower), _round(upper)
+
+
 def predict_units(
     wd: pathlib.Path,
     S0: float=2.5,
@@ -636,20 +647,10 @@ def predict_units(
 
     v0, units, volumetric_units = models.to_unit_metrics(S0, k_design)
 
-    # Summarize median and 90 % HDI
-    def summarize(var, decimals):
-        lower, upper = arviz.hdi(var, hdi_prob=0.9)
-        med = numpy.median(var)
-        if decimals > 0:
-            _round = lambda x: numpy.round(x, decimals)
-        else:
-            _round = round
-        return _round(med), _round(lower), _round(upper)
-
     summaries = [
-        ("Initial reaction rate", *summarize(v0.values.flatten(), 2), "mmol/h"),
-        ("Enzymatic activity", *summarize(units.values.flatten(), 1), "U"),
-        ("Volumetric enzymatic activity", *summarize(volumetric_units.values.flatten(), 0), "U/mL"),
+        ("Initial reaction rate", *_summarize_median_hdi(v0.values.flatten(), 2), "mmol/h"),
+        ("Enzymatic activity", *_summarize_median_hdi(units.values.flatten(), 1), "U"),
+        ("Volumetric enzymatic activity", *_summarize_median_hdi(volumetric_units.values.flatten(), 0), "U/mL"),
     ]
 
     # Write summaries to a text file
@@ -773,6 +774,7 @@ def report_tested_vs_predicted_probabilities(wd: pathlib.Path):
     i_best_tested = numpy.argmax(pst_probs)
     k_best_tested = pst.k_design.sel(design_id=pst.k_design.design_id[i_best_tested])
     x_best_tested = idata.constant_data.X_design.sel(design_id=k_best_tested.design_id)
+    mhdi_best_tested = _summarize_median_hdi(k_best_tested.values, decimals=3)
 
     # Select the best predicted design and corresponding posterior samples
     pp_probs = pyrff.sampling_probabilities(
@@ -782,6 +784,7 @@ def report_tested_vs_predicted_probabilities(wd: pathlib.Path):
     i_best_predicted = numpy.argmax(pp_probs)
     k_best_predicted = pp.dense_k_design.sel(dense_id=pp.dense_k_design.dense_id[i_best_predicted])
     x_best_predicted = (10**pp.dense_long).sel(dense_id=pp.dense_k_design.dense_id[i_best_predicted])
+    mhdi_best_predicted = _summarize_median_hdi(k_best_predicted.values, decimals=3)
 
     # Compare posterior samples to obtain probabilities for the direct comparison
     p_tested, p_predicted = pyrff.sampling_probabilities(
@@ -799,6 +802,9 @@ def report_tested_vs_predicted_probabilities(wd: pathlib.Path):
             f"The best tested design was {x_best_tested.to_pandas().to_dict()}.\n",
             f"The best predicted design was {x_best_predicted.to_pandas().to_dict()}.\n",
             f"With a {p_predicted*100:.1f} % probability, the predicted design is better.\n"
+            f"\n",
+            "Best tested was {} 1/h with 90 % HDI [{}, {}].\n".format(*mhdi_best_tested),
+            "Best predicted was {} 1/h with 90 % HDI [{}, {}].\n".format(*mhdi_best_predicted),
         ]
         for line in lines:
             print(line)
