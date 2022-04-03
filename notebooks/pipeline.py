@@ -496,7 +496,8 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50):
         pmodel.add_coord("dense_design_glucose", dense_grid.dense_design_glucose.values)
 
         pposterior = sample_posterior_predictive_at_design(
-            wd,
+            idata,
+            pmodel,
             designs_long=dense_long,
             dname="dense"
         )
