@@ -231,7 +231,7 @@ def fit_model(wd: pathlib.Path, **sample_kwargs):
     #modelgraph.render(filename=str(wd / "model.pdf"), format="pdf")
 
     sample_kwargs.setdefault("discard_tuned_samples", False)
-    sample_kwargs.setdefault("tune", 1000)
+    sample_kwargs.setdefault("tune", 500)
     sample_kwargs.setdefault("draws", 500)
     sample_kwargs.setdefault("target_accept", 0.95)
 

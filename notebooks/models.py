@@ -331,7 +331,7 @@ def s_design_GP(
     pmodel = pm.modelcontext(None)
 
     # Build a GP model of the underlying k, based on glucose and IPTG alone
-    ls_s_design = pm.LogNormal('ls_s_design', mu=numpy.log(ls_mu), sigma=0.5, dims="design_dim")
+    ls_s_design = pm.LogNormal('ls_s_design', mu=numpy.log(ls_mu), sigma=0.5, dims="design_dim", initval="moment")
 
     # The reaction rate k must be strictly positive. So our GP must describe log(k).
     # We expect a k of around log(0.1 mM/h) to log(0.8 mM/h).
@@ -545,7 +545,13 @@ def build_model(
     )
     # Unit: [ (1/h) / (g/L) ] 👉 [L/g/h]
 
-    run_effect = pm.LogNormal("run_effect", mu=0, sigma=0.1, dims="run")
+    run_effect = pm.LogNormal(
+        "run_effect",
+        mu=0,
+        sigma=0.1,
+        dims="run",
+        initval=[1] * len(pmodel.coords["run"]),
+    )
     k_reaction = pm.LogNormal(
         "k_reaction",
         mu=at.log(
