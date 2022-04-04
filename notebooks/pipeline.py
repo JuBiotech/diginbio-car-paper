@@ -234,12 +234,32 @@ def fit_model(wd: pathlib.Path, **sample_kwargs):
     sample_kwargs.setdefault("tune", 500)
     sample_kwargs.setdefault("draws", 500)
     sample_kwargs.setdefault("target_accept", 0.95)
+    # Convergence checks are computed separately
+    sample_kwargs.setdefault("compute_convergence_checks", False)
 
     _log.info("Running MCMC")
     with pmodel:
         idata = pm.sample(**sample_kwargs)
     _log.info("Saving the trace")
     idata.to_netcdf(wd / "trace.nc")
+    return
+
+
+def compute_diagnostics(wd):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    # Compute diagnostics only for free variables
+    pmodel = _build_model(wd)
+    df_diagnostics = arviz.summary(idata, var_names=[rv.name for rv in pmodel.free_RVs])
+    df_diagnostics.to_excel(wd / "diagnostics.xlsx")
+    return
+
+
+def check_convergence(wd: pathlib.Path, threshold=1.05):
+    df_diagnostics = pandas.read_excel(wd / "diagnostics.xlsx", index_col=0)
+    critical = df_diagnostics[df_diagnostics.r_hat > threshold]
+    critical_rvs = {rvc.split("[")[0] for rvc in critical.index}
+    if critical_rvs:
+        raise Exception("The following RVs did not converge: %s", critical_rvs)        
     return
 
 
