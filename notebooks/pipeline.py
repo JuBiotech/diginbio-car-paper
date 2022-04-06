@@ -408,6 +408,7 @@ def sample_posterior_predictive_at_design(
     *,
     designs_long: xarray.DataArray,
     dname: str="dense",
+    thin: int=1,
 ) -> arviz.InferenceData:
     dname_id = f"{dname}_id"
     dname_id_glucose = f"{dname}_id_glucose"
@@ -467,7 +468,7 @@ def sample_posterior_predictive_at_design(
 
     _log.info("Sampling posterior predictive")
     pp = pm.sample_posterior_predictive(
-        idata,
+        idata.sel(draw=slice(None, None, thin)),
         var_names=[
             n
             for n, v in pmodel.named_vars.items()
@@ -485,7 +486,7 @@ def sample_posterior_predictive_at_design(
     return pposterior
 
 
-def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50):
+def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50, thin: int=1):
     idata = arviz.from_netcdf(wd / "trace.nc")
 
     _log.info("Creating high-resolution designs grid")
@@ -519,7 +520,8 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50):
             idata,
             pmodel,
             designs_long=dense_long,
-            dname="dense"
+            dname="dense",
+            thin=thin,
         )
 
         pposterior.posterior_predictive["dense_grid"] = dense_grid
