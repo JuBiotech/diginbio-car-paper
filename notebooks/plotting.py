@@ -1,3 +1,4 @@
+import itertools
 import pathlib
 import calibr8
 import fastprogress
@@ -13,7 +14,7 @@ import numpy
 import os
 import xarray
 from PIL import Image
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 from matplotlib import cm, pyplot, colors
 
 DP_ROOT = pathlib.Path(__file__).absolute().parent.parent
@@ -837,3 +838,94 @@ def xarrshow(ax, xarr: xarray.DataArray, **kwargs):
         title=xarr.name,
     )
     return img
+
+
+def flatten_dataset(
+    dataset: xarray.Dataset,
+    skipdim:str="sample"
+) -> Tuple[xarray.DataArray, Dict[str, Tuple[str, Dict[str, Any]]]]:
+    """Flatten all dimensions except one that's common across the entire dataset.
+    
+    Parameters
+    ----------
+    dataset
+        An xarray Dataset where all variables have at least one dimension in common.
+        For example: "sample".
+    skipdim
+        Name of the shared dimension that shall not be flattened away.
+        
+    Returns
+    -------
+    flattened
+        An xarray DataArray with dims ``(skipdim, "dimension")`` where
+        the "dimension" indicates the name of the original variable and the
+        coordinate values at which it was selected.
+    selectors
+        A dictionary of tuples, where keys are the coordinate values of the
+        ``"dimension"`` from ``flattened``.
+        Values are tuples of variable name and the selector dict.
+    """
+    draws = {}
+    selectors: Dict[str, Tuple[str, Dict[str, Any]]] = {}
+    for name, var in dataset.items():
+        stacked_dims = set(var.dims) - {skipdim}
+        if not stacked_dims:
+            # Scalar variable
+            ds = var.values
+            draws[name] = ds
+            selectors[name] = (name, {})
+        else:
+            coordinates = [
+                var[dname].values
+                for dname in stacked_dims
+            ]
+            for cvals in itertools.product(*coordinates):
+                sel = {
+                    dn : cv
+                    for dn, cv in zip(stacked_dims, cvals)
+                }
+                vals = var.sel(sel)
+                assert vals.ndim == 1, sel
+                cname = ", ".join(map(str, cvals))
+                key = f"{name}[{cname}]"
+                draws[key] = vals
+                selectors[key] = (name, sel)
+
+    flattened = xarray.DataArray(
+        data=list(draws.values()),
+        dims=("dimension", skipdim),
+        coords={
+            "dimension": list(draws.keys()),
+        }
+    ).T
+    return flattened, selectors
+
+
+def top_correlations(df_samples: pandas.DataFrame) -> pandas.DataFrame:
+    """Find most correlating pairs of dimensions.
+
+    Adapted from https://python-for-multivariate-analysis.readthedocs.io/a_little_book_of_python_for_multivariate_analysis.html
+
+    Parameters
+    ----------
+    df_samples
+        A dataframe where variables are in columns and samples in rows.
+
+    Returns
+    -------
+    corr
+        A dataframe with columns ["first", "second", "correlation"]
+    """
+    df_samples = df_samples.copy()
+    corr = df_samples.corr()
+    # set the correlations on the diagonal or lower triangle to zero,
+    # so they will not be reported as the highest ones:
+    corr = corr * numpy.tri(*corr.values.shape, k=-1).T
+    corr.index.name = "first"
+    corr.columns.name = "second"
+    # find the top n correlations
+    corr = corr.stack()
+    corr = corr.reindex(corr.abs().sort_values(ascending=False).index).reset_index()
+    # Rename the columns to something nice
+    corr.columns = [*corr.columns[:2], "correlation"]
+    return corr
