@@ -292,6 +292,77 @@ def plot_trace(wd: pathlib.Path):
     return
 
 
+def plot_posterior_tsne(wd: pathlib.Path):
+    import sklearn.manifold
+
+    _log.info("Creating the model")
+    pmodel = _build_model(wd)
+    _log.info("Loading InferenceData")
+    idata = arviz.from_netcdf(wd / "trace.nc")
+
+    _log.info("Flattening InferenceData")
+    pst = idata.posterior.stack(sample=("chain", "draw"))
+    flat_pst, selectors = plotting.flatten_dataset(
+        dataset={
+            rv.name : pst[rv.name]
+            for rv in pmodel.free_RVs
+        },
+        skipdim="sample"
+    )
+    df_samples = flat_pst.to_series().unstack()
+
+    _log.info("Running t-SNE on %i samples with %i features.", *df_samples.to_numpy().shape)
+    X = sklearn.manifold.TSNE(
+        n_components=2,
+        init="pca",
+    ).fit_transform(df_samples)
+
+    _log.info("Plotting %i points", len(X))
+    fig, ax = pyplot.subplots(figsize=(6, 6))
+    ax.scatter(X[:, 0], X[:, 1], marker=".", edgecolors="none", s=1)
+    ax.set(
+        ylabel="t-SNE 1",
+        xlabel="t-SNE 2",
+        yticks=[],
+        xticks=[],
+    )
+    plotting.savefig(fig, "plot_posterior_tsne", wd=wd)
+    return
+
+
+def plot_prior_vs_posterior(wd: pathlib.Path, var_name: str):
+    pmodel = _build_model(wd)
+    idata = arviz.from_netcdf(wd / "trace.nc")
+
+    with pmodel:
+        prior = pm.sample_prior_predictive(
+            var_names=[var_name],
+            samples=idata.posterior.sizes["draw"],
+        ).prior[var_name]
+    posterior = idata.posterior[var_name]
+
+
+    data = {}
+    if "design_dim" in pmodel.RV_dims.get(var_name, []):
+        data[f"prior_glucose({var_name})"] = prior.sel(design_dim="glucose")
+        data[f"posterior_glucose({var_name})"] = posterior.sel(design_dim="glucose")
+        data[f"prior_iptg({var_name})"] = prior.sel(design_dim="iptg")
+        data[f"posterior_iptg({var_name})"] = posterior.sel(design_dim="iptg")
+    else:
+        data[f"prior({var_name})"] = prior
+        data[f"posterior({var_name})"] = posterior
+
+    axs = arviz.plot_trace(data)
+    xlim = numpy.array([ax.get_xlim() for ax in axs[:, 0]])
+    xlim = [min(xlim[:, 0]), max(xlim[:, 1])]
+    for ax in axs[:, 0]:
+        ax.set_xlim(xlim)
+    fig = pyplot.gcf()
+    fig.tight_layout()
+    plotting.savefig(fig, f"prior_vs_posterior_{var_name}", wd=wd)
+    return
+
+
 def plot_3d_by_design(wd: pathlib.Path, var_name: str):
     idata = arviz.from_netcdf(wd / "trace.nc")
     def fn_plot3d(t):
