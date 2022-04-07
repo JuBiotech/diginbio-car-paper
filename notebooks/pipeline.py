@@ -428,15 +428,16 @@ def plot_gp_X_factor(wd: pathlib.Path):
 
         _log.info("Sampling posterior predictive")
         _log.info("Sampling prior predictive")
+        samples = 1500
         pprior = pm.sample_prior_predictive(
-            samples=1500,
+            samples=samples,
             var_names=["Xend_batch", "dense_log_X_factor", "dense_X_factor", "dense_Xend_2mag"],
             return_inferencedata=False,
         )
         _log.info("Sampling posterior predictive")
+        thin = int(idata.posterior.sizes["chain"] * idata.posterior.sizes["draw"]) / samples
         pposterior = pm.sample_posterior_predictive(
-            idata,
-            samples=1500,
+            idata.posterior.sel(draw=slice(None, None, thin)),
             var_names=["dense_log_X_factor", "dense_X_factor", "dense_Xend_2mag"],
             return_inferencedata=False,
         )
