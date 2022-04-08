@@ -480,7 +480,7 @@ def build_model(
 
     design_idx_glc = pmodel.coords["design_dim"].index("glucose")
     X_factor, pmodel.gp_log_X_factor = X_factor_GP(
-        ls_mu=SPAN[design_idx_glc]/2,
+        ls_mu=SPAN[design_idx_glc]/4,
         glucose_feed_rates=X_design_glucose,
     )
 
@@ -540,7 +540,7 @@ def build_model(
     time_actual = time + time_delay
 
     s_design, pmodel.gp_log_s_design = s_design_GP(
-        ls_mu=SPAN / 2,
+        ls_mu=SPAN / 4,
         X=X_design_log10,
     )
     # Unit: [ (1/h) / (g/L) ] 👉 [L/g/h]
