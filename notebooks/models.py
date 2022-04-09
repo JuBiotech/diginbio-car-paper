@@ -278,7 +278,7 @@ def X_factor_GP(
 
     # The factor / glucose relationship hopefully has a sensitivity
     # at around the order of magnitude of our design space.
-    ls_X = pm.LogNormal("ls_X", mu=numpy.log(ls_mu), sigma=0.1)
+    ls_X = pm.LogNormal("ls_X", mu=numpy.log(ls_mu), sigma=0.5)
 
     # Within that design space, the factor possibly varies by ~30 %.
     scaling = pm.LogNormal("scaling_X", mu=numpy.log(0.3), sigma=0.1)
@@ -341,7 +341,7 @@ def s_design_GP(
     # Build the 2D GP
     mean_func = pm.gp.mean.Zero()
     cov_func = scaling_s_design**2 * pm.gp.cov.ExpQuad(
-        input_dim=len(ls_mu),
+        input_dim=2,
         ls=ls_s_design
     )
     gp_log_s_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
@@ -480,7 +480,7 @@ def build_model(
 
     design_idx_glc = pmodel.coords["design_dim"].index("glucose")
     X_factor, pmodel.gp_log_X_factor = X_factor_GP(
-        ls_mu=SPAN[design_idx_glc]/4,
+        ls_mu=0.2,
         glucose_feed_rates=X_design_glucose,
     )
 
@@ -540,7 +540,7 @@ def build_model(
     time_actual = time + time_delay
 
     s_design, pmodel.gp_log_s_design = s_design_GP(
-        ls_mu=SPAN / 4,
+        ls_mu=0.2,
         X=X_design_log10,
     )
     # Unit: [ (1/h) / (g/L) ] 👉 [L/g/h]
