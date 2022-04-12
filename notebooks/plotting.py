@@ -9,6 +9,8 @@ import mpl_toolkits
 import pandas
 import pathlib
 import pyrff
+import sklearn.decomposition
+import sklearn.preprocessing
 import scipy
 import numpy
 import os
@@ -929,3 +931,24 @@ def top_correlations(df_samples: pandas.DataFrame) -> pandas.DataFrame:
     # Rename the columns to something nice
     corr.columns = [*corr.columns[:2], "correlation"]
     return corr
+
+
+def do_pca(
+    pmodel,
+    samples: xarray.Dataset,
+) -> Tuple[
+    sklearn.decomposition.PCA,
+    pandas.DataFrame,
+    Dict[str, Tuple[str, Dict[str, Any]]]
+]:
+    df_samples = samples.to_series().unstack()
+    X = sklearn.preprocessing.StandardScaler().fit_transform(df_samples)
+    pca = sklearn.decomposition.PCA().fit(X)
+    return pca, df_samples
+
+
+def pca_feature_weights(pca) -> numpy.ndarray:
+    n_relevant = sum(numpy.cumsum(pca.explained_variance_ratio_) < 0.5)
+    _log.info(f"The first {n_relevant} principal components explain ~50 % of the variance.")
+    feature_weights = abs(pca.components_[:n_relevant]).sum(axis=0)
+    return feature_weights

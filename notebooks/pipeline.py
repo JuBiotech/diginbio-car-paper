@@ -329,6 +329,49 @@ def plot_posterior_tsne(wd: pathlib.Path):
     return
 
 
+def plot_posterior_pca(wd: pathlib.Path):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    pmodel = _build_model(wd)
+
+    # Select (a subset of) the posterior draws
+    thin = max(1, int(idata.posterior.sizes["chain"] * idata.posterior.sizes["draw"] / 2500))
+    pst = idata.posterior.stack(sample=("chain", "draw")).sel(sample=slice(None, None, thin))
+    flat_pst, selectors = plotting.flatten_dataset(
+        dataset={
+            rv.name : pst[rv.name]
+            for rv in pmodel.free_RVs
+        },
+        skipdim="sample"
+    )
+
+    _log.info("Running principal component analysis")
+    pca, df_samples = plotting.do_pca(pmodel, flat_pst)
+    _log.info("Calculating feature weights")
+    feature_weights = plotting.pca_feature_weights(pca)
+    top_10 = df_samples.columns[numpy.argsort(feature_weights)[::-1]][:10].values
+    _log.info("These variables explain most of the variance: %s", top_10)
+
+    # Plot explained variance by feature
+    _log.info("Plotting explained variances by feature")
+    fig, ax = pyplot.subplots()
+    ax.plot(pca.explained_variance_ratio_ * 100)
+    ax.set(
+        ylabel="explained variance in %",
+        xlabel="principal component",
+    )
+    plotting.savefig(fig, "plot_posterior_pca_variances", wd=wd)
+
+    # Make a pair plot of the variables involved
+    _log.info("Making a pair plot of interesting variables")
+    axs = arviz.plot_pair({
+        dim : pst[selectors[dim][0]].sel(selectors[dim][1]).values
+        for dim in top_10
+    }, figsize=(27,27))
+    fig = pyplot.gcf()
+    plotting.savefig(fig, "plot_posterior_pca_pair", wd=wd)
+    return
+
+
 def plot_prior_vs_posterior(wd: pathlib.Path, var_name: str):
     pmodel = _build_model(wd)
     idata = arviz.from_netcdf(wd / "trace.nc")
