@@ -205,7 +205,7 @@ def ph_plot(wd: pathlib.Path=DP_RESULTS):
 
     lettering = ["(A)", "(B)", "(C)"]
     for i in range(3):
-        ax[i].text(0.075, 0.85, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
+        ax[i].text(0.1, 0.85, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
         ax[i].axvline(1, linestyle='--', linewidth = 1.0, color='black')
     ax[0].set_ylabel("pH")
     ax[1].set_ylabel("pH")
@@ -243,7 +243,7 @@ def o2_plot(wd: pathlib.Path=DP_RESULTS):
 
     lettering = ["(A)", "(B)", "(C)"]
     for i in range(3):
-        ax[i].text(0.05, 0.2, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
+        ax[i].text(0.1, 0.2, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
         ax[i].axvline(1, linestyle='--', linewidth = 1.0, color='black')
     ax[2].set_xlabel("Time [h]")
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
