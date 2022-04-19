@@ -154,11 +154,16 @@ def btm_overview(wd: pathlib.Path=DP_RESULTS):
     ax = feed_rate_1_0_carb_21(ax)
 
 
-    ax[0].set_ylim(0, 50)
-    ax[0].yaxis.set_ticks(np.arange(0, 50.000001, 10))
+    ax[0].set_ylim(0, 40)
+    ax[0].yaxis.set_ticks(np.arange(0, 40.000001, 10))
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
     ax[2].set_xlim(0, 18)
 
+
+    lettering = ["(A)", "(B)", "(C)"]
+    for i in range(3):
+        ax[i].text(0.1, 0.85, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
+        
     ax[0].set_ylabel('CDW  [g L$^{-1}$]')
     ax[1].set_ylabel('CDW [g L$^{-1}$]')
     ax[2].set_ylabel('CDW [g L$^{-1}$]')
@@ -191,12 +196,16 @@ def ph_plot(wd: pathlib.Path=DP_RESULTS):
     ax = pH_plot_data(ax=ax, plot_number=2, filepath=DP_DATA / 'Carboxylase_21' / 'pH_2021-10-01-10-58 Chronograf Data.csv',
                       reactor_position = LOW_FEED_POSITION, starttime = datetime.datetime (2021,9, 30, 15, 24, 0), label='IPTG = 12 \xb5M, F$_{in}$ = 1 g L$^{-1}$ h$^{-1}$')
 
-    ax[0].set_ylim(5,9)
+    ax[0].set_ylim(6,8)
     ax[2].set_xlim(0, 18)
 
-    ax[0].yaxis.set_ticks(np.arange(5,10,1))
+    ax[0].yaxis.set_ticks(np.arange(6,8.00001,0.5))
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
 
+
+    lettering = ["(A)", "(B)", "(C)"]
+    for i in range(3):
+        ax[i].text(0.075, 0.85, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
     
     ax[0].set_ylabel("pH")
     ax[1].set_ylabel("pH")
@@ -228,9 +237,13 @@ def o2_plot(wd: pathlib.Path=DP_RESULTS):
         
     ax[0].set_ylim(0,100)
     ax[2].set_xlim(0, 18)
-    ax[0].set_ylabel("O$_{2}$ [%]")
-    ax[1].set_ylabel("O$_{2}$ [%]")
-    ax[2].set_ylabel("O$_{2}$ [%]")
+    ax[0].set_ylabel("DO [%]")
+    ax[1].set_ylabel("DO [%]")
+    ax[2].set_ylabel("DO [%]")
+
+    lettering = ["(A)", "(B)", "(C)"]
+    for i in range(3):
+        ax[i].text(0.05, 0.2, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
 
     ax[2].set_xlabel("Time [h]")
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
