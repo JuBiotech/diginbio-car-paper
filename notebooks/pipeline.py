@@ -84,33 +84,34 @@ def fit_biomass_calibration(wd: pathlib.Path, wavelength: int):
 def plot_biomass_calibration(wd: pathlib.Path, wavelength: int):
     cm = models.LogisticBiomassAbsorbanceModel.load(wd / f"cm_biomass_A{wavelength}.json")
     fig, axs = calibr8.plot_model(cm)
-    xlabel = r"$\mathrm{biomass\ concentration\ [\frac{g_{CDW}}{L}]}$"
+    xlabel = r"$\mathrm{Biomass\ [g_{CDW}\ L^{-1}]}$"
     axs[0].set(
-        ylabel=r"$\mathrm{absorbance_{%s\ nm}}\ [-]$" % wavelength,
+        ylabel=r"$\mathrm{Absorbance_{%s\ nm}}\ [-]$" % wavelength,
         xlabel=xlabel,
+        xlim=(0, None),
+        ylim=(0, None),
     )
     axs[1].set(
         xlabel=xlabel,
+        xlim=(0, None),
+        ylim=(0, None),
     )
     axs[2].set(
-        ylabel=r"$\mathrm{absolute\ residual\ [-]}$",
+        ylabel=r"$\mathrm{Absolute\ residual\ [-]}$",
         xlabel=xlabel,
+        xlim=(0, None),
     )
-    axs[1].legend(frameon=False)
+    plotting.simplified_calibration_legend(axs[1])
+
     if wavelength == 360:
-        axs[0].axhline(1.3, xmin=0, xmax=0.8, ls="--", color="black")
-        axs[0].text(3, 1.18, "↓ experimentally relevant ↓")
-        axs[1].axhline(1.3, xmin=0, xmax=0.9, ls="--", color="black")
-        axs[1].text(0.005, 1.18, "↓ experimentally relevant ↓")
+        plotting.mark_relevant(axs[0], 0.1, 1.3, cm)
+        plotting.mark_relevant(axs[1], 0.1, 1.3, cm)
     elif wavelength == 600:
-        axs[0].axhline(0.9, xmin=0, xmax=0.72, ls="--", color="black")
-        axs[0].text(2, 0.78, "↓ experimentally relevant ↓")
-        axs[1].axhline(0.9, xmin=0, xmax=0.8, ls="--", color="black")
-        axs[1].text(0.003, 0.78, "↓ experimentally relevant ↓")
+        plotting.mark_relevant(axs[0], 0.1, 0.9, cm)
+        plotting.mark_relevant(axs[1], 0.1, 0.9, cm)
     else:
         raise ValueError("Unsupported wavelength.")
     plotting.savefig(fig, f"cm_biomass_A{wavelength}", wd=wd)
-    pyplot.close()
     return
 
 
@@ -136,25 +137,25 @@ def fit_product_calibration(wd: pathlib.Path):
 def plot_product_calibration(wd: pathlib.Path):
     cm = models.LinearProductAbsorbanceModel.load(wd / "cm_product_A360.json")
     fig, axs = calibr8.plot_model(cm)
-    xlabel = r"$\mathrm{product\ concentration\ [mM]}$"
+    xlabel = r"$\mathrm{Product\ [mM]}$"
     axs[0].set(
-        ylabel=r"$\mathrm{absorbance_{360\ nm}}\ [-]$",
+        ylabel=r"$\mathrm{Absorbance_{360\ nm}}\ [-]$",
         xlabel=xlabel,
+        xlim=(0, None),
+        ylim=(0, None),
     )
     axs[1].set(
         xlabel=xlabel,
+        ylim=(0, None),
     )
     axs[2].set(
-        ylabel=r"$\mathrm{absolute\ residual\ [-]}$",
+        ylabel=r"$\mathrm{Absolute\ residual\ [-]}$",
         xlabel=xlabel,
     )
-    axs[1].legend(frameon=False)
-    axs[0].axhline(1.3, xmin=0.17, xmax=1, ls="--", color="black")
-    axs[0].text(0.40, 1.22, "↓ experimentally relevant ↓")
-    axs[1].axhline(1.3, xmin=0.25, xmax=1, ls="--", color="black")
-    axs[1].text(0.001, 1.22, "↓ experimentally relevant ↓")
+    plotting.simplified_calibration_legend(axs[1])
+    plotting.mark_relevant(axs[0], 0.2, 1.3, cm)
+    plotting.mark_relevant(axs[1], 0.2, 1.3, cm)
     plotting.savefig(fig, f"cm_product_A360", wd=wd)
-    pyplot.close()
     return
 
 
@@ -355,7 +356,7 @@ def plot_gp_X_factor(wd: pathlib.Path):
     _log.info("Plotting")
     fig, axs = pyplot.subplots(dpi=200, ncols=2, figsize=(12, 6), sharey=True)
 
-    for ax, ds in zip(axs, [pp.prior, pp.posterior_predictive]):
+    for ax, ds, letter in zip(axs, [pp.prior, pp.posterior_predictive], "AB"):
         stackdims = ("chain", "draw") if "chain" in ds.dims else ("draw",)
         pm.gp.util.plot_gp_dist(
             ax=ax,
@@ -365,30 +366,109 @@ def plot_gp_X_factor(wd: pathlib.Path):
             palette=pyplot.cm.Greens,
         )
         ax.set(
-            xlabel="$\mathrm{glucose\ feed\ rate}\ \ \ [g_\mathrm{glucose}/L_\mathrm{reactor}/h]$",
+            xlabel="$\mathrm{Glucose\ feed\ rate}\ \ \ [g_\mathrm{glucose}\ L_\mathrm{reactor}^{-1}\ h^{-1}]}$",
             xlim=(0, max(dense)),
         )
+        ax.text(0.02, 0.92, letter, size=24, weight="bold", transform=ax.transAxes)
     axs[0].set(
-        ylabel="$X_{end,2mag}\ \ \ [g_\mathrm{biomass}/L]$",
+        ylabel="$X_{end,2mag}\ \ \ [g_\mathrm{CDW}\ L^{-1}]$",
         ylim=(0, 1.5),
-        title="prior",
     )
     axs[1].set(
         ylim=(0, 1),
-        title="posterior",
     )
     plotting.savefig(fig, "plot_gp_X_factor", wd=wd)
     pyplot.close()
     return
 
 
-def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: int=50):
+def sample_posterior_predictive_at_design(
+    idata,
+    pmodel,
+    *,
+    designs_long: xarray.DataArray,
+    dname: str="dense",
+) -> arviz.InferenceData:
+    dname_id = f"{dname}_id"
+    dname_id_glucose = f"{dname}_id_glucose"
+    assert tuple(designs_long.dims) == (dname_id, "design_dim")
+
+    _log.info("Adding GP conditional for %i designs", len(designs_long))
+
+    _log.info("Registering new dense coordinates")
+    pmodel.add_coord(dname_id, designs_long[dname_id].values)
+    pmodel.add_coord(dname_id_glucose, numpy.unique(designs_long.sel(design_dim="glucose").values))
+
+    _log.info("Adding variables for predictives")
+
+    # Predict specific activity at the dense designs
+    log_s_design = pmodel.gp_log_s_design.conditional(
+        f"{dname}_log_s_design",
+        Xnew=designs_long.values,
+        dims=dname_id,
+        jitter=pm.gp.util.JITTER_DEFAULT
+    )
+    s_design = pm.Deterministic(f"{dname}_s_design", at.exp(log_s_design), dims=dname_id)
+
+    # Predict fedbatch factors for each glucose design
+    long_glucose = designs_long.sel(design_dim="glucose").values
+    glucose = pm.ConstantData(f"{dname}_glucose", numpy.unique(long_glucose), dims=dname_id_glucose)
+    glucose_log_X_factor = pmodel.gp_log_X_factor.conditional(
+        f"{dname}_glucose_log_X_factor",
+        Xnew=glucose[:, None],
+        dims=dname_id_glucose,
+        jitter=pm.gp.util.JITTER_DEFAULT
+    )
+    glucose_X_factor = pm.Deterministic(
+        f"{dname}_glucose_X_factor",
+        at.exp(glucose_log_X_factor),
+        dims=dname_id_glucose,
+    )
+
+    # Subindex into a full-length vector
+    idenseglucose_by_design = [
+        tuple(glucose.data).index(glc)
+        for glc in long_glucose
+    ]
+    X_factor = pm.Deterministic(
+        f"{dname}_X_factor",
+        glucose_X_factor[idenseglucose_by_design],
+        dims=dname_id
+    )
+
+    # Predict rate constants from specific activity and biomass
+    k_design = models.predict_k_design(
+        X0_fedbatch=pmodel["Xend_batch"],
+        fedbatch_factor=X_factor,
+        specific_activity=s_design,
+        dims=dname_id,
+        prefix=f"{dname}_",
+    )
+
+    _log.info("Sampling posterior predictive")
+    pp = pm.sample_posterior_predictive(
+        idata,
+        var_names=[
+            n
+            for n, v in pmodel.named_vars.items()
+            if n.startswith(dname)
+            and v in pmodel.free_RVs + pmodel.deterministics
+        ],
+        return_inferencedata=False
+    )
+    _log.info("Saving to InferenceData")
+    pposterior = pm.to_inference_data(
+        posterior_predictive=pp
+    )
+    # Include the dense grid in the savefile
+    pposterior.posterior_predictive[f"{dname}_long"] = designs_long
+    return pposterior
+
+
+def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50):
     idata = arviz.from_netcdf(wd / "trace.nc")
 
-    _log.info("Creating the model")
-    pmodel = _build_model(wd)
-
-    _log.info("Adding high-resolution GP conditional")
+    _log.info("Creating high-resolution designs grid")
     # Create a dense grid
     dense_long = xarray.DataArray(
         models.bounds_to_grid(idata.constant_data.X_design_log10_bounds.values, n),
@@ -408,76 +488,23 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, draws:int=500, n: in
             "dense_design_glucose": numpy.unique(dense_long.sel(design_dim="glucose")),
         }
     )
+
+    _log.info("Creating the model")
+    pmodel = _build_model(wd)
     with pmodel:
-        _log.info("Registering new dense coordinates")
         pmodel.add_coord("dense_design_iptg", dense_grid.dense_design_iptg.values)
         pmodel.add_coord("dense_design_glucose", dense_grid.dense_design_glucose.values)
 
-        _log.info("Adding variables for high-quality predictives")
-
-        # Predict specific activity at the dense designs
-        log_s_design = pmodel.gp_log_s_design.conditional(
-            "dense_log_s_design",
-            Xnew=dense_long.values,
-            dims="dense_id",
-            jitter=pm.gp.util.JITTER_DEFAULT
-        )
-        dense_s_design = pm.Deterministic("dense_s_design", at.exp(log_s_design), dims="dense_id")
-
-        # Predict fedbatch factors for each glucose design
-        long_glucose = dense_long.sel(design_dim="glucose").values
-        dense_glucose = pm.ConstantData("dense_glucose", numpy.unique(long_glucose), dims="dense_design_glucose")
-        dense_glucose_log_X_factor = pmodel.gp_log_X_factor.conditional(
-            "dense_glucose_log_X_factor",
-            Xnew=dense_glucose[:, None],
-            dims="dense_design_glucose",
-            jitter=pm.gp.util.JITTER_DEFAULT
-        )
-        dense_glucose_X_factor = pm.Deterministic(
-            "dense_glucose_X_factor",
-            at.exp(dense_glucose_log_X_factor),
-            dims="dense_design_glucose",
-        )
-
-        # Subindex into a full-length vector
-        idenseglucose_by_design = [
-            tuple(dense_glucose.data).index(glc)
-            for glc in long_glucose
-        ]
-        dense_X_factor = pm.Deterministic(
-            "dense_X_factor",
-            dense_glucose_X_factor[idenseglucose_by_design],
-            dims="dense_id"
-        )
-
-        # Predict rate constants from specific activity and biomass
-        dense_k_design = models.predict_k_design(
-            X0_fedbatch=pmodel["Xend_batch"],
-            fedbatch_factor=dense_X_factor,
-            specific_activity=dense_s_design,
-            dims="dense_id",
-            prefix="dense_",
-        )
-
-        _log.info("Sampling posterior predictive")
-        pp = pm.sample_posterior_predictive(
+        pposterior = sample_posterior_predictive_at_design(
             idata,
-            samples=draws,
-            var_names=[
-                n
-                for n, v in pmodel.named_vars.items()
-                if n.startswith("dense_")
-                and v in pmodel.free_RVs + pmodel.deterministics
-            ],
-            return_inferencedata=False
+            pmodel,
+            designs_long=dense_long,
+            dname="dense"
         )
-        _log.info("Saving to InferenceData")
-        pposterior = pm.to_inference_data(
-            posterior_predictive=pp
-        )
-        # Include the dense grid in the savefile
-        pposterior.posterior_predictive["dense_long"] = dense_long
+
         pposterior.posterior_predictive["dense_grid"] = dense_grid
+
+        _log.info("Saving to file")
         pposterior.to_netcdf(wd / "predictive_posterior.nc")
     return
 
@@ -487,8 +514,8 @@ def plot_gp_metric_posterior_predictive(
     var_name="dense_s_design",
 ):
     label = {
-        "dense_s_design": r"$\mathrm{specific\ activity\ [\frac{1}{h} / \frac{g_{CDW}}{L}]}$",
-        "dense_k_design": r"$\mathrm{rate\ constant\ [1/h]}$",
+        "dense_s_design": r"$\mathrm{Specific\ activity\ [h^{-1}\ g_{CDW}^{-1}\ L]}$",
+        "dense_k_design": r"$\mathrm{Rate\ constant\ [h^{-1}]}$",
     }[var_name]
 
     idata = arviz.from_netcdf(wd / "trace.nc")
@@ -530,7 +557,7 @@ def plot_gp_metric_posterior_predictive(
     def fn_plot(azim=-65):
         fig = pyplot.figure(dpi=140)
         ax = fig.add_subplot(111, projection='3d')
-        ax.set_xlabel(r"$\mathrm{log_{10}(glucose\ feed\ rate\ [g/L/h])}$")
+        ax.set_xlabel(r"$\mathrm{log_{10}(Glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$")
         ax.set_ylabel(r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$")
         ax.set_zlabel(label)
 
@@ -595,6 +622,17 @@ def _dense_lookup(pp, feed_rate: float, iptg: float):
     return dense_id
 
 
+def _summarize_median_hdi(var, decimals):
+    """Summarize median and 90 % HDI"""
+    lower, upper = arviz.hdi(var, hdi_prob=0.9)
+    med = numpy.median(var)
+    if decimals > 0:
+        _round = lambda x: numpy.round(x, decimals)
+    else:
+        _round = round
+    return _round(med), _round(lower), _round(upper)
+
+
 def predict_units(
     wd: pathlib.Path,
     S0: float=2.5,
@@ -636,20 +674,10 @@ def predict_units(
 
     v0, units, volumetric_units = models.to_unit_metrics(S0, k_design)
 
-    # Summarize median and 90 % HDI
-    def summarize(var, decimals):
-        lower, upper = arviz.hdi(var, hdi_prob=0.9)
-        med = numpy.median(var)
-        if decimals > 0:
-            _round = lambda x: numpy.round(x, decimals)
-        else:
-            _round = round
-        return _round(med), _round(lower), _round(upper)
-
     summaries = [
-        ("Initial reaction rate", *summarize(v0.values.flatten(), 2), "mmol/h"),
-        ("Enzymatic activity", *summarize(units.values.flatten(), 1), "U"),
-        ("Volumetric enzymatic activity", *summarize(volumetric_units.values.flatten(), 0), "U/mL"),
+        ("Initial reaction rate", *_summarize_median_hdi(v0.values.flatten(), 2), "mmol/h"),
+        ("Enzymatic activity", *_summarize_median_hdi(units.values.flatten(), 1), "U"),
+        ("Volumetric enzymatic activity", *_summarize_median_hdi(volumetric_units.values.flatten(), 0), "U/mL"),
     ]
 
     # Write summaries to a text file
@@ -686,12 +714,12 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
         aspect="auto",
         vmin=0,
     )
-    ax.scatter(*idata.constant_data.X_design_log10.values[:,::-1].T, marker="x")
+    ax.scatter(*idata.constant_data.X_design_log10.values[:,::-1].T, marker="x", color="white")
     ax.scatter(
         [best.sel(design_dim="iptg")],
         [best.sel(design_dim="glucose")],
         marker="o",
-        s=80,
+        s=100,
         facecolor="none",
         edgecolor="red",
     )
@@ -719,10 +747,10 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
         cax=divider.append_axes("right", size="5%", pad=0.05),
     )
     cbar = ax.figure.colorbar(**cbar_kw)
-    cbar.ax.set_ylabel("$\mathrm{probability(best)\ [-]}$", rotation=90, va="top")
+    cbar.ax.set_ylabel("$\mathrm{Probability(best)\ [-]}$", rotation=90, va="top")
 
     ax.set(
-        ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ [g/L/h])}$",
+        ylabel=r"$\mathrm{log_{10}(Glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$",
         xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$",
         title="",
     )
@@ -756,7 +784,7 @@ def plot_p_best_tested(wd: pathlib.Path):
     return
 
 
-def report_tested_vs_predicted_probabilities(wd: pathlib.Path):
+def sample_pp_best_tested_vs_predicted(wd: pathlib.Path):
     # Load posterior and posterior predictive
     idata = arviz.from_netcdf(wd / "trace.nc")
     ipp = arviz.from_netcdf(wd / "predictive_posterior.nc")
@@ -773,6 +801,7 @@ def report_tested_vs_predicted_probabilities(wd: pathlib.Path):
     i_best_tested = numpy.argmax(pst_probs)
     k_best_tested = pst.k_design.sel(design_id=pst.k_design.design_id[i_best_tested])
     x_best_tested = idata.constant_data.X_design.sel(design_id=k_best_tested.design_id)
+    del k_best_tested
 
     # Select the best predicted design and corresponding posterior samples
     pp_probs = pyrff.sampling_probabilities(
@@ -782,26 +811,72 @@ def report_tested_vs_predicted_probabilities(wd: pathlib.Path):
     i_best_predicted = numpy.argmax(pp_probs)
     k_best_predicted = pp.dense_k_design.sel(dense_id=pp.dense_k_design.dense_id[i_best_predicted])
     x_best_predicted = (10**pp.dense_long).sel(dense_id=pp.dense_k_design.dense_id[i_best_predicted])
+    del k_best_predicted
 
-    # Compare posterior samples to obtain probabilities for the direct comparison
-    p_tested, p_predicted = pyrff.sampling_probabilities(
-        candidate_samples=[
-            k_best_tested.values,
-            k_best_predicted.values,
-        ],
-        # TODO: Sample the full PP and then pass correllated=True
-        correlated=False,
+    # Make a fresh posterior predictive for exactly the two designs.
+    # They must be drawn concurrently, because even from the same posterior draws
+    # the GP can still cause correllations between the designs.
+    pmodel = _build_model(wd)
+    best_long = numpy.log10(xarray.concat(
+        [x_best_tested, x_best_predicted],
+        dim=xarray.IndexVariable("best_id", ["tested", "predicted"])
+    ))
+    with pmodel:
+        pposterior = sample_posterior_predictive_at_design(
+            idata,
+            pmodel,
+            designs_long=best_long,
+            dname="best"
+        )
+        _log.info("Saving to file")
+    pposterior.to_netcdf(wd / "predictive_posterior_best.nc")
+    return
+
+
+def report_best_tested_vs_predicted(wd: pathlib.Path):
+    pposterior = arviz.from_netcdf(wd / "predictive_posterior_best.nc")
+
+    pp = pposterior.posterior_predictive.best_k_design.stack(sample=("chain", "draw"))
+    k_best_tested = pp.sel(best_id="tested")
+    k_best_predicted = pp.sel(best_id="predicted")
+    _, p_predicted = pyrff.sampling_probabilities(
+        candidate_samples=[k_best_tested, k_best_predicted],
+        correlated=True
     )
 
+    # Summarize medians and HDIs
+    mhdi_best_tested = _summarize_median_hdi(k_best_tested.values, decimals=3)
+    mhdi_best_predicted = _summarize_median_hdi(k_best_predicted.values, decimals=3)
+
     # Write a report
+    x_best_tested = 10**pposterior.posterior_predictive.best_long.sel(best_id="tested")
+    x_best_predicted = 10**pposterior.posterior_predictive.best_long.sel(best_id="predicted")
     with open(wd / "summary_tested_vs_predicted.txt", "w", encoding="utf-8") as file:
         lines = [
             f"The best tested design was {x_best_tested.to_pandas().to_dict()}.\n",
             f"The best predicted design was {x_best_predicted.to_pandas().to_dict()}.\n",
             f"With a {p_predicted*100:.1f} % probability, the predicted design is better.\n"
+            f"\n",
+            "Rate constant at the best tested design is {} 1/h with 90 % HDI [{}, {}].\n".format(*mhdi_best_tested),
+            "Rate constant at the best predicted design is  {} 1/h with 90 % HDI [{}, {}].\n".format(*mhdi_best_predicted),
         ]
         for line in lines:
             print(line)
             file.write(line)
+    
+    # Plot the correlation which explains why the probability
+    # is so high even though the HDIs overlap.
+    ax = arviz.plot_pair(pposterior.posterior_predictive, var_names="best_k_design", figsize=(4,4), kind="hexbin")
+    fig = pyplot.gcf()
+    ylims = ax.get_ylim()
+    xlims = ax.get_xlim()
+    newlims = [
+        min(ylims[0], xlims[0]),
+        max(ylims[1], xlims[1]),
+    ]
+    ax.set(
+        ylim=newlims,
+        xlim=newlims,
+    )
+    plotting.savefig(fig, "plot_best_k_design_correlation", wd=wd)
     return
-

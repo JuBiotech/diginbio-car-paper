@@ -155,7 +155,7 @@ def btm_overview(wd: pathlib.Path=DP_RESULTS):
 
 
     ax[0].set_ylim(0, 40)
-    ax[0].yaxis.set_ticks(np.arange(0, 40.000001, 10))
+    ax[0].yaxis.set_ticks(np.arange(0, 40.001, 10))
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
     ax[2].set_xlim(0, 18)
 
@@ -164,13 +164,13 @@ def btm_overview(wd: pathlib.Path=DP_RESULTS):
     for i in range(3):
         ax[i].text(0.1, 0.85, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
         
-    ax[0].set_ylabel('CDW  [g L$^{-1}$]')
+    ax[0].set_ylabel('CDW [g L$^{-1}$]')
     ax[1].set_ylabel('CDW [g L$^{-1}$]')
     ax[2].set_ylabel('CDW [g L$^{-1}$]')
     ax[2].set_xlabel('Time [h]')
-    #ax[0].legend()
-    #ax[1].legend()
-    #ax[2].legend()
+
+    for ax_, letter in zip(ax, "ABC"):
+        ax_.text(1.02, 0.83, letter, size=16, weight="bold", transform=ax_.transAxes)
 
     savefig(fig1, "btm_overview", wd=wd)
     mpl.rcParams['errorbar.capsize'] = 0
@@ -196,10 +196,10 @@ def ph_plot(wd: pathlib.Path=DP_RESULTS):
     ax = pH_plot_data(ax=ax, plot_number=2, filepath=DP_DATA / 'Carboxylase_21' / 'pH_2021-10-01-10-58 Chronograf Data.csv',
                       reactor_position = LOW_FEED_POSITION, starttime = datetime.datetime (2021,9, 30, 15, 24, 0), label='IPTG = 12 \xb5M, F$_{in}$ = 1 g L$^{-1}$ h$^{-1}$')
 
-    ax[0].set_ylim(6,8)
+    ax[0].set_ylim(6.5, 7.5)
     ax[2].set_xlim(0, 18)
 
-    ax[0].yaxis.set_ticks(np.arange(6,8.00001,0.5))
+    ax[0].yaxis.set_ticks(np.arange(6.5, 7.501, 0.2))
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
 
 
@@ -211,6 +211,9 @@ def ph_plot(wd: pathlib.Path=DP_RESULTS):
     ax[1].set_ylabel("pH")
     ax[2].set_ylabel("pH")
     ax[2].set_xlabel("Time [h]")
+
+    for ax_, letter in zip(ax, "ABC"):
+        ax_.text(1.02, 0.83, letter, size=16, weight="bold", transform=ax_.transAxes)
 
     savefig(fig1, "pH_overview", wd=wd)
     mpl.rcParams['errorbar.capsize'] = 0
@@ -245,6 +248,7 @@ def o2_plot(wd: pathlib.Path=DP_RESULTS):
     for i in range(3):
         ax[i].text(0.1, 0.2, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
         ax[i].axvline(1, linestyle='--', linewidth = 1.0, color='black')
+
     ax[2].set_xlabel("Time [h]")
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
     ax[0].yaxis.set_ticks(np.arange(0, 100.001, 20))

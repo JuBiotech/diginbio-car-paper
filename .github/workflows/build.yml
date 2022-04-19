@@ -1,0 +1,51 @@
+name: build
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/*.yml"
+      - "manuscript/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/*.yml"
+      - "manuscript/**"
+
+jobs:
+  pandoc:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install latex dependencies
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install -y     \
+          texlive \
+          texlive-lang-german \
+          texlive-lang-english \
+          texlive-latex-extra \
+          texlive-science \
+          texlive-fonts-extra \
+          texlive-bibtex-extra \
+          biber \
+          texlive-xetex \
+          latexmk \
+          pandoc \
+          pandoc-citeproc
+        sudo apt-get install ttf-mscorefonts-installer -y
+    - name: Build DOCX
+      run: |
+        cd manuscript
+        pandoc main.md  --number-sections --bibliography=literature.bib --csl=literature.csl -o ../main.docx
+    - name: Build PDF
+      run: |
+        cd manuscript
+        pandoc main.md --number-sections --bibliography=literature.bib --csl=literature.csl --pdf-engine=xelatex -o ../main.pdf 
+    - uses: actions/upload-artifact@v2
+      with:
+        name: manuscript
+        path: main.*
+        retention-days: 7
