@@ -24,8 +24,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# ignore png files
-*.png
 
 # C extensions
 *.so
