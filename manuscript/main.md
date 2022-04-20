@@ -60,7 +60,7 @@ The headspace of each stirred-tank-bioreactor was rinsed with $0.1\ L\ min^{-1}$
 Isopropyl ß-D-1-thiogalactopyranoside (IPTG) with a final concentration of 0.24 to 32 µM was added by the LHS to induce recombinant gene expression one hour after the fed-batch processes had been initiated on the mL-scale. The IPTG stock solutions were stored in closed 1.5 mL reaction tubes on the LHS workspace. During the IPTG addition procedure, the LHS opened and closed the reaction tubes automatically. IPTG concentrations were calculated based on the initial reaction volume of 10 mL.
 To ensure sterile operation of the LHS, the pipetting needles of the LHS were washed with an aqueous solution of 70 % (v/v) ethanol and with sterile filtered deionised water after each pipetting step.
 
-All tasks (substrate addition, pH control, inductor addition, sampling) were initiated by a priority-based scheduler which weighed the tasks based on their real-time priority to enable optimal process control when more than one task was eligible . The detailed description of the scheduler working principle, aim and software engineering may be found in Bromig et al. [Wie Tandem-Publikation zitieren?]
+All tasks (substrate addition, pH control, inductor addition, sampling) were initiated by a priority-based scheduler which weighed the tasks based on their real-time priority to enable optimal process control when more than one task was eligible . The detailed description of the scheduler working principle, aim and software engineering may be found in Bromig & von den Eichen et al.
 The priorities were feed > inductor addition > sampling > pH control.
 
 ## Analytical Procedures
