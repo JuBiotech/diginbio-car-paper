@@ -7,6 +7,7 @@ Some unit operations need additional kwargs.
 
 import logging
 import pathlib
+import shutil
 
 import aesara.tensor as at
 import arviz
@@ -1032,4 +1033,31 @@ def report_best_tested_vs_predicted(wd: pathlib.Path):
         xlim=newlims,
     )
     plotting.savefig(fig, "plot_best_k_design_correlation", wd=wd)
+    return
+
+
+def copy_results_to_manuscript(wd: pathlib.Path):
+    files = [
+        "ExpDesign.png",
+        "btm_overview.png",
+        "O2_overview.png",
+        "pH_overview.png",
+        "plot_A600_kinetics.png",
+        "cm_biomass_A360.png",
+        "cm_biomass_A600.png",
+        "cm_product_A360.png",
+        "plot_gp_X_factor.png",
+        "plot_3d_pp_dense_s_design.png",
+        "plot_3d_pp_dense_k_design.png",
+        "p_best_k_design.png",
+        "summary_tested_vs_predicted.txt",
+    ]
+    dp_dst = wd.parent.parent / "manuscript" / "figures"
+    if not dp_dst.exists():
+        raise FileExistsError(dp_dst)
+    fps_src = [wd / fn for fn in files]
+    fps_dst = [dp_dst / fn for fn in files]
+    for src, dst in zip(fps_src, fps_dst):
+        _log.info("Copying %s → %s", src, dst)
+        shutil.copy(src, dst)
     return
