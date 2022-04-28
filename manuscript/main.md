@@ -129,7 +129,7 @@ On the other hand, the analysis must deal with a variety of experimental effects
 1. During the 5&nbsp;h biotransformation the biomass continues to grow, but it's growth rate depends on the product concentration (Fig. 5).
 1. The biomass contributes to absorbance at 360&nbsp;nm such that product concentration can not be measured independently (next chapter).
 
-![](figues/plot_A600_kinetics.png)
+![](figures/plot_A600_kinetics.png)
 __Figure 5: 600 nm absorbance in wells with known 3-hydroxy benzaldehyde concentrations.__
 Initial biomass concentrations in reference wells (y axis intercepts) varies between the experiment batches.  The increase in 600&nbsp;nm absorbance over time negatively correlates with the 3-hydroxy benzaldehyde concentration.
 
@@ -141,11 +141,11 @@ In the following sections, we will introduce various components of and results f
 A separately acquired biomass calibration dataset was used to fit two models describing the relationship between biomass cell dry weight and absorbance at 360 and 600&nbsp;nm respectively.
 
 
-![](figues/cm_biomass_A360.png)
+![](figures/cm_biomass_A360.png)
 __Figure 6: Biomass [g/L] calibration at 360 nm.__ The spread of observations (<span style="color:blue">•</span>) is modeled by a `calibr8.LogIndependentAsymmetricLogisticN` model with `scale_degree=1` to account for non-linearity (left) and heteroscedasticity (right). Green bands depict the intervals of 97.5, 95 and 84&nbsp;% probability of observations according to the model.
 
 
-![](figues/cm_biomass_A600.png)
+![](figures/cm_biomass_A600.png)
 __Figure 7: Biomass [g/L] calibration at 600 nm.__ Observations (<span style="color:blue">•</span>) at 600&nbsp;nm indicated lower absorbance compared to 360&nbsp;nm. Like for 360&nbsp;nm, the model is a `calibr8.LogIndependentAsymmetricLogisticN` model with `scale_degree=1`.
 
 The models were built with the `calibr8` package [@calibr8;@calibr8Paper] using an asymmetric logistic function of the logarithmic biomass concentration to describe the mean of normally distributed absorbance observations.
@@ -160,7 +160,7 @@ Reference samples were prepared without biomass and with different amounts of ac
 
 A linear calibration model with scale and $\nu$ parameters of the Students-*t* distribution as constants was fitted to the 360&nbsp;nm measurements of product calibration samples.
 
-![](figues/cm_product_A360.png)
+![](figures/cm_product_A360.png)
 __Figure 8: Product calibration at 360 nm.__ In the observed range, the absorbances at 360&nbsp;nm (<span style="color:blue">•</span>) followed a linear trend in dependence on the 3-hydroxy benzaldehyde concentration. The model was built from a `calibr8.BasePolynomialModelN` model with `mu_degree=1` and `scale_degree=0`.
 
 All calibration model parameters were estimated by maximum likelihood using SciPy optimizers.
@@ -373,20 +373,23 @@ This observation is in line with a previous study on mCherry expression where th
 ![](figures/plot_3d_pp_dense_s_design.png)
 __Figure 10: Prediction of specific activity.__
 The surfaces show the median (center surface) and 90&nbsp;% highest density interval of the posterior predictive distribution for specific activity as a function of the experimental design parameters.
-The highest specific activity is predicted at low feed rates and high IPTG concentration, but the uncertainty around this prediction is also high.
+The highest specific activities are predicted at high IPTG concentration once in the low and once in the high feed rate regime.
+However, the uncertainty at lower feed rates is high.
 
-It seems that the highest specific activity is at the highest IPTG concentrations and lowest feed rates. The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG. This is more than two-fold higher that at an feed rate of $4.8\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12.8 µM IPTG. This suggests, that a low feed rate during protein expression may be beneficial for this protein. 
+It seems that the highest specific activity is at close to the highest IPTG concentrations and highest feed rates. The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG. This is more than two-fold higher that at an feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such low feed rate. Consequently, a benefit of lower feed rate during protein expression cannot be ruled out for this protein. 
 
 ![](figures/plot_3d_pp_dense_k_design.png)
 __Figure 11: Predicted rate constants at initial biotransformation biomass concentration.__
 The surfaces show the median (center surface) and 90&nbsp;% highest density interval of the posterior predictive distribution for the rate constant to be expected from biomass suspension after the fed-batch as a function of the experimental design parameters. 
 
-In this study, the rate constant at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 12 µM was about $0.63\ h^{-1}$, which can be converted to an initial enzymatic activity of $902\ U\ mL^{-1}$ (mL refers to bioreactor broth). In a previous study, NoCAR was produced with an extremely low growth and expression temperature of 15 °C in a batch process with complex medium in shake flasks with a final volumetric activity of approximately $26\ U\ mL^{-1}$[@weber2021production]. The low temperature was chosen to avoid the formation of inclusion bodies. Inclusion bodies usually do not show enzymatic activity and tend to form when a big protein is expressed in *E. coli* to high concentrations [@bhatwa2021challenges]. 
+In this study, the best rate constant was predicted at a feed rate of $4.8\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 29 µM with $0.62\ h^{-1}$, which can be converted to an initial enzymatic activity of $1037\ U\ mL^{-1}$ (mL refers to bioreactor broth).
+The best tested process design was a feed rate of $1.5\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 29 µM with $0.69\ h^{-1}$, translating to a volumetric activity of $1141\ UmL^{-1}$.
+In a previous study, NoCAR was produced with an extremely low growth and expression temperature of 15 °C in a batch process with complex medium in shake flasks with a final volumetric activity of approximately $26\ U\ mL^{-1}$[@weber2021production]. The low temperature was chosen to avoid the formation of inclusion bodies. Inclusion bodies usually do not show enzymatic activity and tend to form when a big protein is expressed in *E. coli* to high concentrations [@bhatwa2021challenges].
 
 This shows that active NoCAR can be produced at a cultivation temperature of 30 °C in defined medium. Several factors might have aided the production of active NoCAR in this study. The use of definied medium as opposed to complex medium in previous studies might have reduced inclusion body formation [@neubauer2001expression]. Furthermore, the tightly controlled pH in the stirred-tank bioreactors on a mL-scale might have aided to reduce antibody formation due to pH drift [@strandberg1991factors].
 
-Our model found lower feed rates to be beneficial for specific activity (Fig. 10), even after taking the resulting biomass concentration into account (rate constant, Fig. 11). At the same time, the activities at the highest IPTG concentrations (~32 µM) might be lower than at $10^{0.5} - 10^1 \mu M$. The Gaussian process in our model made an uncertain extrapolation of this trend towards lower feed rates, counterintuitively and vaguely predicting that the optimal process design may be at lower feed rates and moderately high IPTG concentration.
-The probability map (Fig. 12) is a more direct visualization out this prediction. The overlayed coordinates of experimentally tested process parameters shows that this part of the parameter spaces was not extensively investigated yet. 
+Our model found lower feed rates to be possibly beneficial for specific activity (Fig. 10), even after taking the resulting biomass concentration into account (rate constant, Fig. 11). At the same time, the model is still undecided about the length scale of IPTG dependency (fig_TBD). It assigns some probability to rather short lengthscale, resulting in higher uncertainties inbetween tested experimental designs (fig_TBD). The Gaussian process in makes an uncertain extrapolation of this trend towards lower feed rates where the density of observations was much lower. Counterintuitively this leads to a vague prediction that the optimal process design could be at lower feed rates and moderately high IPTG concentration.
+The probability map (Fig. 12) is a more direct visualization out this prediction. The overlayed coordinates of experimentally tested process parameters show that this part of the parameter spaces was not extensively investigated yet. 
 
 ![](figures/p_best_k_design.png)
 __Figure 12: Probability landscape of the rate constant optimum within the investigated design space.__
@@ -395,7 +398,7 @@ For each process design in a 50x50 grid of process parameters the probabilistic 
 # Conclusion
 
 The automated cascade of stirred-tank bioreactors enabled screening of 42 different combinations of inductor concentration and feed rate during protein expression of *E. coli* NoCAR in a scalable bioreactor setup. A total of 192 bioreactor runs were performed during four weeks, showing the high productivity of miniaturized, automated and digitized parallel bioreactors. The new automated biotransformation procedure at the end of each process enabled the investigation of the enzymatic activity of each expression condition without manual intervention. Due to the sophisticated mechanistic modelling based on bayesian statistics, the enzymatic activity was estimated without the need of cell separation. This makes automation much simpler, because cell separation with automated liquid handling systems is costly and requires a lot of space in the working area of the robot. Furthermore, the probabilistic analysis opens the door for iterative Bayesian optimization that can further accelerate the identification of the optimal process conditions, while reducing the needed experimental effort.
-At the optimal investigated expression conditions, an activity of $902\ U\ mL^{-1}$ was estimated, which is about 30-fold higher than the highest published data for the enzyme under study. 
+At the optimal investigated expression conditions, an activity of $1141\ U\ mL^{-1}$ was estimated with a $90\ %$ crebile interval of $[324, 1788]\ U\ mL^{-1}$. Taking the uncertainty into account, this about 12 to 69-fold higher than the highest published data for the enzyme under study. 
 It would be interesting for further studies to investigate parameter combinations that are predicted to be beneficial by the model. Furthermore, more expression conditions (pH, temperature, induction time...) could be investigated to gain more knowledge about optimal expression conditions. Futhermore, the downstream operations could be developed based on the established expression protocol.
 
 
