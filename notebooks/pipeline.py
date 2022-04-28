@@ -231,15 +231,34 @@ def fit_model(wd: pathlib.Path, **sample_kwargs):
     #modelgraph.render(filename=str(wd / "model.pdf"), format="pdf")
 
     sample_kwargs.setdefault("discard_tuned_samples", False)
-    sample_kwargs.setdefault("tune", 1000)
+    sample_kwargs.setdefault("tune", 500)
     sample_kwargs.setdefault("draws", 500)
-    sample_kwargs.setdefault("target_accept", 0.95)
+    # Convergence checks are computed separately
+    sample_kwargs.setdefault("compute_convergence_checks", False)
 
     _log.info("Running MCMC")
     with pmodel:
         idata = pm.sample(**sample_kwargs)
     _log.info("Saving the trace")
     idata.to_netcdf(wd / "trace.nc")
+    return
+
+
+def compute_diagnostics(wd):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    # Compute diagnostics only for free variables
+    pmodel = _build_model(wd)
+    df_diagnostics = arviz.summary(idata, var_names=[rv.name for rv in pmodel.free_RVs])
+    df_diagnostics.to_excel(wd / "diagnostics.xlsx")
+    return
+
+
+def check_convergence(wd: pathlib.Path, threshold=1.05):
+    df_diagnostics = pandas.read_excel(wd / "diagnostics.xlsx", index_col=0)
+    critical = df_diagnostics[df_diagnostics.r_hat > threshold]
+    critical_rvs = {rvc.split("[")[0] for rvc in critical.index}
+    if critical_rvs:
+        raise Exception("The following RVs did not converge: %s", critical_rvs)        
     return
 
 
@@ -269,6 +288,120 @@ def plot_trace(wd: pathlib.Path):
             fig.tight_layout()
             fig.savefig(wd / f"{prefix}_{title}.png")
             pyplot.close()
+    return
+
+
+def plot_posterior_tsne(wd: pathlib.Path):
+    import sklearn.manifold
+
+    _log.info("Creating the model")
+    pmodel = _build_model(wd)
+    _log.info("Loading InferenceData")
+    idata = arviz.from_netcdf(wd / "trace.nc")
+
+    _log.info("Flattening InferenceData")
+    pst = idata.posterior.stack(sample=("chain", "draw"))
+    flat_pst, selectors = plotting.flatten_dataset(
+        dataset={
+            rv.name : pst[rv.name]
+            for rv in pmodel.free_RVs
+        },
+        skipdim="sample"
+    )
+    df_samples = flat_pst.to_series().unstack()
+
+    _log.info("Running t-SNE on %i samples with %i features.", *df_samples.to_numpy().shape)
+    X = sklearn.manifold.TSNE(
+        n_components=2,
+        init="pca",
+    ).fit_transform(df_samples)
+
+    _log.info("Plotting %i points", len(X))
+    fig, ax = pyplot.subplots(figsize=(6, 6))
+    ax.scatter(X[:, 0], X[:, 1], marker=".", edgecolors="none", s=1)
+    ax.set(
+        ylabel="t-SNE 1",
+        xlabel="t-SNE 2",
+        yticks=[],
+        xticks=[],
+    )
+    plotting.savefig(fig, "plot_posterior_tsne", wd=wd)
+    return
+
+
+def plot_posterior_pca(wd: pathlib.Path):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    pmodel = _build_model(wd)
+
+    # Select (a subset of) the posterior draws
+    thin = max(1, int(idata.posterior.sizes["chain"] * idata.posterior.sizes["draw"] / 2500))
+    pst = idata.posterior.stack(sample=("chain", "draw")).sel(sample=slice(None, None, thin))
+    flat_pst, selectors = plotting.flatten_dataset(
+        dataset={
+            rv.name : pst[rv.name]
+            for rv in pmodel.free_RVs
+        },
+        skipdim="sample"
+    )
+
+    _log.info("Running principal component analysis")
+    pca, df_samples = plotting.do_pca(pmodel, flat_pst)
+    _log.info("Calculating feature weights")
+    feature_weights = plotting.pca_feature_weights(pca)
+    top_10 = df_samples.columns[numpy.argsort(feature_weights)[::-1]][:10].values
+    _log.info("These variables explain most of the variance: %s", top_10)
+
+    # Plot explained variance by feature
+    _log.info("Plotting explained variances by feature")
+    fig, ax = pyplot.subplots()
+    ax.plot(pca.explained_variance_ratio_ * 100)
+    ax.set(
+        ylabel="explained variance in %",
+        xlabel="principal component",
+    )
+    plotting.savefig(fig, "plot_posterior_pca_variances", wd=wd)
+
+    # Make a pair plot of the variables involved
+    _log.info("Making a pair plot of interesting variables")
+    axs = arviz.plot_pair({
+        dim : pst[selectors[dim][0]].sel(selectors[dim][1]).values
+        for dim in top_10
+    }, figsize=(27,27))
+    fig = pyplot.gcf()
+    plotting.savefig(fig, "plot_posterior_pca_pair", wd=wd)
+    return
+
+
+def plot_prior_vs_posterior(wd: pathlib.Path, var_name: str):
+    pmodel = _build_model(wd)
+    idata = arviz.from_netcdf(wd / "trace.nc")
+
+    with pmodel:
+        prior = pm.sample_prior_predictive(
+            var_names=[var_name],
+            samples=idata.posterior.sizes["draw"],
+        ).prior[var_name]
+    posterior = idata.posterior[var_name]
+
+
+    data = {}
+    if "design_dim" in pmodel.RV_dims.get(var_name, []):
+        data[f"prior_glucose({var_name})"] = prior.sel(design_dim="glucose")
+        data[f"posterior_glucose({var_name})"] = posterior.sel(design_dim="glucose")
+        data[f"prior_iptg({var_name})"] = prior.sel(design_dim="iptg")
+        data[f"posterior_iptg({var_name})"] = posterior.sel(design_dim="iptg")
+    else:
+        data[f"prior({var_name})"] = prior
+        data[f"posterior({var_name})"] = posterior
+
+    axs = arviz.plot_trace(data)
+    xlim = numpy.array([ax.get_xlim() for ax in axs[:, 0]])
+    xlim = [min(xlim[:, 0]), max(xlim[:, 1])]
+    for ax in axs[:, 0]:
+        ax.set_xlim(xlim)
+    fig = pyplot.gcf()
+    fig.tight_layout()
+    plotting.savefig(fig, f"prior_vs_posterior_{var_name}", wd=wd)
     return
 
 
@@ -337,15 +470,16 @@ def plot_gp_X_factor(wd: pathlib.Path):
 
         _log.info("Sampling posterior predictive")
         _log.info("Sampling prior predictive")
+        samples = 1500
         pprior = pm.sample_prior_predictive(
-            samples=1500,
+            samples=samples,
             var_names=["Xend_batch", "dense_log_X_factor", "dense_X_factor", "dense_Xend_2mag"],
             return_inferencedata=False,
         )
         _log.info("Sampling posterior predictive")
+        thin = int(idata.posterior.sizes["chain"] * idata.posterior.sizes["draw"] / samples)
         pposterior = pm.sample_posterior_predictive(
-            idata,
-            samples=1500,
+            idata.posterior.sel(draw=slice(None, None, thin)),
             var_names=["dense_log_X_factor", "dense_X_factor", "dense_Xend_2mag"],
             return_inferencedata=False,
         )
@@ -388,6 +522,7 @@ def sample_posterior_predictive_at_design(
     *,
     designs_long: xarray.DataArray,
     dname: str="dense",
+    thin: int=1,
 ) -> arviz.InferenceData:
     dname_id = f"{dname}_id"
     dname_id_glucose = f"{dname}_id_glucose"
@@ -447,7 +582,7 @@ def sample_posterior_predictive_at_design(
 
     _log.info("Sampling posterior predictive")
     pp = pm.sample_posterior_predictive(
-        idata,
+        idata.sel(draw=slice(None, None, thin)),
         var_names=[
             n
             for n, v in pmodel.named_vars.items()
@@ -465,7 +600,7 @@ def sample_posterior_predictive_at_design(
     return pposterior
 
 
-def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50):
+def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50, thin: int=1):
     idata = arviz.from_netcdf(wd / "trace.nc")
 
     _log.info("Creating high-resolution designs grid")
@@ -499,7 +634,8 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50):
             idata,
             pmodel,
             designs_long=dense_long,
-            dname="dense"
+            dname="dense",
+            thin=thin,
         )
 
         pposterior.posterior_predictive["dense_grid"] = dense_grid
