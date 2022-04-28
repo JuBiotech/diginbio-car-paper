@@ -129,7 +129,7 @@ On the other hand, the analysis must deal with a variety of experimental effects
 1. During the 5&nbsp;h biotransformation the biomass continues to grow, but it's growth rate depends on the product concentration (Fig. 5).
 1. The biomass contributes to absorbance at 360&nbsp;nm such that product concentration can not be measured independently (next chapter).
 
-![](https://iffmd.fz-juelich.de/uploads/upload_1bcc24858a0dd8274b4c940667b59b09.png)
+![](figues/plot_A600_kinetics.png)
 __Figure 5: 600 nm absorbance in wells with known 3-hydroxy benzaldehyde concentrations.__
 Initial biomass concentrations in reference wells (y axis intercepts) varies between the experiment batches.  The increase in 600&nbsp;nm absorbance over time negatively correlates with the 3-hydroxy benzaldehyde concentration.
 
@@ -141,11 +141,11 @@ In the following sections, we will introduce various components of and results f
 A separately acquired biomass calibration dataset was used to fit two models describing the relationship between biomass cell dry weight and absorbance at 360 and 600&nbsp;nm respectively.
 
 
-![](https://iffmd.fz-juelich.de/uploads/upload_de24b255495d4b825542170492979b7d.png)
+![](figues/cm_biomass_A360.png)
 __Figure 6: Biomass [g/L] calibration at 360 nm.__ The spread of observations (<span style="color:blue">•</span>) is modeled by a `calibr8.LogIndependentAsymmetricLogisticN` model with `scale_degree=1` to account for non-linearity (left) and heteroscedasticity (right). Green bands depict the intervals of 97.5, 95 and 84&nbsp;% probability of observations according to the model.
 
 
-![](https://iffmd.fz-juelich.de/uploads/upload_0df064db2d93492bd0b96a3bb3b95b8c.png)
+![](figues/cm_biomass_A600.png)
 __Figure 7: Biomass [g/L] calibration at 600 nm.__ Observations (<span style="color:blue">•</span>) at 600&nbsp;nm indicated lower absorbance compared to 360&nbsp;nm. Like for 360&nbsp;nm, the model is a `calibr8.LogIndependentAsymmetricLogisticN` model with `scale_degree=1`.
 
 The models were built with the `calibr8` package [@calibr8;@calibr8Paper] using an asymmetric logistic function of the logarithmic biomass concentration to describe the mean of normally distributed absorbance observations.
@@ -160,7 +160,7 @@ Reference samples were prepared without biomass and with different amounts of ac
 
 A linear calibration model with scale and $\nu$ parameters of the Students-*t* distribution as constants was fitted to the 360&nbsp;nm measurements of product calibration samples.
 
-![](https://iffmd.fz-juelich.de/uploads/upload_bcbbf2a3e5787371bf7167775303f307.png)
+![](figues/cm_product_A360.png)
 __Figure 8: Product calibration at 360 nm.__ In the observed range, the absorbances at 360&nbsp;nm (<span style="color:blue">•</span>) followed a linear trend in dependence on the 3-hydroxy benzaldehyde concentration. The model was built from a `calibr8.BasePolynomialModelN` model with `mu_degree=1` and `scale_degree=0`.
 
 All calibration model parameters were estimated by maximum likelihood using SciPy optimizers.
@@ -285,7 +285,7 @@ The Gaussian process was parametrized by a mean function of $0$, thereby centeri
 For the covariance function we chose a scaling parameter $\sigma$ such that the prior variance for the factor is around $\pm30\ \%$.
 The prior for $\ell$ in the exponential quadratic kernel encodes a belief that $\mathrm{\vec{X}_{factor,\vec{glc}}}$ varies smoothly on a length scale of around half of the (logarithmic) design space.
 
-![](https://iffmd.fz-juelich.de/uploads/upload_c662326d0414372bf9259ddb85371adf.png)
+![](figures/plot_gp_X_factor.png)
 __Figure 9: Prior and posterior of feedrate-dependent final fed-batch biomass concentration.__
 Before observing the data (prior, left) the model predicts a broad distribution of functions (thin lines) that could describe the relationship between feed rate and final fedbatch biomass concentration. After observing the data (posterior, right), the final biomass turned out lower than expected, but the distribution of possible relationships is much narrower. Only outside of the experimentally investigated range of 1-4.8&nbsp;g/L the uncertainty increases again.
 
@@ -370,14 +370,14 @@ The visualization of the specific activity relationships posterior distribution 
 Generally, the specific activity is higher for high IPTG concentrations, but at least for high glucose feed rates where more experimental data are available (comp. Fig. 1) we observed the IPTG concentration to saturate at $\approx 10^{0.5} \mu M$.
 This observation is in line with a previous study on mCherry expression where the IPTG saturation concentration was found at $10^1 \mu M$ [@von2021automated].
 
-![](https://iffmd.fz-juelich.de/uploads/upload_ed7a98a32da44e728cd76deffe76c447.png)
+![](figures/plot_3d_pp_dense_s_design.png)
 __Figure 10: Prediction of specific activity.__
 The surfaces show the median (center surface) and 90&nbsp;% highest density interval of the posterior predictive distribution for specific activity as a function of the experimental design parameters.
 The highest specific activity is predicted at low feed rates and high IPTG concentration, but the uncertainty around this prediction is also high.
 
 It seems that the highest specific activity is at the highest IPTG concentrations and lowest feed rates. The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG. This is more than two-fold higher that at an feed rate of $4.8\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12.8 µM IPTG. This suggests, that a low feed rate during protein expression may be beneficial for this protein. 
 
-![](https://iffmd.fz-juelich.de/uploads/upload_353682da90c0e8f535bb47aaf03284a8.png)
+![](figures/plot_3d_pp_dense_k_design.png)
 __Figure 11: Predicted rate constants at initial biotransformation biomass concentration.__
 The surfaces show the median (center surface) and 90&nbsp;% highest density interval of the posterior predictive distribution for the rate constant to be expected from biomass suspension after the fed-batch as a function of the experimental design parameters. 
 
@@ -388,7 +388,7 @@ This shows that active NoCAR can be produced at a cultivation temperature of 30 
 Our model found lower feed rates to be beneficial for specific activity (Fig. 10), even after taking the resulting biomass concentration into account (rate constant, Fig. 11). At the same time, the activities at the highest IPTG concentrations (~32 µM) might be lower than at $10^{0.5} - 10^1 \mu M$. The Gaussian process in our model made an uncertain extrapolation of this trend towards lower feed rates, counterintuitively and vaguely predicting that the optimal process design may be at lower feed rates and moderately high IPTG concentration.
 The probability map (Fig. 12) is a more direct visualization out this prediction. The overlayed coordinates of experimentally tested process parameters shows that this part of the parameter spaces was not extensively investigated yet. 
 
-![](https://iffmd.fz-juelich.de/uploads/upload_d537eb843e2a81883b9a7a585353f5d1.png)
+![](figures/p_best_k_design.png)
 __Figure 12: Probability landscape of the rate constant optimum within the investigated design space.__
 For each process design in a 50x50 grid of process parameters the probabilistic prediction of the rate constant metric was translated into a probability. The intensity of the pixel indicates the probability that this particular design is the best among all 2500 combinations. Most probability is concentrated in a region of low glucose feed rates combined and hig IPTG concentrations. The red circle marks the combination that was predicted to be optimal with the highest probability.
 
