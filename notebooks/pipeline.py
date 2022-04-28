@@ -980,22 +980,39 @@ def report_best_tested_vs_predicted(wd: pathlib.Path):
         correlated=True
     )
 
-    # Summarize medians and HDIs
-    mhdi_best_tested = _summarize_median_hdi(k_best_tested.values, decimals=3)
-    mhdi_best_predicted = _summarize_median_hdi(k_best_predicted.values, decimals=3)
-
-    # Write a report
+    # Untransform designs
     x_best_tested = 10**pposterior.posterior_predictive.best_long.sel(best_id="tested")
     x_best_predicted = 10**pposterior.posterior_predictive.best_long.sel(best_id="predicted")
-    with open(wd / "summary_tested_vs_predicted.txt", "w", encoding="utf-8") as file:
-        lines = [
-            f"The best tested design was {x_best_tested.to_pandas().to_dict()}.\n",
-            f"The best predicted design was {x_best_predicted.to_pandas().to_dict()}.\n",
-            f"With a {p_predicted*100:.1f} % probability, the predicted design is better.\n"
-            f"\n",
-            "Rate constant at the best tested design is {} 1/h with 90 % HDI [{}, {}].\n".format(*mhdi_best_tested),
-            "Rate constant at the best predicted design is  {} 1/h with 90 % HDI [{}, {}].\n".format(*mhdi_best_predicted),
+    d_tested = x_best_tested.to_pandas().to_dict()
+    d_predicted = x_best_predicted.to_pandas().to_dict()
+
+
+    # Write a report
+    lines = []
+    for label, dct, k in [
+        ("tested", d_tested, k_best_tested),
+        ("predicted", d_predicted, k_best_predicted),
+    ]:
+        # Calculate derived KPIs
+        v0, units, volumetric_units = models.to_unit_metrics(S0=2.5, k=k)
+        # Summarize median and HDI
+        khdi = _summarize_median_hdi(k.values, decimals=3)
+        vhdi = _summarize_median_hdi(v0.values.flatten(), 2)
+        Uhdi = _summarize_median_hdi(units.values.flatten(), 1)
+        vUhdi = _summarize_median_hdi(volumetric_units.values.flatten(), 0)
+
+        lines += [
+            f"\nFor the best {label} design at {dct}:\n",
+            "\tRate constant of {} 1/h with 90 % HDI [{}, {}].\n".format(*khdi),
+            "\tInitial reaction rate of {} with 90 % HDI [{}, {}] mmol/h.\n".format(*vhdi),
+            "\tEnzymatic activity of {} with 90 % HDI [{}, {}] U.\n".format(*Uhdi),
+            "\tVolumetric enzymatic activity of {} with 90 % HDI [{}, {}] U/mL.\n".format(*vUhdi),
         ]
+    lines += [
+        "\n",
+        f"With a {p_predicted*100:.1f} % probability, the predicted design is better.\n"
+    ]
+    with open(wd / "summary_tested_vs_predicted.txt", "w", encoding="utf-8") as file:
         for line in lines:
             print(line)
             file.write(line)
