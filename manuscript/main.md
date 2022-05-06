@@ -158,10 +158,10 @@ The absorbance of its reaction product was measured at 360&nbsp;nm in all assays
 A separate calibration dataset was obtained by performing the assay procedure on reference samples with known 3-hydroxy benzaldehyde concentrations.
 Reference samples were prepared without biomass and with different amounts of acetic acid to exclude biomass absorbance, and investigate pH robustness of the method.
 
-A linear calibration model with scale and $\nu$ parameters of the Students-*t* distribution as constants was fitted to the 360&nbsp;nm measurements of product calibration samples.
+A linear calibration model with heteroscedastic, normally distributed observation noise was fitted to the 360&nbsp;nm measurements of product calibration samples.
 
 ![](figures/cm_product_A360.png)
-__Figure 8: Product calibration at 360 nm.__ In the observed range, the absorbances at 360&nbsp;nm (<span style="color:blue">•</span>) followed a linear trend in dependence on the 3-hydroxy benzaldehyde concentration. The model was built from a `calibr8.BasePolynomialModelN` model with `mu_degree=1` and `scale_degree=0`.
+__Figure 8: Product calibration at 360 nm.__ In the observed range, the absorbances at 360&nbsp;nm (<span style="color:blue">•</span>) followed a linear trend in dependence on the 3-hydroxy benzaldehyde concentration. The model was built from a `calibr8.BasePolynomialModelN` model with `mu_degree=1` and `scale_degree=1`.
 
 All calibration model parameters were estimated by maximum likelihood using SciPy optimizers.
 For code and reproducable Jupyter notebooks of this analysis we refer to the accompanying GitHub repository.
@@ -204,7 +204,7 @@ For simplicity we therefore use the symbol $P$ to refer to the product of intere
 
 $$
 \begin{aligned}
-    \mathcal{L_\Sigma} &= \mathcal{L}_\mathrm{600\ nm}(\mathrm{A_{600\ nm}} \mid \mathrm{A_{600\ nm,obs}}) + \mathcal{L}_\mathrm{360\ nm}(\mathrm{A_{360\ nm}} \mid \mathrm{A_{360\ nm,obs}}) \\
+    \mathcal{L_\Pi} &= \mathcal{L}_\mathrm{600\ nm}(\mathrm{A_{600\ nm}} \mid \mathrm{A_{600\ nm,obs}}) \cdot \mathcal{L}_\mathrm{360\ nm}(\mathrm{A_{360\ nm}} \mid \mathrm{A_{360\ nm,obs}}) \\
     \textrm{where} \\
     \mathrm{A_{600\ nm}} &\sim Normal(\mathrm{\mu_{X,600\ nm}}, \mathrm{\sigma_{X,600\ nm}}) \\
     (\mathrm{\mu_{X,600\ nm}}, \mathrm{\sigma_{X,600\ nm}}) &= \phi_\mathrm{cm,X,600\ nm}(X) \\
