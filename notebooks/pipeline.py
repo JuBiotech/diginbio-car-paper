@@ -538,13 +538,17 @@ def sample_posterior_predictive_at_design(
     _log.info("Adding variables for predictives")
 
     # Predict specific activity at the dense designs
-    log_s_design = pmodel.gp_log_s_design.conditional(
-        f"{dname}_log_s_design",
+    log_s_design_factor = pmodel.gp_log_s_design.conditional(
+        f"{dname}_log_s_design_factor",
         Xnew=designs_long.values,
         dims=dname_id,
         jitter=pm.gp.util.JITTER_DEFAULT
     )
-    s_design = pm.Deterministic(f"{dname}_s_design", at.exp(log_s_design), dims=dname_id)
+    s_design = pm.Deterministic(
+        f"{dname}_s_design",
+        pmodel["s_design_mean"] * at.exp(log_s_design_factor),
+        dims=dname_id
+    )
 
     # Predict fedbatch factors for each glucose design
     long_glucose = designs_long.sel(design_dim="glucose").values
