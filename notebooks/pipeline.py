@@ -538,7 +538,7 @@ def sample_posterior_predictive_at_design(
     _log.info("Adding variables for predictives")
 
     # Predict specific activity at the dense designs
-    log_s_design_factor = pmodel.gp_log_s_design.conditional(
+    log_s_design_factor = pmodel.gp_log_s_design_factor.conditional(
         f"{dname}_log_s_design_factor",
         Xnew=designs_long.values,
         dims=dname_id,
