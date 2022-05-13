@@ -451,7 +451,7 @@ def plot_bivariate_calibration(
 
         mu, scale = cm.predict_dependent(x1x2)
 
-        qs = [97.5]
+        qs = [95]
         lowers = []
         uppers = []
         for q in qs:
