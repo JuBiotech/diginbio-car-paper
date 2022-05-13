@@ -324,7 +324,7 @@ def s_design_GP(
     -------
     s_design : TensorVariable
         Predicted specific activity for each experimental design.
-    gp_log_s_design : pm.gp.Latent
+    gp_log_s_design_factor : pm.gp.Latent
         The underlying Gaussian process describing log(s_design) as
         a function of real-valued experimental design.
     """
@@ -344,16 +344,18 @@ def s_design_GP(
         input_dim=2,
         ls=ls_s_design
     )
-    gp_log_s_design = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+    gp_log_s_design_factor = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+
+    s_design_mean = pm.LogNormal("s_design_mean", mu=numpy.log(0.75), sigma=0.3)
     
     # Now we need to obtain a random variable that describes the k at conditions tested in the dataset.
-    log_s_design = gp_log_s_design.prior(
-        "log_s_design",
+    log_s_design_factor = gp_log_s_design_factor.prior(
+        "log_s_design_factor",
         X=X,
         size=int(pmodel.dim_lengths["design_id"].eval())
     )
-    s_design = pm.Deterministic("s_design", at.exp(log_s_design), dims="design_id")
-    return (s_design, gp_log_s_design)
+    s_design = pm.Deterministic("s_design", s_design_mean * at.exp(log_s_design_factor), dims="design_id")
+    return (s_design, gp_log_s_design_factor)
 
 
 def build_model(
@@ -539,7 +541,7 @@ def build_model(
     time_delay = pm.HalfNormal("time_delay", sigma=0.1)
     time_actual = time + time_delay
 
-    s_design, pmodel.gp_log_s_design = s_design_GP(
+    s_design, pmodel.gp_log_s_design_factor = s_design_GP(
         ls_mu=0.2,
         X=X_design_log10,
     )
