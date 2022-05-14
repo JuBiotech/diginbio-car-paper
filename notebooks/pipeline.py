@@ -8,6 +8,7 @@ Some unit operations need additional kwargs.
 import logging
 import pathlib
 import shutil
+from typing import Dict
 
 import aesara.tensor as at
 import arviz
@@ -605,29 +606,26 @@ def sample_posterior_predictive_at_design(
     return pposterior
 
 
-def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50, thin: int=1):
+def sample_gp_metric_posterior_predictive(
+    wd: pathlib.Path,
+    *,
+    # TODO: Remove unused kwarg "n"
+    n: int=50,
+    steps: Dict[str, int]={"glucose": 40, "iptg": 60},
+    thin: int=1,
+):
     idata = arviz.from_netcdf(wd / "trace.nc")
 
     _log.info("Creating high-resolution designs grid")
     # Create a dense grid
-    dense_long = xarray.DataArray(
-        models.bounds_to_grid(idata.constant_data.X_design_log10_bounds.values, n),
-        dims=("dense_id", "design_dim"),
-        coords={
-            "dense_id": numpy.arange(n**2),
-            "design_dim": idata.posterior.design_dim.values
-        }
-    )
-    dense_grid = models.reshape_dim(
-        dense_long,
-        from_dim="dense_id",
-        to_shape=(n, n),
-        to_dims=["dense_design_" + dname for dname in idata.posterior.design_dim.values],
-        coords={
-            "dense_design_iptg": numpy.unique(dense_long.sel(design_dim="iptg")),
-            "dense_design_glucose": numpy.unique(dense_long.sel(design_dim="glucose")),
-        }
-    )
+    dense_ids, dense_long, dense_grid = models.grid_from_coords({
+        f"dense_design_{ddim}" : numpy.linspace(
+            *idata.constant_data.X_design_log10_bounds.sel(design_dim=ddim),
+            num=steps[ddim]
+        )
+        for ddim in idata.posterior.design_dim.values
+    }, prefix="dense_design_")
+
 
     _log.info("Creating the model")
     pmodel = _build_model(wd)
@@ -643,6 +641,7 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50, thin: int
             thin=thin,
         )
 
+        pposterior.posterior_predictive["dense_ids"] = dense_ids
         pposterior.posterior_predictive["dense_grid"] = dense_grid
 
         _log.info("Saving to file")
@@ -659,8 +658,6 @@ def _extract_pp_variables(wd: pathlib.Path, var_name: str):
     idata = arviz.from_netcdf(wd / "trace.nc")
     pposterior = arviz.from_netcdf(wd / "predictive_posterior.nc")
 
-    design_dims = idata.posterior.design_dim.values
-
     # Extract relevant data arrays
     design_dims = list(idata.constant_data.design_dim.values)
     D = len(design_dims)
@@ -668,10 +665,6 @@ def _extract_pp_variables(wd: pathlib.Path, var_name: str):
         raise NotImplementedError(f"3D visualization for {D}-dimensional designs is not implemented.")
     dense_long = pposterior.posterior_predictive["dense_long"]
     dense_grid = pposterior.posterior_predictive["dense_grid"]
-    BOUNDS = numpy.array([
-        dense_long.min(dim="dense_id"),
-        dense_long.max(dim="dense_id"),
-    ]).T
 
     # Reshape the long-form arrays into the dense 2D grid
     gridshape = tuple(
@@ -683,6 +676,7 @@ def _extract_pp_variables(wd: pathlib.Path, var_name: str):
         from_dim="dense_id",
         to_shape=gridshape,
         to_dims=design_dims,
+        coords=pposterior.posterior_predictive.coords,
     )
 
     # Take the median and HDI of the samples in grid-layout

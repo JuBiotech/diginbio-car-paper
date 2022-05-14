@@ -111,27 +111,60 @@ def tidy_coords(
     return coords
 
 
-def bounds_to_grid(bounds: numpy.ndarray, n: int) -> numpy.ndarray:
-    """Creates an evenly-spaced grid inside bounds of a parameter space.
+def grid_from_coords(
+    coords: Dict[str, Sequence[float]],
+    prefix: str,
+) -> Tuple[xarray.DataArray, xarray.DataArray, xarray.DataArray]:
+    """Creates an evenly-spaced grid as the product of coordinate values.
 
     Parameters
     ----------
-    bounds : array-like
-        A 2D array of shape (ndims, 2)
-        containing the (min, max) of the parameter space.
-    n : int
-        Number of steps for the linspace.
+    coords : dict
+        Coordinate values for each dimension of the tensor.
+    prefix : str
+        Will be removed from the beginning of dimension names when
+        creating "design_dim" coordinate values which refer to the dimensions.
 
     Returns
     -------
-    grid : ndarray
-        A (n², ndim) shaped array with meshgrid coordinates.
+    ids : DataArray
+        D-dimensional array of grid point numbering.
+        Coords are the ones from the input.
+    long : DataArray
+        (?, D) shaped array with coordinates of every grid point.
+        The length equals the product of dimension lengths.
+    grid : DataArray
+        (D+1)-dimensional array of grid point coordinate values.
+        Coords are the ones from the input plus "design_dim".
     """
-    grid = numpy.meshgrid(*[
-        numpy.linspace(lower, upper, n)
-        for lower, upper in bounds
-    ])
-    return numpy.array(grid).reshape(len(bounds), -1).T
+    dims = list(coords.keys())
+    dims_principled = [dname.replace(prefix, "") for dname in dims]
+    lengths = tuple(map(len, coords.values()))
+    n = numpy.prod(lengths)
+    ids = xarray.DataArray(
+        name="dense_ids",
+        data=numpy.arange(n).reshape(lengths),
+        dims=dims,
+        coords=coords,
+    )
+    stack = ids.stack(dense_id=dims)
+    long = xarray.DataArray(
+        name="dense_long",
+        data=numpy.array([stack[dname] for dname in dims]).T,
+        dims=("dense_id", "design_dim"),
+        coords={
+            "dense_id": stack.values,
+            "design_dim": dims_principled,
+        }
+    )
+    grid = reshape_dim(
+        long,
+        from_dim="dense_id",
+        to_shape=lengths,
+        to_dims=ids.dims,
+        coords=ids.coords
+    )
+    return ids, long, grid
 
 
 def reshape_dim(
