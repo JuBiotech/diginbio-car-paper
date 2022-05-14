@@ -111,27 +111,60 @@ def tidy_coords(
     return coords
 
 
-def bounds_to_grid(bounds: numpy.ndarray, n: int) -> numpy.ndarray:
-    """Creates an evenly-spaced grid inside bounds of a parameter space.
+def grid_from_coords(
+    coords: Dict[str, Sequence[float]],
+    prefix: str,
+) -> Tuple[xarray.DataArray, xarray.DataArray, xarray.DataArray]:
+    """Creates an evenly-spaced grid as the product of coordinate values.
 
     Parameters
     ----------
-    bounds : array-like
-        A 2D array of shape (ndims, 2)
-        containing the (min, max) of the parameter space.
-    n : int
-        Number of steps for the linspace.
+    coords : dict
+        Coordinate values for each dimension of the tensor.
+    prefix : str
+        Will be removed from the beginning of dimension names when
+        creating "design_dim" coordinate values which refer to the dimensions.
 
     Returns
     -------
-    grid : ndarray
-        A (n², ndim) shaped array with meshgrid coordinates.
+    ids : DataArray
+        D-dimensional array of grid point numbering.
+        Coords are the ones from the input.
+    long : DataArray
+        (?, D) shaped array with coordinates of every grid point.
+        The length equals the product of dimension lengths.
+    grid : DataArray
+        (D+1)-dimensional array of grid point coordinate values.
+        Coords are the ones from the input plus "design_dim".
     """
-    grid = numpy.meshgrid(*[
-        numpy.linspace(lower, upper, n)
-        for lower, upper in bounds
-    ])
-    return numpy.array(grid).reshape(len(bounds), -1).T
+    dims = list(coords.keys())
+    dims_principled = [dname.replace(prefix, "") for dname in dims]
+    lengths = tuple(map(len, coords.values()))
+    n = numpy.prod(lengths)
+    ids = xarray.DataArray(
+        name="dense_ids",
+        data=numpy.arange(n).reshape(lengths),
+        dims=dims,
+        coords=coords,
+    )
+    stack = ids.stack(dense_id=dims)
+    long = xarray.DataArray(
+        name="dense_long",
+        data=numpy.array([stack[dname] for dname in dims]).T,
+        dims=("dense_id", "design_dim"),
+        coords={
+            "dense_id": stack.values,
+            "design_dim": dims_principled,
+        }
+    )
+    grid = reshape_dim(
+        long,
+        from_dim="dense_id",
+        to_shape=lengths,
+        to_dims=ids.dims,
+        coords=ids.coords
+    )
+    return ids, long, grid
 
 
 def reshape_dim(
@@ -705,36 +738,3 @@ def to_unit_metrics(S0, k, v_catalyst=0.025):
     #           U/mL = U / mL
     volumetric_units = units / v_catalyst
     return v0, units, volumetric_units
-
-
-def dense_1d_to_2d(vector: xarray.DataArray, designs: xarray.DataArray) -> xarray.DataArray:
-    """Reshapes a ("dense_id",) data array into a ("iptg", "glucose") matrix.
-
-    Parameters
-    ----------
-    vector
-        ("dense_id",) shaped vector to be reshaped.
-    designs
-        ("dense_id", "design_dim") long form coordinates
-        of a dense grid of glucose and IPTG process designs.
-
-    Returns
-    -------
-    matrix
-        ("iptg", "glucose") matrix with the values from `vector`.
-    """
-    v_iptg = numpy.unique(designs.sel(design_dim="iptg"))
-    v_glucose = numpy.unique(designs.sel(design_dim="glucose"))
-    n_iptg = len(v_iptg)
-    n_glucose = len(v_glucose)
-    probs2d = reshape_dim(
-        vector.sel(dense_id=vector.dense_id.values),
-        from_dim="dense_id",
-        to_shape=(n_iptg, n_glucose),
-        to_dims=("iptg", "glucose"),
-        coords={
-            "glucose": v_glucose,
-            "iptg": v_iptg,
-        }
-    )
-    return probs2d

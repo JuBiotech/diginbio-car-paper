@@ -8,6 +8,7 @@ Some unit operations need additional kwargs.
 import logging
 import pathlib
 import shutil
+from typing import Dict
 
 import aesara.tensor as at
 import arviz
@@ -605,29 +606,26 @@ def sample_posterior_predictive_at_design(
     return pposterior
 
 
-def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50, thin: int=1):
+def sample_gp_metric_posterior_predictive(
+    wd: pathlib.Path,
+    *,
+    # TODO: Remove unused kwarg "n"
+    n: int=50,
+    steps: Dict[str, int]={"glucose": 40, "iptg": 60},
+    thin: int=1,
+):
     idata = arviz.from_netcdf(wd / "trace.nc")
 
     _log.info("Creating high-resolution designs grid")
     # Create a dense grid
-    dense_long = xarray.DataArray(
-        models.bounds_to_grid(idata.constant_data.X_design_log10_bounds.values, n),
-        dims=("dense_id", "design_dim"),
-        coords={
-            "dense_id": numpy.arange(n**2),
-            "design_dim": idata.posterior.design_dim.values
-        }
-    )
-    dense_grid = models.reshape_dim(
-        dense_long,
-        from_dim="dense_id",
-        to_shape=(n, n),
-        to_dims=["dense_design_" + dname for dname in idata.posterior.design_dim.values],
-        coords={
-            "dense_design_iptg": numpy.unique(dense_long.sel(design_dim="iptg")),
-            "dense_design_glucose": numpy.unique(dense_long.sel(design_dim="glucose")),
-        }
-    )
+    dense_ids, dense_long, dense_grid = models.grid_from_coords({
+        f"dense_design_{ddim}" : numpy.linspace(
+            *idata.constant_data.X_design_log10_bounds.sel(design_dim=ddim),
+            num=steps[ddim]
+        )
+        for ddim in idata.posterior.design_dim.values
+    }, prefix="dense_design_")
+
 
     _log.info("Creating the model")
     pmodel = _build_model(wd)
@@ -643,6 +641,7 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50, thin: int
             thin=thin,
         )
 
+        pposterior.posterior_predictive["dense_ids"] = dense_ids
         pposterior.posterior_predictive["dense_grid"] = dense_grid
 
         _log.info("Saving to file")
@@ -650,10 +649,7 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50, thin: int
     return
 
 
-def plot_gp_metric_posterior_predictive(
-    wd: pathlib.Path,
-    var_name="dense_s_design",
-):
+def _extract_pp_variables(wd: pathlib.Path, var_name: str):
     label = {
         "dense_s_design": r"$\mathrm{Specific\ activity\ [h^{-1}\ g_{CDW}^{-1}\ L]}$",
         "dense_k_design": r"$\mathrm{Rate\ constant\ [h^{-1}]}$",
@@ -662,38 +658,42 @@ def plot_gp_metric_posterior_predictive(
     idata = arviz.from_netcdf(wd / "trace.nc")
     pposterior = arviz.from_netcdf(wd / "predictive_posterior.nc")
 
-    design_dims = idata.posterior.design_dim.values
-
     # Extract relevant data arrays
     design_dims = list(idata.constant_data.design_dim.values)
+    assert design_dims[0] == "glucose"
+    assert design_dims[1] == "iptg"
+    dense_design_dims = [f"dense_design_{ddim}" for ddim in design_dims]
     D = len(design_dims)
     if not D == 2:
         raise NotImplementedError(f"3D visualization for {D}-dimensional designs is not implemented.")
     dense_long = pposterior.posterior_predictive["dense_long"]
     dense_grid = pposterior.posterior_predictive["dense_grid"]
-    BOUNDS = numpy.array([
-        dense_long.min(dim="dense_id"),
-        dense_long.max(dim="dense_id"),
-    ]).T
 
     # Reshape the long-form arrays into the dense 2D grid
     gridshape = tuple(
-        dense_grid.sizes["dense_design_" + design_dim]
-        for design_dim in design_dims
+        dense_grid.sizes[ddim]
+        for ddim in dense_design_dims
     )
     Z = models.reshape_dim(
         pposterior.posterior_predictive[var_name],
         from_dim="dense_id",
         to_shape=gridshape,
-        to_dims=design_dims,
+        to_dims=dense_design_dims,
+        coords=pposterior.posterior_predictive.coords,
     )
 
     # Take the median and HDI of the samples in grid-layout
     median = Z.median(("chain", "draw"))
     hdi = arviz.hdi(Z, hdi_prob=0.9)[var_name]
 
-    assert design_dims[0] == "glucose"
-    assert design_dims[1] == "iptg"
+    return idata, label, dense_grid, design_dims, median, hdi
+
+
+def plot_gp_metric_posterior_predictive(
+    wd: pathlib.Path,
+    var_name="dense_s_design",
+):
+    idata, label, dense_grid, design_dims, median, hdi = _extract_pp_variables(wd, var_name)
 
     def fn_plot(azim=-65):
         fig = pyplot.figure(dpi=140)
@@ -840,18 +840,26 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
 
     # For each dense design determine the probability that it's the best
     probs = pyrff.sampling_probabilities(pp.dense_k_design.stack(sample=("chain", "draw")), correlated=True)
-    probs1d = xarray.DataArray(probs, name="p_best", dims="dense_id")
+    probs1d = xarray.DataArray(probs, name="p_best", dims="dense_id", coords={"dense_id": pp.dense_id.values})
     best_did = pp.dense_id.values[numpy.argmax(probs)]
     best = pp.dense_long.sel(dense_id=best_did)
 
     # Reshape into 2D
-    probs2d = models.dense_1d_to_2d(probs1d, pp.dense_long)
+    dense_design_dims = [f"dense_design_{ddim}" for ddim in pp.design_dim.values]
+    probs2d = models.reshape_dim(
+        probs1d,
+        name="probs2d",
+        from_dim="dense_id",
+        to_dims=dense_design_dims,
+        to_shape=[pp.dense_grid.sizes[ddim] for ddim in dense_design_dims],
+        coords=pp.coords
+    )
 
     # Plot it as a heatmap
     fig, ax = pyplot.subplots(figsize=(5, 5))
     img = plotting.xarrshow(
         ax,
-        probs2d.transpose("glucose", "iptg"),
+        probs2d,
         aspect="auto",
         vmin=0,
     )
