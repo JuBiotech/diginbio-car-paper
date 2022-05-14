@@ -823,10 +823,10 @@ def xarrshow(ax, xarr: xarray.DataArray, **kwargs):
     dy = numpy.diff(xarr[dv].values)[0]
 
     extent = [
-        min(xarr[dh]) - dx/2,
-        max(xarr[dh]) + dx/2,
-        max(xarr[dv]) + dy/2,
-        min(xarr[dv]) - dy/2,
+        min(xarr[dh].values) - dx/2,
+        max(xarr[dh].values) + dx/2,
+        max(xarr[dv].values) + dy/2,
+        min(xarr[dv].values) - dy/2,
     ]
     kwargs.setdefault("extent", extent)
 
