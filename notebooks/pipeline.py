@@ -689,6 +689,45 @@ def _extract_pp_variables(wd: pathlib.Path, var_name: str):
     return idata, label, dense_grid, design_dims, median, hdi
 
 
+def plot_gp_metric_pp_interval(
+    wd: pathlib.Path,
+    var_name="dense_s_design",
+):
+    idata, label, dense_grid, design_dims, median, hdi = _extract_pp_variables(wd, var_name)
+
+    interval = hdi.sel(hdi="higher") - hdi.sel(hdi="lower")
+
+    fig, ax = pyplot.subplots(figsize=(5, 5))
+    img = plotting.xarrshow(
+        ax,
+        interval,
+        aspect="auto",
+        vmin=0,
+    )
+    ax.scatter(*idata.constant_data.X_design_log10.values[:,::-1].T, marker="x", color="white")
+
+    # Draw a colorbar that matches the height of the image
+    divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
+    cbar_kw = dict(
+        mappable=img,
+        ax=ax,
+        cax=divider.append_axes("right", size="5%", pad=0.05),
+    )
+    cbar = ax.figure.colorbar(**cbar_kw)
+    cbar.ax.set_ylabel({
+        "dense_s_design": r"$\mathrm{width\ of\ specific\ activity\ 90\ \%\ HDI\ /\ h^{-1}\ g^{-1}\ L}$",
+        "dense_k_design": r"$\mathrm{width\ of\ rate\ constant\ 90\ \%\ HDI\ /\ h^{-1}}$",
+    }[var_name], rotation=90, va="top")
+
+    ax.set(
+        ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ /\ g\ L^{-1}\ h^{-1})}$",
+        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+        title="",
+    )
+    plotting.savefig(fig, "plot_pp_dense_{var_name}_interval", wd=wd)
+    return
+
+
 def plot_gp_metric_posterior_predictive(
     wd: pathlib.Path,
     var_name="dense_s_design",
