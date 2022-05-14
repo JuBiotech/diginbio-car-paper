@@ -611,7 +611,7 @@ def sample_gp_metric_posterior_predictive(
     *,
     # TODO: Remove unused kwarg "n"
     n: int=50,
-    steps: Dict[str, int]={"glucose": 40, "iptg": 60},
+    steps: Dict[str, int]={"glucose": 25, "iptg": 100},
     thin: int=1,
 ):
     idata = arviz.from_netcdf(wd / "trace.nc")
@@ -747,21 +747,31 @@ def plot_gp_metric_posterior_predictive(
             (0.5, median),
             (0.95, hdi.sel(hdi="higher")),
         ]:
-            ax.plot_surface(
-                dense_grid.sel(design_dim=design_dims[0]).values,
-                dense_grid.sel(design_dim=design_dims[1]).values,
-                z.values,
-                cmap=pyplot.cm.autumn,
-                linewidth=0,
-                antialiased=False,
-                alpha=1 - abs(q/100 - 0.5) - 0.25
+            ax.plot_trisurf(
+                dense_grid.sel(design_dim=design_dims[0]).values.flatten(),
+                dense_grid.sel(design_dim=design_dims[1]).values.flatten(),
+                z.values.flatten(),
+                cmap=pyplot.cm.jet,
+                linewidth=0.05,
+                edgecolor="black",
+                antialiased=True,
+                alpha=1 - abs(q/100 - 0.5) + 0.45
+            )
+            # Enhance the camera-facing edge with a black line
+            sel = dict(dense_design_glucose=median.dense_design_glucose.values[-1])
+            ax.plot(
+                dense_grid.sel(design_dim=design_dims[0], **sel),
+                dense_grid.sel(design_dim=design_dims[1], **sel),
+                z.sel(**sel),
+                color="black",
+                lw=1,
+                zorder=1000,
             )
         ax.view_init(elev=25, azim=azim)
         return fig, [[ax]]
 
     fig, _ = fn_plot(azim=-18)
     plotting.savefig(fig, f"plot_3d_pp_{var_name}", wd=wd)
-    pyplot.close()
 
     def fn_plot3d(t):
         fn_plot(azim=-45+30*numpy.sin(t*2*numpy.pi))
