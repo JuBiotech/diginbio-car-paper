@@ -1,3 +1,4 @@
+import arviz
 import itertools
 import pathlib
 import calibr8
@@ -698,8 +699,6 @@ def plot_3d_k_design(idata, azim=-65):
 
 
 def plot_3d_by_design(idata, var_name: str, *, label: str, azim=-65):
-    import arviz
-
     # Extract relevant data arrays
     design_dims = list(idata.constant_data.design_dim.values)
     X = numpy.log10(idata.constant_data.X_design.sel(design_dim=design_dims))
@@ -754,8 +753,6 @@ def p_best_dataarray(var) -> xarray.DataArray:
 
 
 def summarize(idata, df_layout) -> pandas.DataFrame:
-    import arviz
-
     def med_hdi(samples, ci_prob=0.9):
         hdi = arviz.hdi(samples, hdi_prob=ci_prob)
         name = tuple(hdi.data_vars)[0]
