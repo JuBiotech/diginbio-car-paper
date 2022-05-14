@@ -650,10 +650,7 @@ def sample_gp_metric_posterior_predictive(wd: pathlib.Path, n: int=50, thin: int
     return
 
 
-def plot_gp_metric_posterior_predictive(
-    wd: pathlib.Path,
-    var_name="dense_s_design",
-):
+def _extract_pp_variables(wd: pathlib.Path, var_name: str):
     label = {
         "dense_s_design": r"$\mathrm{Specific\ activity\ [h^{-1}\ g_{CDW}^{-1}\ L]}$",
         "dense_k_design": r"$\mathrm{Rate\ constant\ [h^{-1}]}$",
@@ -694,6 +691,15 @@ def plot_gp_metric_posterior_predictive(
 
     assert design_dims[0] == "glucose"
     assert design_dims[1] == "iptg"
+
+    return idata, label, dense_grid, design_dims, median, hdi
+
+
+def plot_gp_metric_posterior_predictive(
+    wd: pathlib.Path,
+    var_name="dense_s_design",
+):
+    idata, label, dense_grid, design_dims, median, hdi = _extract_pp_variables(wd, var_name)
 
     def fn_plot(azim=-65):
         fig = pyplot.figure(dpi=140)
