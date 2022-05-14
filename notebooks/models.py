@@ -738,36 +738,3 @@ def to_unit_metrics(S0, k, v_catalyst=0.025):
     #           U/mL = U / mL
     volumetric_units = units / v_catalyst
     return v0, units, volumetric_units
-
-
-def dense_1d_to_2d(vector: xarray.DataArray, designs: xarray.DataArray) -> xarray.DataArray:
-    """Reshapes a ("dense_id",) data array into a ("iptg", "glucose") matrix.
-
-    Parameters
-    ----------
-    vector
-        ("dense_id",) shaped vector to be reshaped.
-    designs
-        ("dense_id", "design_dim") long form coordinates
-        of a dense grid of glucose and IPTG process designs.
-
-    Returns
-    -------
-    matrix
-        ("iptg", "glucose") matrix with the values from `vector`.
-    """
-    v_iptg = numpy.unique(designs.sel(design_dim="iptg"))
-    v_glucose = numpy.unique(designs.sel(design_dim="glucose"))
-    n_iptg = len(v_iptg)
-    n_glucose = len(v_glucose)
-    probs2d = reshape_dim(
-        vector.sel(dense_id=vector.dense_id.values),
-        from_dim="dense_id",
-        to_shape=(n_iptg, n_glucose),
-        to_dims=("iptg", "glucose"),
-        coords={
-            "glucose": v_glucose,
-            "iptg": v_iptg,
-        }
-    )
-    return probs2d

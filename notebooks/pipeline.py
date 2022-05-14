@@ -660,6 +660,9 @@ def _extract_pp_variables(wd: pathlib.Path, var_name: str):
 
     # Extract relevant data arrays
     design_dims = list(idata.constant_data.design_dim.values)
+    assert design_dims[0] == "glucose"
+    assert design_dims[1] == "iptg"
+    dense_design_dims = [f"dense_design_{ddim}" for ddim in design_dims]
     D = len(design_dims)
     if not D == 2:
         raise NotImplementedError(f"3D visualization for {D}-dimensional designs is not implemented.")
@@ -668,23 +671,20 @@ def _extract_pp_variables(wd: pathlib.Path, var_name: str):
 
     # Reshape the long-form arrays into the dense 2D grid
     gridshape = tuple(
-        dense_grid.sizes["dense_design_" + design_dim]
-        for design_dim in design_dims
+        dense_grid.sizes[ddim]
+        for ddim in dense_design_dims
     )
     Z = models.reshape_dim(
         pposterior.posterior_predictive[var_name],
         from_dim="dense_id",
         to_shape=gridshape,
-        to_dims=design_dims,
+        to_dims=dense_design_dims,
         coords=pposterior.posterior_predictive.coords,
     )
 
     # Take the median and HDI of the samples in grid-layout
     median = Z.median(("chain", "draw"))
     hdi = arviz.hdi(Z, hdi_prob=0.9)[var_name]
-
-    assert design_dims[0] == "glucose"
-    assert design_dims[1] == "iptg"
 
     return idata, label, dense_grid, design_dims, median, hdi
 
@@ -840,18 +840,26 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
 
     # For each dense design determine the probability that it's the best
     probs = pyrff.sampling_probabilities(pp.dense_k_design.stack(sample=("chain", "draw")), correlated=True)
-    probs1d = xarray.DataArray(probs, name="p_best", dims="dense_id")
+    probs1d = xarray.DataArray(probs, name="p_best", dims="dense_id", coords={"dense_id": pp.dense_id.values})
     best_did = pp.dense_id.values[numpy.argmax(probs)]
     best = pp.dense_long.sel(dense_id=best_did)
 
     # Reshape into 2D
-    probs2d = models.dense_1d_to_2d(probs1d, pp.dense_long)
+    dense_design_dims = [f"dense_design_{ddim}" for ddim in pp.design_dim.values]
+    probs2d = models.reshape_dim(
+        probs1d,
+        name="probs2d",
+        from_dim="dense_id",
+        to_dims=dense_design_dims,
+        to_shape=[pp.dense_grid.sizes[ddim] for ddim in dense_design_dims],
+        coords=pp.coords
+    )
 
     # Plot it as a heatmap
     fig, ax = pyplot.subplots(figsize=(5, 5))
     img = plotting.xarrshow(
         ax,
-        probs2d.transpose("glucose", "iptg"),
+        probs2d,
         aspect="auto",
         vmin=0,
     )
