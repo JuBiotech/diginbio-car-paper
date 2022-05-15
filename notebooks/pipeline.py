@@ -724,7 +724,7 @@ def plot_gp_metric_pp_interval(
         xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
         title="",
     )
-    plotting.savefig(fig, "plot_pp_dense_{var_name}_interval", wd=wd)
+    plotting.savefig(fig, f"plot_pp_dense_{var_name}_interval", wd=wd)
     return
 
 
