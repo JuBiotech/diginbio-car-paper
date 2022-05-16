@@ -784,6 +784,43 @@ def plot_gp_metric_posterior_predictive(
     return
 
 
+def sample_gp_metric_pp_crossection(
+    wd: pathlib.Path,
+    *,
+    thin: int=10,
+):
+    """Samples the GP-derived variables with high resolution at the maximum glucose feed rate."""
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    
+    _log.info("Creating high-resolution designs at crossection")
+    # Create a dense grid
+    dense_ids, dense_long, dense_grid = models.grid_from_coords({
+        "dense_design_glucose": numpy.atleast_1d(max(idata.constant_data.X_design_log10_bounds.sel(design_dim="glucose").values)),
+        "dense_design_iptg": numpy.linspace(*idata.constant_data.X_design_log10_bounds.sel(design_dim="iptg"), 300),
+    }, prefix="dense_design_")
+
+    _log.info("Creating the model")
+    pmodel = _build_model(wd)
+    with pmodel:
+        pmodel.add_coord("dense_design_iptg", dense_grid.dense_design_iptg.values)
+        pmodel.add_coord("dense_design_glucose", dense_grid.dense_design_glucose.values)
+
+        pposterior = sample_posterior_predictive_at_design(
+            idata,
+            pmodel,
+            designs_long=dense_long,
+            dname="dense",
+            thin=thin,
+        )
+
+        pposterior.posterior_predictive["dense_ids"] = dense_ids
+        pposterior.posterior_predictive["dense_grid"] = dense_grid
+
+        _log.info("Saving to file")
+        pposterior.to_netcdf(wd / "predictive_posterior_crossection.nc")
+    return
+
+
 def _dense_lookup(pp, feed_rate: float, iptg: float):
     """Look up a dense_id given untransformed process parameters."""
 
