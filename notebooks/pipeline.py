@@ -587,7 +587,7 @@ def sample_posterior_predictive_at_design(
     )
 
     _log.info("Sampling posterior predictive")
-    pp = pm.sample_posterior_predictive(
+    pposterior = pm.sample_posterior_predictive(
         idata.sel(draw=slice(None, None, thin)),
         var_names=[
             n
@@ -595,12 +595,11 @@ def sample_posterior_predictive_at_design(
             if n.startswith(dname)
             and v in pmodel.free_RVs + pmodel.deterministics
         ],
-        return_inferencedata=False
     )
-    _log.info("Saving to InferenceData")
-    pposterior = pm.to_inference_data(
-        posterior_predictive=pp
-    )
+    # Workaround for https://github.com/pymc-devs/pymc/issues/5769
+    pposterior.posterior_predictive.coords["draw"] = idata.posterior.sel(draw=slice(None, None, thin)).draw
+
+    _log.info("Adding variables to InferenceData")
     # Include the dense grid in the savefile
     pposterior.posterior_predictive[f"{dname}_long"] = designs_long
     return pposterior
