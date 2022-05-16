@@ -821,6 +821,76 @@ def sample_gp_metric_pp_crossection(
     return
 
 
+def plot_gp_metric_crossection(
+    wd: pathlib.Path,
+    var_name="dense_s_design",
+):
+    """Plots a crossection of a 2-dimensional metric variable."""
+    # Load and transform posterior predictive samples
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    #pp = arviz.from_netcdf(wd / "predictive_posterior_crossection.nc").posterior_predictive
+    pp = arviz.from_netcdf(wd / "predictive_posterior.nc").posterior_predictive
+    dense_grid = pp["dense_grid"]
+    dense_design_dims = ("dense_design_glucose", "dense_design_iptg")
+    Z = models.reshape_dim(
+        pp[var_name],
+        from_dim="dense_id",
+        to_shape=tuple(dense_grid.sizes[ddim] for ddim in dense_design_dims),
+        to_dims=dense_design_dims,
+        coords=pp.coords,
+    )
+    # Selector for the slice
+    sel = dict(dense_design_glucose=max(Z.dense_design_glucose))
+    hdi = arviz.hdi(Z.sel(**sel), hdi_prob=0.9)[var_name]
+
+    # Extract corresponding lengthscales
+    lsvals = idata.posterior["ls_s_design"].sel(design_dim="iptg")
+    lseti = numpy.percentile(lsvals, [5, 95])
+    lsetiwidth = lseti[1] - lseti[0]
+
+    fig, ax = pyplot.subplots(figsize=(8, 4))
+    nperchain = int(60 / len(pp.chain))
+    for c in pp.chain:
+        draws = numpy.random.choice(pp.draw.values, size=nperchain, replace=False)
+        for d in draws:
+            # Choose color such that
+            # → short lengthscale appear hot (yellow)
+            # → long lengthscale appears cold (red)
+            ls = float(lsvals.sel(chain=c, draw=d))
+            cval = (numpy.clip(ls, *lseti) - lseti[0]) / lsetiwidth
+            color = pyplot.cm.autumn(1 - cval)
+            ax.plot(
+                Z.coords["dense_design_iptg"].values,
+                Z.sel(**sel, chain=0, draw=d).values,
+                color=color,
+                lw=0.5,
+                alpha=0.2
+            )
+    ax.plot(
+        Z.coords["dense_design_iptg"].values,
+        hdi.sel(hdi="lower").values,
+        color="black",
+        lw=1,
+    )
+    ax.plot(
+        Z.coords["dense_design_iptg"].values,
+        hdi.sel(hdi="higher").values,
+        color="black",
+        lw=1,
+    )
+    
+    ax.set(
+        ylabel={
+            "dense_s_design": r"$\mathrm{specific\ activity /\ h^{-1}\ g^{-1}\ L}$",
+            "dense_k_design": r"$\mathrm{rate\ constant\ /\ h^{-1}}$",
+        }[var_name],
+        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+        ylim=(0, max(hdi.sel(hdi="higher"))*1.1)
+    )
+    plotting.savefig(fig, f"plot_pp_dense_{var_name}_crossection", wd=wd)
+    return
+
+
 def _dense_lookup(pp, feed_rate: float, iptg: float):
     """Look up a dense_id given untransformed process parameters."""
 
