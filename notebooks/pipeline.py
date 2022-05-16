@@ -13,12 +13,14 @@ from typing import Dict
 import aesara.tensor as at
 import arviz
 import calibr8
+import matplotlib
 import mpl_toolkits.axes_grid1
 import numpy
 import pandas
 import pymc as pm
 import pyrff
 from matplotlib import pyplot
+import mpl_toolkits.axes_grid.inset_locator
 import xarray
 
 import dataloading
@@ -824,12 +826,12 @@ def sample_gp_metric_pp_crossection(
 def plot_gp_metric_crossection(
     wd: pathlib.Path,
     var_name="dense_s_design",
+    color_by_lengthscale: bool=False,
 ):
     """Plots a crossection of a 2-dimensional metric variable."""
     # Load and transform posterior predictive samples
     idata = arviz.from_netcdf(wd / "trace.nc")
-    #pp = arviz.from_netcdf(wd / "predictive_posterior_crossection.nc").posterior_predictive
-    pp = arviz.from_netcdf(wd / "predictive_posterior.nc").posterior_predictive
+    pp = arviz.from_netcdf(wd / "predictive_posterior_crossection.nc").posterior_predictive
     dense_grid = pp["dense_grid"]
     dense_design_dims = ("dense_design_glucose", "dense_design_iptg")
     Z = models.reshape_dim(
@@ -839,44 +841,125 @@ def plot_gp_metric_crossection(
         to_dims=dense_design_dims,
         coords=pp.coords,
     )
+    iptg = Z.coords["dense_design_iptg"].values
     # Selector for the slice
     sel = dict(dense_design_glucose=max(Z.dense_design_glucose))
     hdi = arviz.hdi(Z.sel(**sel), hdi_prob=0.9)[var_name]
+    ymax = max(hdi.sel(hdi="higher"))*1.1
 
-    # Extract corresponding lengthscales
-    lsvals = idata.posterior["ls_s_design"].sel(design_dim="iptg")
-    lseti = numpy.percentile(lsvals, [5, 95])
-    lsetiwidth = lseti[1] - lseti[0]
+    # Turn of background grid because it's too busy
+    matplotlib.rcParams["axes.grid"] = False
+    matplotlib.rcParams["legend.frameon"] = False
 
     fig, ax = pyplot.subplots(figsize=(8, 4))
-    nperchain = int(60 / len(pp.chain))
-    for c in pp.chain:
-        draws = numpy.random.choice(pp.draw.values, size=nperchain, replace=False)
-        for d in draws:
-            # Choose color such that
-            # → short lengthscale appear hot (yellow)
-            # → long lengthscale appears cold (red)
-            ls = float(lsvals.sel(chain=c, draw=d))
-            cval = (numpy.clip(ls, *lseti) - lseti[0]) / lsetiwidth
-            color = pyplot.cm.autumn(1 - cval)
+
+    
+    # Plot probabilities into the background on a second axis
+    axr = ax.twinx()
+    z = Z.sel(**sel).stack(sample=("chain", "draw"))
+    p_best = numpy.zeros_like(z.dense_design_iptg)
+    for i in z.argmax(dim="dense_design_iptg"):
+        p_best[i] += 1
+    assert p_best.sum() == len(z.sample)
+    p_best = p_best / p_best.sum()
+    axr.bar(
+        x=z.dense_design_iptg,
+        height=p_best,
+        width=numpy.ptp(z.dense_design_iptg.values) / len(z.dense_design_iptg) * 0.8,
+        color="gray",
+    )
+    axr.set(
+        ylabel="p(maximum)",
+        ylim=(0, max(p_best) * 4),
+    )
+
+    if color_by_lengthscale:
+        # Extract corresponding lengthscales
+        lsvals = idata.posterior["ls_s_design"].sel(design_dim="iptg")
+        lshdi = arviz.hdi(lsvals, hdi_prob=0.9)["ls_s_design"].values
+        lsetiwidth = lshdi[1] - lshdi[0]
+
+        def clipped_heatmap(lsvalue):
+            """Autumn heatmap, but clipped to the 90 % HDI.
+            → short lengthscale appear hot (yellow)
+            → long lengthscale appears cold (red)
+            """
+            cval = (numpy.clip(lsvalue, *lshdi) - lshdi[0]) / lsetiwidth
+            return pyplot.cm.autumn(1 - cval)
+        # Collect GP samples and corresponding lengthscales.
+        # This is a random posterior subset, but we'll plot short lengthscales
+        # first such that it's easier to identify samples from long lengthscales.
+        lengthscales = []
+        gpsamples = []
+        # The random subset is equally split across chains
+        nperchain = int(100 / len(pp.chain))
+        for c in pp.chain:
+            draws = numpy.random.choice(pp.draw.values, size=nperchain, replace=False)
+            for d in draws:
+                lengthscales.append(float(lsvals.sel(chain=c, draw=d)))
+                gpsamples.append(Z.sel(**sel, chain=c, draw=d).values)
+        # Now sort them short lengthscales first
+        order = numpy.argsort(lengthscales)
+        lengthscales = numpy.array(lengthscales)[order]
+        gpsamples = numpy.array(gpsamples)[order]
+        # And plot them with different colors
+        for ls, gpsample in zip(lengthscales, gpsamples):
             ax.plot(
-                Z.coords["dense_design_iptg"].values,
-                Z.sel(**sel, chain=0, draw=d).values,
-                color=color,
-                lw=0.5,
-                alpha=0.2
+                iptg,
+                gpsample,
+                color=clipped_heatmap(ls),
+                lw=0.2,
             )
+        # Add a histogram of the lengthscale posterior as an inset
+        ax2 = pyplot.axes([0,0,1,1])
+        ip = mpl_toolkits.axes_grid1.inset_locator.InsetPosition(ax, [0.05, 0.75, 0.3,0.3])
+        ax2.set_axes_locator(ip)
+        # Create the histogram
+        n, bins, patches = ax2.hist(idata.posterior.ls_s_design.sel(design_dim="iptg").stack(sample=("chain", "draw")), bins=100)
+        bin_centers = 0.5 * (bins[:-1] + bins[1:])
+        # Color by the same heatmap logic as the GP samples above
+        for ls, patch in zip(bin_centers, patches):
+            pyplot.setp(patch, "facecolor", clipped_heatmap(ls))
+        ax2.set(
+            ylabel="$p(\mathrm{ls} \mid \mathrm{D})$",
+            yticks=[],
+            xlabel="lengthscale / $log_{10}(IPTG\ /\ µM)$",
+        )
+    else:
+        z = Z.sel(**sel).stack(sample=("chain", "draw"))
+        gpsamples = z.sel(sample=numpy.random.choice(z.sample, size=350, replace=False))
+        ax.plot(iptg, gpsamples, color="black", lw=0.01)
+        # Pick 3 random GP samples that have their maximum inside the plot:
+        candidates = gpsamples.where(gpsamples.max(dim="dense_design_iptg") < ymax, drop=True)
+        gpexamples = candidates.sel(sample=numpy.random.choice(candidates.sample, size=3, replace=False))
+        for g, gpx in enumerate(gpexamples.T.values):
+            color = ["red", "green", "blue", "black"][g]
+            ax.plot(iptg, gpx, color=color, lw=1)
+            ax.scatter(
+                iptg[numpy.argmax(gpx)],
+                max(gpx),
+                color=color,
+            )
+
     ax.plot(
         Z.coords["dense_design_iptg"].values,
         hdi.sel(hdi="lower").values,
         color="black",
         lw=1,
+        ls="--",
     )
     ax.plot(
         Z.coords["dense_design_iptg"].values,
         hdi.sel(hdi="higher").values,
         color="black",
         lw=1,
+        ls="--",
+    )
+    ax.legend(
+        handles=[
+            ax.plot([], [], color="black", ls="--", lw=1, label="90 % HDI")[0],
+        ],
+        loc=[2, 9][color_by_lengthscale]
     )
     
     ax.set(
@@ -885,7 +968,7 @@ def plot_gp_metric_crossection(
             "dense_k_design": r"$\mathrm{rate\ constant\ /\ h^{-1}}$",
         }[var_name],
         xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
-        ylim=(0, max(hdi.sel(hdi="higher"))*1.1)
+        ylim=(0, ymax)
     )
     plotting.savefig(fig, f"plot_pp_dense_{var_name}_crossection", wd=wd)
     return
