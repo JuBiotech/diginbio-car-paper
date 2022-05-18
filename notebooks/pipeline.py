@@ -1300,6 +1300,8 @@ def copy_results_to_manuscript(wd: pathlib.Path):
         "plot_gp_X_factor.png",
         "plot_3d_pp_dense_s_design.png",
         "plot_3d_pp_dense_k_design.png",
+        "plot_pp_dense_dense_k_design_crossection.png",
+        "plot_pp_dense_dense_k_design_interval.png",
         "p_best_k_design.png",
         "summary_tested_vs_predicted.txt",
     ]
