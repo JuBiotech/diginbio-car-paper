@@ -13,12 +13,14 @@ from typing import Dict
 import aesara.tensor as at
 import arviz
 import calibr8
+import matplotlib
 import mpl_toolkits.axes_grid1
 import numpy
 import pandas
 import pymc as pm
 import pyrff
 from matplotlib import pyplot
+import mpl_toolkits.axes_grid.inset_locator
 import xarray
 
 import dataloading
@@ -587,7 +589,7 @@ def sample_posterior_predictive_at_design(
     )
 
     _log.info("Sampling posterior predictive")
-    pp = pm.sample_posterior_predictive(
+    pposterior = pm.sample_posterior_predictive(
         idata.sel(draw=slice(None, None, thin)),
         var_names=[
             n
@@ -595,12 +597,11 @@ def sample_posterior_predictive_at_design(
             if n.startswith(dname)
             and v in pmodel.free_RVs + pmodel.deterministics
         ],
-        return_inferencedata=False
     )
-    _log.info("Saving to InferenceData")
-    pposterior = pm.to_inference_data(
-        posterior_predictive=pp
-    )
+    # Workaround for https://github.com/pymc-devs/pymc/issues/5769
+    pposterior.posterior_predictive.coords["draw"] = idata.posterior.sel(draw=slice(None, None, thin)).draw
+
+    _log.info("Adding variables to InferenceData")
     # Include the dense grid in the savefile
     pposterior.posterior_predictive[f"{dname}_long"] = designs_long
     return pposterior
@@ -611,7 +612,7 @@ def sample_gp_metric_posterior_predictive(
     *,
     # TODO: Remove unused kwarg "n"
     n: int=50,
-    steps: Dict[str, int]={"glucose": 40, "iptg": 60},
+    steps: Dict[str, int]={"glucose": 25, "iptg": 100},
     thin: int=1,
 ):
     idata = arviz.from_netcdf(wd / "trace.nc")
@@ -689,6 +690,45 @@ def _extract_pp_variables(wd: pathlib.Path, var_name: str):
     return idata, label, dense_grid, design_dims, median, hdi
 
 
+def plot_gp_metric_pp_interval(
+    wd: pathlib.Path,
+    var_name="dense_s_design",
+):
+    idata, label, dense_grid, design_dims, median, hdi = _extract_pp_variables(wd, var_name)
+
+    interval = hdi.sel(hdi="higher") - hdi.sel(hdi="lower")
+
+    fig, ax = pyplot.subplots(figsize=(5, 5))
+    img = plotting.xarrshow(
+        ax,
+        interval,
+        aspect="auto",
+        vmin=0,
+    )
+    ax.scatter(*idata.constant_data.X_design_log10.values[:,::-1].T, marker="x", color="white")
+
+    # Draw a colorbar that matches the height of the image
+    divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
+    cbar_kw = dict(
+        mappable=img,
+        ax=ax,
+        cax=divider.append_axes("right", size="5%", pad=0.05),
+    )
+    cbar = ax.figure.colorbar(**cbar_kw)
+    cbar.ax.set_ylabel({
+        "dense_s_design": r"$\mathrm{width\ of\ specific\ activity\ 90\ \%\ HDI\ /\ h^{-1}\ g^{-1}\ L}$",
+        "dense_k_design": r"$\mathrm{width\ of\ rate\ constant\ 90\ \%\ HDI\ /\ h^{-1}}$",
+    }[var_name], rotation=90, va="top")
+
+    ax.set(
+        ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ /\ g\ L^{-1}\ h^{-1})}$",
+        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+        title="",
+    )
+    plotting.savefig(fig, f"plot_pp_dense_{var_name}_interval", wd=wd)
+    return
+
+
 def plot_gp_metric_posterior_predictive(
     wd: pathlib.Path,
     var_name="dense_s_design",
@@ -708,21 +748,31 @@ def plot_gp_metric_posterior_predictive(
             (0.5, median),
             (0.95, hdi.sel(hdi="higher")),
         ]:
-            ax.plot_surface(
-                dense_grid.sel(design_dim=design_dims[0]).values,
-                dense_grid.sel(design_dim=design_dims[1]).values,
-                z.values,
-                cmap=pyplot.cm.autumn,
-                linewidth=0,
-                antialiased=False,
-                alpha=1 - abs(q/100 - 0.5) - 0.25
+            ax.plot_trisurf(
+                dense_grid.sel(design_dim=design_dims[0]).values.flatten(),
+                dense_grid.sel(design_dim=design_dims[1]).values.flatten(),
+                z.values.flatten(),
+                cmap=pyplot.cm.jet,
+                linewidth=0.05,
+                edgecolor="black",
+                antialiased=True,
+                alpha=1 - abs(q/100 - 0.5) + 0.45
+            )
+            # Enhance the camera-facing edge with a black line
+            sel = dict(dense_design_glucose=median.dense_design_glucose.values[-1])
+            ax.plot(
+                dense_grid.sel(design_dim=design_dims[0], **sel),
+                dense_grid.sel(design_dim=design_dims[1], **sel),
+                z.sel(**sel),
+                color="black",
+                lw=1,
+                zorder=1000,
             )
         ax.view_init(elev=25, azim=azim)
         return fig, [[ax]]
 
     fig, _ = fn_plot(azim=-18)
     plotting.savefig(fig, f"plot_3d_pp_{var_name}", wd=wd)
-    pyplot.close()
 
     def fn_plot3d(t):
         fn_plot(azim=-45+30*numpy.sin(t*2*numpy.pi))
@@ -733,6 +783,194 @@ def plot_gp_metric_posterior_predictive(
         fps=15,
         delay_frames=0
     )
+    return
+
+
+def sample_gp_metric_pp_crossection(
+    wd: pathlib.Path,
+    *,
+    thin: int=10,
+):
+    """Samples the GP-derived variables with high resolution at the maximum glucose feed rate."""
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    
+    _log.info("Creating high-resolution designs at crossection")
+    # Create a dense grid
+    dense_ids, dense_long, dense_grid = models.grid_from_coords({
+        "dense_design_glucose": numpy.atleast_1d(max(idata.constant_data.X_design_log10_bounds.sel(design_dim="glucose").values)),
+        "dense_design_iptg": numpy.linspace(*idata.constant_data.X_design_log10_bounds.sel(design_dim="iptg"), 300),
+    }, prefix="dense_design_")
+
+    _log.info("Creating the model")
+    pmodel = _build_model(wd)
+    with pmodel:
+        pmodel.add_coord("dense_design_iptg", dense_grid.dense_design_iptg.values)
+        pmodel.add_coord("dense_design_glucose", dense_grid.dense_design_glucose.values)
+
+        pposterior = sample_posterior_predictive_at_design(
+            idata,
+            pmodel,
+            designs_long=dense_long,
+            dname="dense",
+            thin=thin,
+        )
+
+        pposterior.posterior_predictive["dense_ids"] = dense_ids
+        pposterior.posterior_predictive["dense_grid"] = dense_grid
+
+        _log.info("Saving to file")
+        pposterior.to_netcdf(wd / "predictive_posterior_crossection.nc")
+    return
+
+
+def plot_gp_metric_crossection(
+    wd: pathlib.Path,
+    var_name="dense_s_design",
+    color_by_lengthscale: bool=False,
+):
+    """Plots a crossection of a 2-dimensional metric variable."""
+    # Load and transform posterior predictive samples
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    pp = arviz.from_netcdf(wd / "predictive_posterior_crossection.nc").posterior_predictive
+    dense_grid = pp["dense_grid"]
+    dense_design_dims = ("dense_design_glucose", "dense_design_iptg")
+    Z = models.reshape_dim(
+        pp[var_name],
+        from_dim="dense_id",
+        to_shape=tuple(dense_grid.sizes[ddim] for ddim in dense_design_dims),
+        to_dims=dense_design_dims,
+        coords=pp.coords,
+    )
+    iptg = Z.coords["dense_design_iptg"].values
+    # Selector for the slice
+    sel = dict(dense_design_glucose=max(Z.dense_design_glucose))
+    hdi = arviz.hdi(Z.sel(**sel), hdi_prob=0.9)[var_name]
+    ymax = max(hdi.sel(hdi="higher"))*1.1
+
+    # Turn of background grid because it's too busy
+    matplotlib.rcParams["axes.grid"] = False
+    matplotlib.rcParams["legend.frameon"] = False
+
+    fig, ax = pyplot.subplots(figsize=(8, 4))
+
+    
+    # Plot probabilities into the background on a second axis
+    axr = ax.twinx()
+    z = Z.sel(**sel).stack(sample=("chain", "draw"))
+    p_best = numpy.zeros_like(z.dense_design_iptg)
+    for i in z.argmax(dim="dense_design_iptg"):
+        p_best[i] += 1
+    assert p_best.sum() == len(z.sample)
+    p_best = p_best / p_best.sum()
+    axr.bar(
+        x=z.dense_design_iptg,
+        height=p_best,
+        width=numpy.ptp(z.dense_design_iptg.values) / len(z.dense_design_iptg) * 0.8,
+        color="gray",
+    )
+    axr.set(
+        ylabel="p(maximum)",
+        ylim=(0, max(p_best) * 4),
+    )
+
+    if color_by_lengthscale:
+        # Extract corresponding lengthscales
+        lsvals = idata.posterior["ls_s_design"].sel(design_dim="iptg")
+        lshdi = arviz.hdi(lsvals, hdi_prob=0.9)["ls_s_design"].values
+        lsetiwidth = lshdi[1] - lshdi[0]
+
+        def clipped_heatmap(lsvalue):
+            """Autumn heatmap, but clipped to the 90 % HDI.
+            → short lengthscale appear hot (yellow)
+            → long lengthscale appears cold (red)
+            """
+            cval = (numpy.clip(lsvalue, *lshdi) - lshdi[0]) / lsetiwidth
+            return pyplot.cm.autumn(1 - cval)
+        # Collect GP samples and corresponding lengthscales.
+        # This is a random posterior subset, but we'll plot short lengthscales
+        # first such that it's easier to identify samples from long lengthscales.
+        lengthscales = []
+        gpsamples = []
+        # The random subset is equally split across chains
+        nperchain = int(100 / len(pp.chain))
+        for c in pp.chain:
+            draws = numpy.random.choice(pp.draw.values, size=nperchain, replace=False)
+            for d in draws:
+                lengthscales.append(float(lsvals.sel(chain=c, draw=d)))
+                gpsamples.append(Z.sel(**sel, chain=c, draw=d).values)
+        # Now sort them short lengthscales first
+        order = numpy.argsort(lengthscales)
+        lengthscales = numpy.array(lengthscales)[order]
+        gpsamples = numpy.array(gpsamples)[order]
+        # And plot them with different colors
+        for ls, gpsample in zip(lengthscales, gpsamples):
+            ax.plot(
+                iptg,
+                gpsample,
+                color=clipped_heatmap(ls),
+                lw=0.2,
+            )
+        # Add a histogram of the lengthscale posterior as an inset
+        ax2 = pyplot.axes([0,0,1,1])
+        ip = mpl_toolkits.axes_grid1.inset_locator.InsetPosition(ax, [0.05, 0.75, 0.3,0.3])
+        ax2.set_axes_locator(ip)
+        # Create the histogram
+        n, bins, patches = ax2.hist(idata.posterior.ls_s_design.sel(design_dim="iptg").stack(sample=("chain", "draw")), bins=100)
+        bin_centers = 0.5 * (bins[:-1] + bins[1:])
+        # Color by the same heatmap logic as the GP samples above
+        for ls, patch in zip(bin_centers, patches):
+            pyplot.setp(patch, "facecolor", clipped_heatmap(ls))
+        ax2.set(
+            ylabel="$p(\mathrm{ls} \mid \mathrm{D})$",
+            yticks=[],
+            xlabel="lengthscale / $log_{10}(IPTG\ /\ µM)$",
+        )
+    else:
+        z = Z.sel(**sel).stack(sample=("chain", "draw"))
+        gpsamples = z.sel(sample=numpy.random.choice(z.sample, size=350, replace=False))
+        ax.plot(iptg, gpsamples, color="black", lw=0.01)
+        # Pick 3 random GP samples that have their maximum inside the plot:
+        candidates = gpsamples.where(gpsamples.max(dim="dense_design_iptg") < ymax, drop=True)
+        gpexamples = candidates.sel(sample=numpy.random.choice(candidates.sample, size=3, replace=False))
+        for g, gpx in enumerate(gpexamples.T.values):
+            color = ["red", "green", "blue", "black"][g]
+            ax.plot(iptg, gpx, color=color, lw=1)
+            ax.scatter(
+                iptg[numpy.argmax(gpx)],
+                max(gpx),
+                color=color,
+            )
+
+    ax.plot(
+        Z.coords["dense_design_iptg"].values,
+        hdi.sel(hdi="lower").values,
+        color="black",
+        lw=1,
+        ls="--",
+    )
+    ax.plot(
+        Z.coords["dense_design_iptg"].values,
+        hdi.sel(hdi="higher").values,
+        color="black",
+        lw=1,
+        ls="--",
+    )
+    ax.legend(
+        handles=[
+            ax.plot([], [], color="black", ls="--", lw=1, label="90 % HDI")[0],
+        ],
+        loc=[2, 9][color_by_lengthscale]
+    )
+    
+    ax.set(
+        ylabel={
+            "dense_s_design": r"$\mathrm{specific\ activity /\ h^{-1}\ g^{-1}\ L}$",
+            "dense_k_design": r"$\mathrm{rate\ constant\ /\ h^{-1}}$",
+        }[var_name],
+        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+        ylim=(0, ymax)
+    )
+    plotting.savefig(fig, f"plot_pp_dense_{var_name}_crossection", wd=wd)
     return
 
 
