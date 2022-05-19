@@ -159,11 +159,6 @@ def btm_overview(wd: pathlib.Path=DP_RESULTS):
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
     ax[2].set_xlim(0, 18)
 
-
-    lettering = ["(A)", "(B)", "(C)"]
-    for i in range(3):
-        ax[i].text(0.1, 0.85, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
-        
     ax[0].set_ylabel('CDW [g L$^{-1}$]')
     ax[1].set_ylabel('CDW [g L$^{-1}$]')
     ax[2].set_ylabel('CDW [g L$^{-1}$]')
@@ -203,9 +198,7 @@ def ph_plot(wd: pathlib.Path=DP_RESULTS):
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
 
 
-    lettering = ["(A)", "(B)", "(C)"]
     for i in range(3):
-        ax[i].text(0.1, 0.85, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
         ax[i].axvline(1, linestyle='--', linewidth = 1.0, color='black')
     ax[0].set_ylabel("pH")
     ax[1].set_ylabel("pH")
@@ -244,14 +237,15 @@ def o2_plot(wd: pathlib.Path=DP_RESULTS):
     ax[1].set_ylabel("DO [%]")
     ax[2].set_ylabel("DO [%]")
 
-    lettering = ["(A)", "(B)", "(C)"]
     for i in range(3):
-        ax[i].text(0.1, 0.2, lettering[i], fontsize = 16, horizontalalignment ='center', verticalalignment = 'center', transform = ax[i].transAxes)
         ax[i].axvline(1, linestyle='--', linewidth = 1.0, color='black')
 
     ax[2].set_xlabel("Time [h]")
     ax[2].xaxis.set_ticks(np.arange(0, 18.001, 3))
     ax[0].yaxis.set_ticks(np.arange(0, 100.001, 20))
+
+    for ax_, letter in zip(ax, "ABC"):
+        ax_.text(1.02, 0.83, letter, size=16, weight="bold", transform=ax_.transAxes)
 
     savefig(fig1, "O2_overview", wd=wd)
     mpl.rcParams['errorbar.capsize'] = 0

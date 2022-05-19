@@ -14,13 +14,12 @@ import aesara.tensor as at
 import arviz
 import calibr8
 import matplotlib
-import mpl_toolkits.axes_grid1
+import mpl_toolkits.axes_grid1.inset_locator
 import numpy
 import pandas
 import pymc as pm
 import pyrff
 from matplotlib import pyplot
-import mpl_toolkits.axes_grid.inset_locator
 import xarray
 
 import dataloading
@@ -910,21 +909,6 @@ def plot_gp_metric_crossection(
                 color=clipped_heatmap(ls),
                 lw=0.2,
             )
-        # Add a histogram of the lengthscale posterior as an inset
-        ax2 = pyplot.axes([0,0,1,1])
-        ip = mpl_toolkits.axes_grid1.inset_locator.InsetPosition(ax, [0.05, 0.75, 0.3,0.3])
-        ax2.set_axes_locator(ip)
-        # Create the histogram
-        n, bins, patches = ax2.hist(idata.posterior.ls_s_design.sel(design_dim="iptg").stack(sample=("chain", "draw")), bins=100)
-        bin_centers = 0.5 * (bins[:-1] + bins[1:])
-        # Color by the same heatmap logic as the GP samples above
-        for ls, patch in zip(bin_centers, patches):
-            pyplot.setp(patch, "facecolor", clipped_heatmap(ls))
-        ax2.set(
-            ylabel="$p(\mathrm{ls} \mid \mathrm{D})$",
-            yticks=[],
-            xlabel="lengthscale / $log_{10}(IPTG\ /\ µM)$",
-        )
     else:
         z = Z.sel(**sel).stack(sample=("chain", "draw"))
         gpsamples = z.sel(sample=numpy.random.choice(z.sample, size=350, replace=False))
@@ -940,6 +924,23 @@ def plot_gp_metric_crossection(
                 max(gpx),
                 color=color,
             )
+
+    # Add a histogram of the lengthscale posterior as an inset
+    ax2 = pyplot.axes([0,0,1,1])
+    ip = mpl_toolkits.axes_grid1.inset_locator.InsetPosition(ax, [0.07, 0.72, 0.3,0.3])
+    ax2.set_axes_locator(ip)
+    # Create the histogram
+    n, bins, patches = ax2.hist(idata.posterior.ls_s_design.sel(design_dim="iptg").stack(sample=("chain", "draw")), bins=100)
+    bin_centers = 0.5 * (bins[:-1] + bins[1:])
+    if color_by_lengthscale:
+        # Color by the same heatmap logic as the GP samples above
+        for ls, patch in zip(bin_centers, patches):
+            pyplot.setp(patch, "facecolor", clipped_heatmap(ls))
+    ax2.set(
+        ylabel="$p(\mathrm{ls} \mid \mathrm{D})$",
+        yticks=[],
+        xlabel="lengthscale / $log_{10}(IPTG\ /\ µM)$",
+    )
 
     ax.plot(
         Z.coords["dense_design_iptg"].values,
@@ -959,7 +960,7 @@ def plot_gp_metric_crossection(
         handles=[
             ax.plot([], [], color="black", ls="--", lw=1, label="90 % HDI")[0],
         ],
-        loc=[2, 9][color_by_lengthscale]
+        loc=9
     )
     
     ax.set(
@@ -1299,6 +1300,8 @@ def copy_results_to_manuscript(wd: pathlib.Path):
         "plot_gp_X_factor.png",
         "plot_3d_pp_dense_s_design.png",
         "plot_3d_pp_dense_k_design.png",
+        "plot_pp_dense_dense_k_design_crossection.png",
+        "plot_pp_dense_dense_k_design_interval.png",
         "p_best_k_design.png",
         "summary_tested_vs_predicted.txt",
     ]

@@ -380,25 +380,51 @@ It seems that the highest specific activity is at close to the highest IPTG conc
 
 ![](figures/plot_3d_pp_dense_k_design.png)
 __Figure 11: Predicted rate constants at initial biotransformation biomass concentration.__
-The surfaces show the median (center surface) and 90&nbsp;% highest density interval of the posterior predictive distribution for the rate constant to be expected from biomass suspension after the fed-batch as a function of the experimental design parameters. 
+The surfaces show the median (center surface) and 90&nbsp;% highest density interval of the posterior predictive distribution for the rate constant to be expected from biomass suspension after the fed-batch as a function of the experimental design parameters.
 
-In this study, the best rate constant was predicted at a feed rate of $4.8\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 29 µM with $0.62\ h^{-1}$, which can be converted to an initial enzymatic activity of $1037\ U\ mL^{-1}$ (mL refers to bioreactor broth).
-The best tested process design was a feed rate of $1.5\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 12 µM with $0.69\ h^{-1}$, translating to a volumetric activity of $1141\ UmL^{-1}$.
+The oscillatory behavior of the prediction is in line with the localization of tested experiment designs.
+This is visualized in Fig. 12, where the width of the 90 % highest density interval---the distance between the lower and upper surface in Fig. 11 is shown as a heatmap.
+In future investigations, a more evenly distributed localization of tested experiment designs should help the model to make smoother predictions.
+
+
+![](figures/plot_pp_dense_dense_k_design_interval.png)
+__Figure 12: Prediction uncertainty at various process designs.__
+The intensity of the heatmap encodes the width of the 90 % highest density interval of the predicted rate constant.
+This measure of uncertainty is higher in regions of the parameter space where no experiments were performed.
+In the IPTG dimension, the model inferred a short lengthscale, leading to a quick rise of uncertainty as the distance to a data point increases (lower part).
+In the glucose feed rate dimension, the lengthscale is large and no oscillation of the uncertainty interval is observed (left and right parts).
+
+The oscillations in the two-dimensional uncertainty shown in Fig. 11 and Fig. 12 are the result of the underlying Gaussian process model that descibes possible functions of $s_\text{design}$ dependence on the two process design parameters.
+Fig. 13 shows posterior predictive samples of that Gaussian process model, conditioned on the highest glucose feed rate.
+In essence, Fig. 13 is a more detailed cros-section that is marked by black lines in Fig. 11.
+Note that the GP samples are drawn with different lengthscales, hence some may fluctuate more smoothly than others.
+Again, a more evenly spread localization of experimentally tested process designs should help to smoothen the prediction by providing more information about the spatial dependence, at the expense of higher uncertainty at individual process designs.
+
+![](figures/plot_pp_dense_dense_k_design_crossection.png)
+__Figure 13: Cross-section rate constant prediction at highest glucose feed rate.__
+Shown is the conditional posterior predictive distribution of the rate constant KPI in dependence on the IPTG concentration.
+Thin lines are samples from the distribution, and the red/green/blue lines highlight randomly picked examples with their maximum marked by the circle.
+The bar plot is the posterior probability that the maximum rate constant lies at certain IPTG concentrations, conditioned on the highest glucose feed rate.
+Every thin line was sampled with a different lengthscale from the posterior distribution shown in the inset plot.
+
+
+In this study, the best rate constant was predicted at a feed rate of $4.8\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 27.6 µM with $0.64\ h^{-1}$, which can be converted to an initial enzymatic activity of $1068\ U\ mL^{-1}$ (mL refers to bioreactor broth).
+The best tested process design was a feed rate of $1.5\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 12 µM with $0.69\ h^{-1}$, translating to a volumetric activity of $1153\ UmL^{-1}$.
 In a previous study, NoCAR was produced with an extremely low growth and expression temperature of 15 °C in a batch process with complex medium in shake flasks with a final volumetric activity of approximately $26\ U\ mL^{-1}$[@weber2021production]. The low temperature was chosen to avoid the formation of inclusion bodies. Inclusion bodies usually do not show enzymatic activity and tend to form when a big protein is expressed in *E. coli* to high concentrations [@bhatwa2021challenges].
 
 This shows that active NoCAR can be produced at a cultivation temperature of 30 °C in defined medium. Several factors might have aided the production of active NoCAR in this study. The use of definied medium as opposed to complex medium in previous studies might have reduced inclusion body formation [@neubauer2001expression]. Furthermore, the tightly controlled pH in the stirred-tank bioreactors on a mL-scale might have aided to reduce antibody formation due to pH drift [@strandberg1991factors].
 
-Our model found lower feed rates to be possibly beneficial for specific activity (Fig. 10), even after taking the resulting biomass concentration into account (rate constant, Fig. 11). At the same time, the model is still undecided about the length scale of IPTG dependency (fig_TBD). It assigns some probability to rather short lengthscale, resulting in higher uncertainties inbetween tested experimental designs (fig_TBD). The Gaussian process in makes an uncertain extrapolation of this trend towards lower feed rates where the density of observations was much lower. Counterintuitively this leads to a vague prediction that the optimal process design could be at lower feed rates and moderately high IPTG concentration.
-The probability map (Fig. 12) is a more direct visualization out this prediction. The overlayed coordinates of experimentally tested process parameters show that this part of the parameter spaces was not extensively investigated yet. 
+Our model found lower feed rates to be possibly beneficial for specific activity (Fig. 10), even after taking the resulting biomass concentration into account (rate constant, Fig. 11). At the same time, the model is still undecided about the length scale of IPTG dependency (Fig. 13, inset plot). It assigns some probability to rather short lengthscale, further increasing the uncertainties inbetween tested experimental designs. The Gaussian process in makes an uncertain extrapolation of this trend towards lower feed rates where the density of observations was much lower. Counterintuitively this leads to a vague prediction that the optimal process design could be at lower feed rates and moderately high IPTG concentration.
+The probability map (Fig. 14) is a more direct visualization out this prediction. The overlayed coordinates of experimentally tested process parameters show that this part of the parameter spaces was not extensively investigated yet. 
 
 ![](figures/p_best_k_design.png)
-__Figure 12: Probability landscape of the rate constant optimum within the investigated design space.__
+__Figure 14: Probability landscape of the rate constant optimum within the investigated design space.__
 For each process design in a 50x50 grid of process parameters the probabilistic prediction of the rate constant metric was translated into a probability. The intensity of the pixel indicates the probability that this particular design is the best among all 2500 combinations. Most probability is concentrated in a region of low glucose feed rates combined and hig IPTG concentrations. The red circle marks the combination that was predicted to be optimal with the highest probability.
 
 # Conclusion
 
 The automated cascade of stirred-tank bioreactors enabled screening of 42 different combinations of inductor concentration and feed rate during protein expression of *E. coli* NoCAR in a scalable bioreactor setup. A total of 192 bioreactor runs were performed during four weeks, showing the high productivity of miniaturized, automated and digitized parallel bioreactors. The new automated biotransformation procedure at the end of each process enabled the investigation of the enzymatic activity of each expression condition without manual intervention. Due to the sophisticated mechanistic modelling based on bayesian statistics, the enzymatic activity was estimated without the need of cell separation. This makes automation much simpler, because cell separation with automated liquid handling systems is costly and requires a lot of space in the working area of the robot. Furthermore, the probabilistic analysis opens the door for iterative Bayesian optimization that can further accelerate the identification of the optimal process conditions, while reducing the needed experimental effort.
-At the optimal investigated expression conditions, an activity of $1141\ U\ mL^{-1}$ was estimated with a $90\ %$ crebile interval of $[324, 1788]\ U\ mL^{-1}$. Taking the uncertainty into account, this about 12 to 69-fold higher than the highest published data for the enzyme under study. 
+At the optimal investigated expression conditions, an activity of $1153\ U\ mL^{-1}$ was estimated with a $90\ %$ crebile interval of $[992, 1321]\ U\ mL^{-1}$. Taking the uncertainty into account, this about 38 to 50-fold higher than the highest published data for the enzyme under study. 
 It would be interesting for further studies to investigate parameter combinations that are predicted to be beneficial by the model. Furthermore, more expression conditions (pH, temperature, induction time...) could be investigated to gain more knowledge about optimal expression conditions. Futhermore, the downstream operations could be developed based on the established expression protocol.
 
 
