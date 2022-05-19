@@ -123,53 +123,59 @@ From the biotransformation in the Deep-Well-Plate (DWP) Samples were taken every
 
 
 ## Challenges in data analysis
-To gain quantitative insight from the heterogeneous and growing experimental dataset, a sophisticated data analysis workflow is needed.  The goal is to quantify metrics that characterize the performance of the biocatalyst under varying process conditions.  Most importantly, these metrics must be independent of the experimental batch effects and inter- or extrapolation under uncertainty towards yet untested process conditions must be possible.
+To gain quantitative insight from the heterogeneous and growing (**WAS IST DAMIT GEMEINT?**) experimental dataset, a sophisticated data analysis workflow is needed.  The goal is to quantify metrics that characterize the performance of the whole-cell biocatalysts produced at varying process conditions.  Most importantly, these metrics must be independent of the experimental batch (**WAS IST DAMIT GEMEINT?**) effects and inter- or extrapolation under uncertainty towards yet untested process conditions must be possible.
 On the other hand, the analysis must deal with a variety of experimental effects that inevitably occur in the automated testing workflow:
-1. The initial biomass concentration in all biotransformation and reference wells depends on the fed-batch feed rate (Fig. 5).
-1. During the 5&nbsp;h biotransformation the biomass continues to grow, but it's growth rate depends on the product concentration (Fig. 5).
-1. The biomass contributes to absorbance at 360&nbsp;nm such that product concentration can not be measured independently (next chapter).
+(a) The initial biomass concentration in all whole-cell biotransformation and reference wells of the DWP depends on the feed rate applied before in the fed-batch processes (Fig. 5).
+(b) The E. coli cells continue to grow during the 5&nbsp;h biotransformation, but the growth rate depends on the product concentrations (Fig. 5).
+(c) The biomass contributes to absorbance at 360&nbsp;nm such that product concentration can not be measured independently.
 
 ![](figures/plot_A600_kinetics.png)
 __Figure 5: 600 nm absorbance in wells with known 3-hydroxy benzaldehyde concentrations.__
 Initial biomass concentrations in reference wells (y axis intercepts) varies between the experiment batches.  The increase in 600&nbsp;nm absorbance over time negatively correlates with the 3-hydroxy benzaldehyde concentration.
+**Zu der Abbildung hat WB viele (auch für Folgeabbildungen relevante) Fragen:**
+**Diese Graphik verstehe ich nicht richtig: OD600 nimmt zu, da die Zellen bei der Biotransformation wachsen (OK). Die Startwerte sind unterschiedlich. Handelt es sich um die zuvor exemplarisch gezeigten Experimente? Was bedeuten die mM Angaben? Vorgelegte Substratkonzentrationen? Im Text ist von Produktkonzentrationen die Rede?!? Wieso werden die Konzentrationen variiert? Handelt es sich eventuell um einen Vorversuch?**
+**Generell: Bitte Graphiken einheitlich darstellen (siehe Fig. 1-4).Bitte 1. Buchstaben bei den Achsenbeschriftungen groß.**
 
 To account for all these effects simultaneously, we developed a computational model.
-In the following sections, we will introduce various components of and results from the computational model, starting with the calibration models needed to explain observed absorbances given predicted biomass and product concentrations.
+In the following sections, we will introduce various components of and results from the computational model, starting with the calibration models needed to explain observed absorbances at 360 and 600 nm given predicted biomass and product concentrations.
 
 ## Calibration models
 ### Biomass concentration
-A separately acquired biomass calibration dataset was used to fit two models describing the relationship between biomass cell dry weight and absorbance at 360 and 600&nbsp;nm respectively.
+A separately acquired biomass calibration dataset was used to fit two models describing the relationship between CDW concentrations and absorbance at 360 nm, and 600&nbsp;nm respectively (Fig. 6, 7).
 
 
 ![](figures/cm_biomass_A360.png)
-__Figure 6: Biomass [g/L] calibration at 360 nm.__ The spread of observations (<span style="color:blue">•</span>) is modeled by a `calibr8.LogIndependentAsymmetricLogisticN` model with `scale_degree=1` to account for non-linearity (left) and heteroscedasticity (right). Green bands depict the intervals of 97.5, 95 and 84&nbsp;% probability of observations according to the model.
+__Figure 6: CDW calibration at 360 nm.__ The spread of observations (<span style="color:blue">•</span>) is modeled by a `calibr8.LogIndependentAsymmetricLogisticN` model with `scale_degree=1` to account for non-linearity (left) and heteroscedasticity (right). Green areas depict the intervals of 97.5 %, 95 % and 84&nbsp;% probability of observations according to the model.
+**Bitte Formatierung vereinheitlichen (s.v.) Bitte X-Achsenbeschriftung: „CDW [g L-1]“Bitte Achsen bei „Null“ beginnen lassen.Bitte „experimentally relevant“ als Fläche einzeichnen, so dass auch die zugehörige CDW ablesbar ist.**
 
 
 ![](figures/cm_biomass_A600.png)
-__Figure 7: Biomass [g/L] calibration at 600 nm.__ Observations (<span style="color:blue">•</span>) at 600&nbsp;nm indicated lower absorbance compared to 360&nbsp;nm. Like for 360&nbsp;nm, the model is a `calibr8.LogIndependentAsymmetricLogisticN` model with `scale_degree=1`.
+__Figure 7: CDW calibration at 600 nm.__ Observations (<span style="color:blue">•</span>) at 600&nbsp;nm indicated lower absorbance compared to 360&nbsp;nm. Like for 360&nbsp;nm, the model is a `calibr8.LogIndependentAsymmetricLogisticN` model with `scale_degree=1`.
+**Siehe oben**
 
 The models were built with the `calibr8` package [@calibr8;@calibr8Paper] using an asymmetric logistic function of the logarithmic biomass concentration to describe the mean of normally distributed absorbance observations.
-Since the absorbance/biomass relationship exhibits a heteroscedastic noise, the scale parameter of the Normal distribution was modeled as linearly dependent on the mean.
-The models explain the observations reasonably well, even outside of the experimentally relevant biomass concentration range of $0.1-0.5~g/L$.
+Since the absorbance/CDW relationship exhibits a heteroscedastic noise, the scale parameter of the Normal distribution was modeled as linearly dependent on the mean.
+The models explain the observations reasonably well, even outside of the experimentally relevant CDW concentration range of $0.1-0.5~g/L$.
 
 ### Product concentration
 The ABAO reaction was performed to quantify 3-hydroxy benzaldehyde.
 The absorbance of its reaction product was measured at 360&nbsp;nm in all assays.
-A separate calibration dataset was obtained by performing the assay procedure on reference samples with known 3-hydroxy benzaldehyde concentrations.
+A separate calibration dataset was obtained by performing the assay procedure with reference samples of known 3-hydroxy benzaldehyde concentrations (Fig. 8).
 Reference samples were prepared without biomass and with different amounts of acetic acid to exclude biomass absorbance, and investigate pH robustness of the method.
 
 A linear calibration model with heteroscedastic, normally distributed observation noise was fitted to the 360&nbsp;nm measurements of product calibration samples.
 
 ![](figures/cm_product_A360.png)
 __Figure 8: Product calibration at 360 nm.__ In the observed range, the absorbances at 360&nbsp;nm (<span style="color:blue">•</span>) followed a linear trend in dependence on the 3-hydroxy benzaldehyde concentration. The model was built from a `calibr8.BasePolynomialModelN` model with `mu_degree=1` and `scale_degree=1`.
+**Siehe oben, bitte X-Achsenbeschriftung Product [mM]**
 
 All calibration model parameters were estimated by maximum likelihood using SciPy optimizers.
-For code and reproducable Jupyter notebooks of this analysis we refer to the accompanying GitHub repository.
+For code and reproducable Jupyter notebooks **Was ist das?** of this analysis we refer to the accompanying GitHub repository.
 
 
 ## Process model
 This model closely resembles the biotechnological process that generated the dataset, therefore we call it *process model* henceforth.
-Starting from input parameters such as specific activity, random effects or dependence of final 10&nbsp;mL reactor biomass concentration on glucose feed rate, the process model simulates biomass and 3-hydroxy benzaldehyde concentrations in each biotransformation well across all experiments.
+Starting from input parameters such as specific biotransformation activity, random effects or dependence of final 10&nbsp;mL reactor CDW concentration on glucose feed rate, the process model simulates CDW and 3-hydroxy benzaldehyde concentrations in each biotransformation well across all experiments.
 
 Table 1 summarizes the symbols, meaning and units used in the context of the process model.
 
@@ -195,7 +201,7 @@ __Table 1:__ Glossary of abbreviations used in the modeling context
 | $s$                    | $\frac{1}{h}/\frac{g_{CDW}}{L}$ | Specific biocatalyst rate constant                                         |
 | $k$                    | $\frac{1}{h}$                   | Absolute biocatalyst rate constant ($\frac{n_{product}}{n_{substrate}}/h$) | 
 
-A likelihood needed for parameter inference by Markov-chain Monte Carlo (MCMC) is created from process model predictions and observed absorbances according to relationships described by the separately fitted calibration models $\phi_\mathrm{cm,X,600\ nm}$, $\phi_\mathrm{cm,X,360\ nm}$ and $\phi_\mathrm{cm,P,360\ nm}$.
+A likelihood needed for parameter inference by Markov-chain Monte Carlo (MCMC) is created from process model predictions and observed absorbances according to relationships described by the separately fitted calibration models $\phi_\mathrm{cm,X,600\ nm}$, $\phi_\mathrm{cm,X,360\ nm}$ and $\phi_\mathrm{cm,P,360\ nm}$. **Sind dies die vorne beschriebenen Modelle? Dann bitte schon dort diese Bezeichnungen einführen.**
 At 600&nbsp;nm this is the likelihood of the observed data given the predicted biomass concentration $X$.
 At 360&nbsp;nm however, both biomass $X$ and ABAO reaction product absorb and therefore the sum of their absorbances needs to be taken into account for the likelihood.
 
@@ -215,7 +221,7 @@ $$
     (\mathrm{\mu_{P,360\ nm}}, \mathrm{\sigma_{P,360\ nm}}) &= \phi_\mathrm{cm,P,360\ nm}(\mathrm{\vec{P}_{\vec{t},\vec{replicate}}}) \\
 \end{aligned}
 $$
-
+**Bitte Autorenhinweise des Journals beachten: Häufig müssen die Gleichungen nummeriert werden**
 The above observation model applies to biomass $X$ and 3-hydroxy benzaldehyde concentration $P$ _at every time point_, _in every replicate_ of either a biotransformation reaction or reference sample.
 Reference wells of known product concentrations, but without 3-hydroxy benzoic acid are also included in the model, albeit with the assumption that the 3-hydroxy benzaldehyde concentration remains constant over time.
 
@@ -245,14 +251,14 @@ __Table 2:__ Dimensions in the model context
 
 
 ### Biomass process model
-The biomass in the experiment is sourced from a "seed train" of cultivations in three different scales and operating modes:
-1. $1\ L$ L-scale fed-batch bioreactor; 1 per experiment run.
-2. $10\ mL$ mL-scale fed-batch macrobioreactor; 48 per experiment run.
-3. $1\ mL$ biotransformation in square deep-well plate; 66 per experiment run.
+The biomass in the whole-cell biotransformation experiment is sourced from a "seed train" of cultivations in three different scales and operating modes:
+(a) $1\ L$ L-scale fed-batch stirred-tank bioreactor with 1 per experimental run.
+(b) $10\ mL$ mL-scale fed-batch stirred-tank bioreactor with 48 per experimental run.
+(c) $1\ mL$ biotransformation in square deep-well plate with 66 per experimental run.
 
-The process model must describe biomass in each biotransformation well so it can be accounted for in the 360&nbsp;nm absorbance.  Since a universally activity metric, that can be interpreted independent from experimental batch effects is desired, the model must additionally describe biomass in a way that excludes random batch effects.  The first process stage at which such an experiment-independent prediction is needed, is the final biomass concentration of the 1&nbsp;L batch cultivation.
+The process model must describe biomass in each biotransformation well so it can be accounted for in the 360&nbsp;nm absorbance.  Since an universally activity metric is diresired, that can be interpreted independently from experimental batch effects, the model must additionally describe biomass in a way that excludes random batch **Siehe oben, was sind Batch Effekte** effects.  The first process stage at which such an experiment-independent prediction is needed, is the final biomass concentration of the 1&nbsp;L batch cultivation.
 
-Concretely, we describe the per-experiment final biomass concentration at the 1&nbsp;L scale as a LogNormal-distributed variable called $\mathrm{\vec{X}_{end,\vec{BTR}}}$ with an entry for each experiment run.  To obtain an experiment-independent prediction, we introduced $\mathrm{X_{end,batch}}$ as a _group mean prior_, also known as a _hyperprior_, around which the $\mathrm{\vec{X}_{end,\vec{BTR}}}$ is centered.  The prior on $\mathrm{X_{end,batch}}$ is weakly (large $\sigma$) centered at $0.5\ g/L$, whereas actual batches should only deviate from that group mean by ca. $5\ \%$.
+Concretely, we describe the per-experiment final biomass concentration at the 1&nbsp;L scale as a LogNormal-distributed variable called $\mathrm{\vec{X}_{end,\vec{BTR}}}$ with an entry for each experimental run.  To obtain an experiment-independent prediction, we introduced $\mathrm{X_{end,batch}}$ as a _group mean prior_, also known as a _hyperprior_, around which the $\mathrm{\vec{X}_{end,\vec{BTR}}}$ is centered.  The prior on $\mathrm{X_{end,batch}}$ is weakly (large $\sigma$) centered at $0.5\ g/L$, whereas actual batches should only deviate from that group mean by about $5\ \%$.
 
 $$\begin{aligned}
     \mathrm{X_{end,batch}} &\sim LogNormal(\mu=ln(0.5), \sigma=0.5)\\
@@ -261,11 +267,11 @@ $$\begin{aligned}
 
 This hierarchical structure is a common motif in Bayesian modeling since it enables a model to learn variables that are essential to the process understanding (here: $\mathrm{X_{end,batch}}$) while retaining the ability to describe the fine-grained structure of the experimental data (here: $\mathrm{\vec{X}_{end,\vec{BTR}}}$).  The motif of hierarchically modeled variables was used in several places of our bioprocess model.  For a thorough introduction to hierarchical modeling, we recommend [@betancourt2020].
 
-The second process stage in the biomass seed train is the expression in 10&nbsp;mL scale under fed-batch conditions.
-Every 10&nbsp;mL 2mag reactor was inoculated with culture broth from a DASGIP reactor, hence a mapping $f_\mathrm{\vec{BTR} \rightarrow \vec{MBR}}$ yields initial biomass concentrations $\mathrm{\vec{X}_{start,\vec{MBR}}}$ by sub-indexing the $\mathrm{\vec{X}_{end,\vec{BTR}}}$ variable.
+The second process stage in the biomass seed train is the enzyme expression in a 10&nbsp;mL scale under fed-batch conditions.
+Every 10&nbsp;mL stirred-tank reactor was inoculated with culture broth from a 1 L reactor, hence a mapping $f_\mathrm{\vec{BTR} \rightarrow \vec{MBR}}$ yields initial biomass concentrations $\mathrm{\vec{X}_{start,\vec{MBR}}}$ by sub-indexing the $\mathrm{\vec{X}_{end,\vec{BTR}}}$ variable.
 The experimental design of the fed-batches comprised varying glucose feed rates and IPTG concentrations.
 It is plausible to assume a dependence of the final biomass concentration $\mathrm{\vec{X}_{end,\vec{MBR}}}$ on the glucose feed rate.
-Without any mechanistic assumptions, we lump the final biomass concentration per 1&nbsp;mL reactor as the product of initial biomass concentration with a positive factor $\mathrm{\vec{X}_{factor,\vec{glc}}}$ that depends on the glucose feed rate.
+Without any mechanistic assumptions, we lump the final biomass concentration per 1&nbsp;mL-scale reactor as the product of initial biomass concentration with a positive factor $\mathrm{\vec{X}_{factor,\vec{glc}}}$ that depends on the glucose feed rate.
 Dependence of $\mathrm{\vec{X}_{factor,\vec{glc}}}$ on the glucose feed rate is modeled by a Gaussian process such that our model can also interpolate and make predictions for new glucose feed rate settings.
 
 $$
@@ -287,10 +293,10 @@ The prior for $\ell$ in the exponential quadratic kernel encodes a belief that $
 
 ![](figures/plot_gp_X_factor.png)
 __Figure 9: Prior and posterior of feedrate-dependent final fed-batch biomass concentration.__
-Before observing the data (prior, left) the model predicts a broad distribution of functions (thin lines) that could describe the relationship between feed rate and final fedbatch biomass concentration. After observing the data (posterior, right), the final biomass turned out lower than expected, but the distribution of possible relationships is much narrower. Only outside of the experimentally investigated range of 1-4.8&nbsp;g/L the uncertainty increases again.
+Before observing the data (prior, left) the model predicts a broad distribution of functions (thin lines) that could describe the relationship between feed rate and final fedbatch biomass concentration. After observing the data (posterior, right), the final biomass turned out lower than expected, but the distribution of possible relationships is much narrower. Only outside of the experimentally investigated range of 1.0-4.8&nbsp;$g\ L^{-1}$ the uncertainty increases again.
 
-The 3rd and final process stage is the biotransformation.
-Here, the initial biomass concentration in every DWP replicate well $\mathrm{\vec{X}_{0,\vec{replicate}}}$ equals the final biomass concentration from a corresponding 10&nbsp;mL reactor.
+The third and final process stage is the biotransformation.
+Here, the initial biomass concentration in every replicate well of the DWP $\mathrm{\vec{X}_{0,\vec{replicate}}}$ equals the final biomass concentration from a corresponding 10&nbsp;mL reactor.
 The biomass concentration continued to change over the course of the biotransformation, because the solution also contained glucose as a carbon source.
 Inspired by the $\mu(t)$ method described in [@bletlPaper] we account for this biomass growth during the biotransformation with a Gaussian random walk of the discretized growth rate $\vec{\mu}_{\vec{t},\vec{replicate}}$.
 The result are biomass concentrations for every replicate well and measurement cycle $\mathrm{\vec{X}_{\vec{t},\vec{replicate}}}$.
@@ -304,8 +310,8 @@ $$
 $$
 
 ### Biotransformation reaction process model
-Next to biomass, the second important contributor to observed absorbances is the 3-hydroxy benzaldehyde concentration $\mathrm{\vec{P}_{\vec{t},\vec{replicate}}}$ that reacted with ABAO.
-In the reference samples this concentration $\vec{P}_{(\vec{t}),\vec{reference}}$ is known and assumed constant.
+Next to biomass, the second important contributor to observed absorbance is the 3-hydroxy benzaldehyde concentration $\mathrm{\vec{P}_{\vec{t},\vec{replicate}}}$ that reacted with ABAO.
+In the reference samples this concentration $\vec{P}_{(\vec{t}),\vec{reference}}$ is known and assumed to be constant.
 For the remaining wells it is the reaction product concentration of the biotransformation $\mathrm{\vec{P}_{\vec{t},\vec{DWP}}}$.
 Here we assume an initial product concentration $P_0=0$ and model the biotransformation reaction as a 1st order reaction starting from a global initial benzoic acid concentration $S_0$ with a rate constant $\vec{k}_{0,\vec{DWP}}$.
 
@@ -317,7 +323,7 @@ $$
 \end{aligned}
 $$
 
-This well-wise rate coefficient $\vec{k}_{\vec{t},\vec{DWP}}\ [1/h]$ depends on three factors.
+This well-wise rate coefficient $\vec{k}_{\vec{t},\vec{DWP}}\ [h^{-1}]$ depends on three factors.
 The first is the concentration of the whole-cell biocatalyst $\vec{X}_{\vec{t},\vec{DWP}}\ [g_{CDW}/L]$ as obtained from the biomass model described above.
 The second factor is the biocatalyst' specific rate coefficient $\vec{s}_\mathrm{\vec{design}}\ [\frac{1}{h} / \frac{g_{CDW}}{L}]$ that depends on the experimental design of the expression phase.
 The third factor is a batch-wise random effect $\vec{F}_{\vec{BTR}}\ [-]$ to account remaining experimental variability.
@@ -336,9 +342,9 @@ For the overall bioprocess optimization study we were interested in two quantiti
 Design-wise specific rate coefficients $\vec{s}_{\vec{design}}$ and an experiment-independent initial rate coefficient $\vec{k}_{0,\vec{design}}$ that accounts for the biomass concentration resulting from the fed-batch expression.
 The $\vec{s}_{\vec{design}}$ parameter is part of the above equation and modeled by a two-dimensional Gaussian process to allow for inter- and extrapolation to new experimental designs.
 
-$\vec{s}_{\vec{design}}$ is strictly positive and we expect it around $0.1-0.8\ [1/h]$.
-The model described below achieves both properties by describing a GP for $ln(\vec{s}_{\vec{design}})$ and assigning a corresponding prior for the kernel variance $\sigma$.
-The prior for lenghtscales $\vec{\ell}$ was centered on the 1/2 of the $log_{10}$ range (upper minus lower bound) of the design space.
+$\vec{s}_{\vec{design}}$ is strictly positive and we expect it around $0.1-0.8\ [h^{-1}]$.
+The model described below achieves both properties by describing a GP**Was ist das?** for $ln(\vec{s}_{\vec{design}})$ and assigning a corresponding prior for the kernel variance $\sigma$.
+The prior for length scales $\vec{\ell}$ was centered on the half of the $log_{10}$ range (upper minus lower bound) of the design space.
 A similar structure was used earlier for the $\mathrm{\vec{X}_{factor,\vec{glc}}}$ variable in the upstream biomass model.
 
 $$
@@ -352,7 +358,7 @@ $$
 \end{aligned}
 $$
 
-Finally, the initial rate coefficient metric $\vec{k}_{0,\vec{design}}\ [1/h]$ is derived from model parameters that do not depend on batch/reactor/replicate-specific variables:
+Finally, the initial rate coefficient metric $\vec{k}_{0,\vec{design}}\ [h^{-1}]$ is derived from model parameters that do not depend on batch/reactor/replicate-specific variables:
 
 $$
 \begin{aligned}
@@ -362,12 +368,12 @@ $$
 $$
 
 ## Modelling results
-The previous three chapters outlined how trajectories of biomass concentration (sec_biomass_model) and product concentration (sec_product_model) were predicted and how these trajectories were fed into the three calibration models (sec_calibrations) relate them to observed data.  Because this entire model was implemented as a symbolic computation graph, the PyMC and Aesara frameworks can auto-differentiate the likelihood (eq_likelihood) to obtain gradients needed for efficient MCMC sampling (sec_methods_mcmc).
+The previous three chapters outlined how trajectories of CDW concentration (sec_biomass_model) and product concentration (sec_product_model) were predicted and how these trajectories were fed into the three calibration models (sec_calibrations) relating them to observed data.  Because this entire model was implemented as a symbolic computation graph, the PyMC and Aesara frameworks can auto-differentiate the likelihood (eq_likelihood) to obtain gradients needed for efficient MCMC sampling (sec_methods_mcmc).
 
 After MCMC-sampling of the process model parameters, a variety of diagnostics, predictions and visualizations were prepared from the result.
-Similar to the posterior predictive distribution of the biomass/feed rate relationship (Figure 9), the 2-dimensional gaussian process component of the model was used to predict inter- and extrapolated specific activity in dependence on the experimental design parameters.
+Similar to the posterior predictive distribution of the biomass/feed rate relationship (Figure 9), the 2-dimensional Gaussian process component of the model was used to predict inter- and extrapolated specific biotransformation activity in dependence on the experimental design parameters.
 The visualization of the specific activity relationships posterior distribution (Figure 10) exhibits a peak at low glucose feed rates and high IPTG concentrations.
-Generally, the specific activity is higher for high IPTG concentrations, but at least for high glucose feed rates where more experimental data are available (comp. Fig. 1) we observed the IPTG concentration to saturate at $\approx 10^{0.5} \mu M$.
+Generally, the specific activity is higher for high IPTG concentrations, but at least for high glucose feed rates where more experimental data are available (see Fig. 1) we observed the IPTG concentration to saturate at $\approx 10^{0.5} \mu M$.
 This observation is in line with a previous study on mCherry expression where the IPTG saturation concentration was found at $10^1 \mu M$ [@von2021automated].
 
 ![](figures/plot_3d_pp_dense_s_design.png)
@@ -376,7 +382,7 @@ The surfaces show the median (center surface) and 90&nbsp;% highest density inte
 The highest specific activities are predicted at high IPTG concentration once in the low and once in the high feed rate regime.
 However, the uncertainty at lower feed rates is high.
 
-It seems that the highest specific activity is at close to the highest IPTG concentrations and highest feed rates. The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG. This is more than two-fold higher that at an feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such low feed rate. Consequently, a benefit of lower feed rate during protein expression cannot be ruled out for this protein. 
+It seems that the highest specific biotransformation activity is at close to the highest IPTG concentrations and highest feed rates. The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG. This is more than two-fold higher that at an feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such low feed rate. Consequently, a benefit of lower feed rate during protein expression cannot be ruled out for this protein. 
 
 ![](figures/plot_3d_pp_dense_k_design.png)
 __Figure 11: Predicted rate constants at initial biotransformation biomass concentration.__
@@ -425,9 +431,10 @@ For each process design in a 50x50 grid of process parameters the probabilistic 
 
 The automated cascade of stirred-tank bioreactors enabled screening of 42 different combinations of inductor concentration and feed rate during protein expression of *E. coli* NoCAR in a scalable bioreactor setup. A total of 192 bioreactor runs were performed during four weeks, showing the high productivity of miniaturized, automated and digitized parallel bioreactors. The new automated biotransformation procedure at the end of each process enabled the investigation of the enzymatic activity of each expression condition without manual intervention. Due to the sophisticated mechanistic modelling based on bayesian statistics, the enzymatic activity was estimated without the need of cell separation. This makes automation much simpler, because cell separation with automated liquid handling systems is costly and requires a lot of space in the working area of the robot. Furthermore, the probabilistic analysis opens the door for iterative Bayesian optimization that can further accelerate the identification of the optimal process conditions, while reducing the needed experimental effort.
 At the optimal investigated expression conditions, an activity of $1153\ U\ mL^{-1}$ was estimated with a $90\ %$ crebile interval of $[992, 1321]\ U\ mL^{-1}$. Taking the uncertainty into account, this about 38 to 50-fold higher than the highest published data for the enzyme under study. 
-It would be interesting for further studies to investigate parameter combinations that are predicted to be beneficial by the model. Furthermore, more expression conditions (pH, temperature, induction time...) could be investigated to gain more knowledge about optimal expression conditions. Futhermore, the downstream operations could be developed based on the established expression protocol.
+It would be interesting for further studies to investigate parameter combinations that are predicted to be beneficial by the model. 
 
 
 # Acknowledgements {.unnumbered}
+The authors gratefully acknowledge funding by the German Ministry of Education and Research (BMBF) within the national joint research project DigInBio [Grant number 031B0463B]. Nikolas von den Eichen and Lukas Bromig thank for the support provided by the TUM Graduate School (Technical University of Munich, Germany).
 
 # References {.unnumbered}
