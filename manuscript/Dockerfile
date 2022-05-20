@@ -24,3 +24,4 @@ WORKDIR /wd
 # docker build -t pandocstuff .
 # docker run --rm -it -v %cd%:/wd pandocstuff pandoc /wd/main.md -o /wd/main.docx --number-sections --bibliography=literature.bib --csl=literature.csl
 # docker run --rm -it -v %cd%:/wd pandocstuff pandoc /wd/main.md --pdf-engine=xelatex -o /wd/main.pdf --number-sections --bibliography=literature.bib --csl=literature.csl
+# docker run --rm -it -v %cd%:/wd --workdir=/wd/manuscript pandocstuff bash build.sh
