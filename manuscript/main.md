@@ -381,15 +381,21 @@ The surfaces show the median (center surface) and 90&nbsp;% highest density inte
 The highest specific activities are predicted at high IPTG concentration once in the low and once in the high feed rate regime.
 However, the uncertainty at lower feed rates is high.
 
-It seems that the highest specific biotransformation activity is at close to the highest IPTG concentrations and highest feed rates. The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG. This is more than two-fold higher that at an feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such low feed rate. Consequently, a benefit of lower feed rate during protein expression cannot be ruled out for this protein. 
+The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG. This is more than two-fold higher that at an feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such low feed rate. Consequently, a benefit of lower feed rate during protein expression cannot be ruled out for this protein. 
 
 ![](figures/plot_3d_pp_dense_k_design.png)
 __Figure 11: Predicted rate constants at initial biotransformation biomass concentration.__
 The surfaces show the median (center surface) and 90&nbsp;% highest density interval of the posterior predictive distribution for the rate constant to be expected from biomass suspension after the fed-batch as a function of the experimental design parameters.
 
-The oscillatory behavior of the prediction is in line with the localization of tested experiment designs.
+The oscillatory behavior of the prediction is in line with the localization of tested experiment designs, i.e. the uncertainty rises between each investigated experimental setup.
 This is visualized in Fig. 12, where the width of the 90 % highest density interval---the distance between the lower and upper surface in Fig. 11 is shown as a heatmap.
 In future investigations, a more evenly distributed localization of tested experiment designs should help the model to make smoother predictions.
+
+In this study, the best rate constant was predicted at a feed rate of $4.8\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 27.6 µM with $0.64\ h^{-1}$, which can be converted to an initial enzymatic activity of $1068\ U\ mL^{-1}$ (mL refers to bioreactor broth).
+The best tested process design was a feed rate of $1.5\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 12 µM with $0.69\ h^{-1}$, translating to a volumetric activity of $1153\ UmL^{-1}$.
+In a previous study, NoCAR was produced with an extremely low growth and expression temperature of 15 °C in a batch process with complex medium in shake flasks with a final volumetric activity of approximately $26\ U\ mL^{-1}$[@weber2021production]. The low temperature was chosen to avoid the formation of inclusion bodies. Inclusion bodies usually do not show enzymatic activity and tend to form when a big protein is expressed in *E. coli* to high concentrations [@bhatwa2021challenges].
+
+This shows that active NoCAR can be produced at a cultivation temperature of 30 °C in defined medium. Several factors might have aided the production of active NoCAR in this study. The use of definied medium as opposed to complex medium in previous studies might have reduced inclusion body formation [@neubauer2001expression]. Furthermore, the tightly controlled pH in the stirred-tank bioreactors on a mL-scale might have aided to reduce antibody formation due to pH drift [@strandberg1991factors].
 
 
 ![](figures/plot_pp_dense_dense_k_design_interval.png)
@@ -413,11 +419,7 @@ The bar plot is the posterior probability that the maximum rate constant lies at
 Every thin line was sampled with a different lengthscale from the posterior distribution shown in the inset plot.
 
 
-In this study, the best rate constant was predicted at a feed rate of $4.8\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 27.6 µM with $0.64\ h^{-1}$, which can be converted to an initial enzymatic activity of $1068\ U\ mL^{-1}$ (mL refers to bioreactor broth).
-The best tested process design was a feed rate of $1.5\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 12 µM with $0.69\ h^{-1}$, translating to a volumetric activity of $1153\ UmL^{-1}$.
-In a previous study, NoCAR was produced with an extremely low growth and expression temperature of 15 °C in a batch process with complex medium in shake flasks with a final volumetric activity of approximately $26\ U\ mL^{-1}$[@weber2021production]. The low temperature was chosen to avoid the formation of inclusion bodies. Inclusion bodies usually do not show enzymatic activity and tend to form when a big protein is expressed in *E. coli* to high concentrations [@bhatwa2021challenges].
 
-This shows that active NoCAR can be produced at a cultivation temperature of 30 °C in defined medium. Several factors might have aided the production of active NoCAR in this study. The use of definied medium as opposed to complex medium in previous studies might have reduced inclusion body formation [@neubauer2001expression]. Furthermore, the tightly controlled pH in the stirred-tank bioreactors on a mL-scale might have aided to reduce antibody formation due to pH drift [@strandberg1991factors].
 
 Our model found lower feed rates to be possibly beneficial for specific activity (Fig. 10), even after taking the resulting biomass concentration into account (rate constant, Fig. 11). At the same time, the model is still undecided about the lengthscale of IPTG dependency (Fig. 13, inset plot). It assigns some probability to rather short lengthscale, further increasing the uncertainties inbetween tested experimental designs. The Gaussian process in makes an uncertain extrapolation of this trend towards lower feed rates where the density of observations was much lower. Counterintuitively this leads to a vague prediction that the optimal process design could be at lower feed rates and moderately high IPTG concentration.
 The probability map (Fig. 14) is a more direct visualization out this prediction. The overlayed coordinates of experimentally tested process parameters show that this part of the parameter spaces was not extensively investigated yet. 
