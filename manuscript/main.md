@@ -379,13 +379,13 @@ This observation is in line with a previous study on mCherry expression where th
 __Figure 10: Prediction of specific activity.__
 The surfaces show the median (center surface) and 90&nbsp;% highest density interval of the posterior predictive distribution for specific activity as a function of the experimental design parameters.
 The highest specific activities are predicted at high IPTG concentration once in the low and once in the high feed rate regime.
-However, the uncertainty at lower feed rates is high.  Surface color encodes the specific activity using the "Jet" colormap for easier visibility.
+However, the uncertainty at lower feed rates is high.  Surface color encodes the specific activity using the "Jet" colormap [@matplotlibDocs] for easier visibility.
 
 The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG. This is more than two-fold higher that at an feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such low feed rate. Consequently, a benefit of lower feed rate during protein expression cannot be ruled out for this protein. 
 
 ![](figures/plot_3d_pp_dense_k_design.png)
 __Figure 11: Predicted rate constants at initial biotransformation biomass concentration.__
-The surfaces show the median (center surface) and 90&nbsp;% highest density interval of the posterior predictive distribution for the rate constant to be expected from biomass suspension after the fed-batch as a function of the experimental design parameters. Surface color encodes the rate constant using the "Jet" colormap for easier visibility.
+The surfaces show the median (center surface) and 90&nbsp;% highest density interval of the posterior predictive distribution for the rate constant to be expected from biomass suspension after the fed-batch as a function of the experimental design parameters. Surface color encodes the rate constant using the "Jet" colormap [@matplotlibDocs] for easier visibility.
 
 The oscillatory behavior of the prediction is in line with the localization of tested experiment designs, i.e. the uncertainty rises between each investigated experimental setup.
 This is visualized in Fig. 12, where the width of the 90 % highest density interval---the distance between the lower and upper surface in Fig. 11 is shown as a heatmap.
