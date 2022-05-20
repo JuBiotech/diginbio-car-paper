@@ -530,3 +530,10 @@ MigrationBackup/
 *.svg
 results/**
 *Sandbox*.ipynb
+
+# LaTeX build output
+*.aux
+*.bbl
+*.blg
+*.out
+manuscript/*.pdf

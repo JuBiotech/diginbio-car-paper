@@ -43,9 +43,14 @@ jobs:
     - name: Build PDF
       run: |
         cd manuscript
-        pandoc main.md --number-sections --bibliography=literature.bib --csl=literature.csl --pdf-engine=xelatex -o ../main.pdf 
+        pandoc main.md --number-sections --bibliography=literature.bib --csl=literature.csl --pdf-engine=xelatex -o ../main.pdf
+    - name: Build LaTeX template
+      run: |
+        cd manuscript
+        bash build.sh
+        mv sn-article.pdf ../main-latex.pdf
     - uses: actions/upload-artifact@v2
       with:
         name: manuscript
-        path: main.*
+        path: main*
         retention-days: 7
