@@ -201,7 +201,7 @@ def plot_A600_kinetics(wd: pathlib.Path):
     return
 
 
-def _build_model(wd: pathlib.Path):
+def _build_model(wd: pathlib.Path, **kwargs):
     _log.info("Loading calibrations")
     cmX360 = models.LogisticBiomassAbsorbanceModel.load(wd / "cm_biomass_A360.json")
     cmX600 = models.LogisticBiomassAbsorbanceModel.load(wd / "cm_biomass_A600.json")
@@ -222,6 +222,7 @@ def _build_model(wd: pathlib.Path):
             cmX600,
             cmP360,
             design_cols=DESIGN_COLS,
+            **kwargs,
         )
     return pmodel
 

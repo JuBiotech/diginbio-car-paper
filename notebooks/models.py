@@ -287,6 +287,7 @@ class TidySlices:
 def X_factor_GP(
     ls_mu: float,
     glucose_feed_rates: numpy.ndarray,
+    reparameterize: bool=True,
 ) -> Tuple[at.TensorVariable, pm.gp.Latent]:
     """Creates a 1D Gaussian process modeling a multiplicative biomass factor
     as a function of log10(glucose feed rate).
@@ -327,7 +328,7 @@ def X_factor_GP(
     log_X_factor = gp_log_X_factor.prior(
         "log_X_factor",
         at.log10(glucose_feed_rates)[:, None],
-        size=(len(pmodel.coords["design_glucose"]),)
+        reparameterize=reparameterize,
     )
     X_factor = pm.Deterministic("X_factor", at.exp(log_X_factor), dims="design_glucose")
 
@@ -341,6 +342,7 @@ def X_factor_GP(
 def s_design_GP(
     ls_mu: Sequence[float],
     X: numpy.ndarray,
+    reparameterize: bool=True,
 ) -> Tuple[at.TensorVariable, pm.gp.Latent]:
     """Construct a 2-dimensional Gaussian process model to predict specific activity
     from real-valued experimental design.
@@ -385,8 +387,10 @@ def s_design_GP(
     log_s_design_factor = gp_log_s_design_factor.prior(
         "log_s_design_factor",
         X=X,
-        size=int(pmodel.dim_lengths["design_id"].eval())
+        reparameterize=reparameterize,
     )
+    pmodel.RV_dims["log_s_design_factor_rotated_"] = ("design_id",)
+    pmodel.RV_dims["log_s_design_factor"] = ("design_id",)
     s_design = pm.Deterministic("s_design", s_design_mean * at.exp(log_s_design_factor), dims="design_id")
     return (s_design, gp_log_s_design_factor)
 
@@ -401,6 +405,7 @@ def build_model(
     cmP_360: calibr8.CalibrationModel,
     *,
     design_cols: Sequence[str],
+    reparameterize:bool = True,
 ):
     """Constructs the full model for the analysis of one biotransformation experiment.
 
@@ -517,6 +522,7 @@ def build_model(
     X_factor, pmodel.gp_log_X_factor = X_factor_GP(
         ls_mu=0.2,
         glucose_feed_rates=X_design_glucose,
+        reparameterize=reparameterize,
     )
 
     # Model the biomass story
@@ -577,6 +583,7 @@ def build_model(
     s_design, pmodel.gp_log_s_design_factor = s_design_GP(
         ls_mu=0.2,
         X=X_design_log10,
+        reparameterize=reparameterize,
     )
     # Unit: [ (1/h) / (g/L) ] 👉 [L/g/h]
 
