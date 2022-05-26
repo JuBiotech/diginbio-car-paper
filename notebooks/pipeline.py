@@ -1121,15 +1121,7 @@ def calculate_probability_map(pp: xarray.Dataset, *, metric: str) -> BestMetrics
     return BestMetrics(metric, probs1d, probs2d, best)
 
 
-def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
-    idata = arviz.from_netcdf(wd / "trace.nc")
-    ipp = arviz.from_netcdf(wd / "predictive_posterior.nc")
-    pp = ipp.posterior_predictive
-
-    metrics = calculate_probability_map(pp, metric="dense_k_design")
-
-    # Plot it as a heatmap
-    fig, ax = pyplot.subplots(figsize=(5, 5))
+def plot_probability_heatmap(ax, metrics: BestMetrics, idata, pp, ts_seed, ts_batch_size):
     img = plotting.xarrshow(
         ax,
         metrics.probs2d,
@@ -1160,6 +1152,19 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
             marker="+",
             color="orange"
         )
+    return img
+
+
+def plot_p_best_single_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48, metric="k_design"):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    ipp = arviz.from_netcdf(wd / "predictive_posterior.nc")
+    pp = ipp.posterior_predictive
+
+    metrics = calculate_probability_map(pp, metric="dense_" + metric)
+
+    # Plot it as a heatmap
+    fig, ax = pyplot.subplots(figsize=(5, 5))
+    img = plot_probability_heatmap(ax, metrics, idata, pp, ts_seed, ts_batch_size)
 
     # Draw a colorbar that matches the height of the image
     divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
@@ -1169,14 +1174,17 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
         cax=divider.append_axes("right", size="5%", pad=0.05),
     )
     cbar = ax.figure.colorbar(**cbar_kw)
-    cbar.ax.set_ylabel("$\mathrm{Probability(best)\ [-]}$", rotation=90, va="top")
+    cbar.ax.set_ylabel({
+        "s_design": "$\mathrm{Probability(best\ s_{design})\ [-]}$",
+        "k_design": "$\mathrm{Probability(best\ k_{design})\ [-]}$",
+    }[metric], rotation=90, va="top")
 
     ax.set(
         ylabel=r"$\mathrm{log_{10}(Glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$",
         xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$",
         title="",
     )
-    plotting.savefig(fig, "p_best_k_design", wd=wd)
+    plotting.savefig(fig, f"p_best_{metric}", wd=wd)
     return metrics.best.to_dataframe().dense_long.to_dict()
 
 
