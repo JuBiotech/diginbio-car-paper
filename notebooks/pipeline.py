@@ -34,7 +34,8 @@ DESIGN_COLS = ["iptg", "glucose"]
 
 def plot_experiment_design(wd: pathlib.Path):
     import FigureExperimentalDesign
-    FigureExperimentalDesign.ExperimentalDesign(wd)
+    df_layout = pandas.read_excel(wd / "layout.xlsx", index_col="replicate_id")
+    FigureExperimentalDesign.ExperimentalDesign(wd, run_ids=df_layout.run.unique())
     return
 
 
@@ -162,8 +163,12 @@ def plot_product_calibration(wd: pathlib.Path):
     return
 
 
-def load_layout(wd: pathlib.Path):
+def load_layout(wd: pathlib.Path, runs: int=4):
     df_layout = dataloading.get_layout("FullWellDescription.xlsx", DESIGN_COLS)
+    # Filter the metadata to take only the first [runs].
+    run_ids = df_layout.run.unique()
+    df_layout = df_layout.loc[df_layout["run"].isin(run_ids[:runs])]
+
     df_counts = dataloading.count_replicates(df_layout)
     with pandas.ExcelWriter(wd / "layout.xlsx") as writer:
         df_layout.to_excel(writer, sheet_name="layout")

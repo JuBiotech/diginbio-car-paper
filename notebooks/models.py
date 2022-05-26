@@ -485,7 +485,12 @@ def build_model(
     X_design = pm.ConstantData("X_design", x_design, dims=("design_id", "design_dim"))
     X_design_log10 = pm.ConstantData("X_design_log10", numpy.log10(x_design), dims=("design_id", "design_dim"))
     del x_design # to keep a single source of truth
-    BOUNDS = numpy.percentile(X_design_log10.value, [0, 100], axis=0).T
+    # Bounds of the process parameter space are hard-coded
+    # to enable running the model on subsets of all data.
+    BOUNDS = numpy.log10([
+        [1, 4.8],
+        [0.24, 32],
+    ])
     SPAN = numpy.ptp(BOUNDS, axis=1)
     pm.ConstantData("X_design_log10_bounds", BOUNDS, dims=("design_dim", "interval"))
     pm.ConstantData("X_design_log10_span", SPAN, dims=("design_dim",))
