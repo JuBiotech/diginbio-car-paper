@@ -1204,16 +1204,19 @@ def plot_p_best_dual_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
     )
     
     # Put a legend above the figure
+    handles = [
+        ax.scatter([], [], label="observations", color="grey", marker="x"),
+        ax.scatter([], [], label="probability maximum", color="red", marker="o", s=100, facecolor="none", edgecolor="red"),
+    ]
+    if ts_seed and ts_batch_size:
+        handles.append(ax.scatter([], [], label="proposals", color="orange", marker="+"))
     fig.legend(
-        bbox_to_anchor=(0.70, 1.05),
+        loc="upper center",
+        borderaxespad=-0.2,
         ncol=5,
-        frameon=True,
+        frameon=False,
         fancybox=False,
-        handles=[
-            ax.scatter([], [], label="observations", color="grey", marker="x"),
-            ax.scatter([], [], label="probability maximum", color="red", marker="o", s=100, facecolor="none", edgecolor="red"),
-            ax.scatter([], [], label="proposals", color="orange", marker="+"),
-        ]
+        handles=handles,
     )
     fig.tight_layout()
 
