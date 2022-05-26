@@ -40,9 +40,8 @@ def savefig(fig, name: str, *, wd=DP_RESULTS, facecolor="white", **kwargs):
     **kwargs
         Additional kwargs for `pyplot.savefig`.
     """
-
-    if not "facecolor" in kwargs:
-        kwargs["facecolor"] = facecolor
+    kwargs.setdefault("facecolor", facecolor)
+    kwargs.setdefault("bbox_inches", "tight")
     max_pixels = numpy.array([2250, 2625])
     max_dpi = min(max_pixels / fig.get_size_inches())
     if not "dpi" in kwargs:
