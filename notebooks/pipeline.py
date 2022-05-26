@@ -1128,7 +1128,12 @@ def plot_probability_heatmap(ax, metrics: BestMetrics, idata, pp, ts_seed, ts_ba
         aspect="auto",
         vmin=0,
     )
-    ax.scatter(*idata.constant_data.X_design_log10.values[:,::-1].T, marker="x", color="white")
+    ax.scatter(
+        *idata.constant_data.X_design_log10.values[:,::-1].T,
+        marker="x",
+        color="white",
+        label="observations",
+    )
     ax.scatter(
         [metrics.best.sel(design_dim="iptg")],
         [metrics.best.sel(design_dim="glucose")],
@@ -1136,6 +1141,7 @@ def plot_probability_heatmap(ax, metrics: BestMetrics, idata, pp, ts_seed, ts_ba
         s=100,
         facecolor="none",
         edgecolor="red",
+        label="probability maximum",
     )
     if ts_seed and ts_batch_size:
         next_dids = pyrff.sample_batch(
@@ -1150,9 +1156,69 @@ def plot_probability_heatmap(ax, metrics: BestMetrics, idata, pp, ts_seed, ts_ba
             next_x.sel(design_dim="iptg"),
             next_x.sel(design_dim="glucose"),
             marker="+",
-            color="orange"
+            color="orange",
+            label="proposals",
         )
     return img
+
+
+def plot_p_best_dual_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    ipp = arviz.from_netcdf(wd / "predictive_posterior.nc")
+    pp = ipp.posterior_predictive
+
+    probs_s = calculate_probability_map(pp, metric="dense_s_design")
+    probs_k = calculate_probability_map(pp, metric="dense_k_design")
+
+    # Plot two probability heatmaps side by side
+    fig, axs = pyplot.subplots(figsize=(10, 5), ncols=2)
+
+    ax = axs[0]
+    img1 = plot_probability_heatmap(ax, probs_s, idata, pp, ts_seed, ts_batch_size)
+
+    ax = axs[1]
+    img2 = plot_probability_heatmap(ax, probs_k, idata, pp, ts_seed, ts_batch_size)
+
+    # Draw color bars on both subplots, because the maximum probability is different
+    for ax, img, metric in zip(axs, [img1, img2], ["s_{design}", "k_{design}"]):
+        # Draw a colorbar that matches the height of the image
+        divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
+        cbar_kw = dict(
+            mappable=img,
+            ax=ax,
+            cax=divider.append_axes("right", size="5%", pad=0.05),
+        )
+        cbar = ax.figure.colorbar(**cbar_kw)
+        cbar.ax.set_ylabel("$\mathrm{probability(best\ %s)}$" % metric, rotation=90, va="top")
+
+    axs[0].set(
+        ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ /\ g\ L^{-1}\ h^{-1})}$",
+        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+        title="",
+    )
+    axs[1].set(
+        ylabel="",
+        yticks=[],
+        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+        title="",
+    )
+    
+    # Put a legend above the figure
+    fig.legend(
+        bbox_to_anchor=(0.70, 1.05),
+        ncol=5,
+        frameon=True,
+        fancybox=False,
+        handles=[
+            ax.scatter([], [], label="observations", color="grey", marker="x"),
+            ax.scatter([], [], label="probability maximum", color="red", marker="o", s=100, facecolor="none", edgecolor="red"),
+            ax.scatter([], [], label="proposals", color="orange", marker="+"),
+        ]
+    )
+    fig.tight_layout()
+
+    plotting.savefig(fig, "p_best", wd=wd)
+    return
 
 
 def plot_p_best_single_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48, metric="k_design"):
