@@ -8,7 +8,7 @@ Some unit operations need additional kwargs.
 import logging
 import pathlib
 import shutil
-from typing import Dict
+from typing import Dict, NamedTuple
 
 import aesara.tensor as at
 import arviz
@@ -1073,13 +1073,37 @@ def predict_units(
     return
 
 
-def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
-    idata = arviz.from_netcdf(wd / "trace.nc")
-    ipp = arviz.from_netcdf(wd / "predictive_posterior.nc")
-    pp = ipp.posterior_predictive
+BestMetrics = NamedTuple(
+    "BestMetrics", [
+    ("var_name", str),
+    ("probs1d", xarray.DataArray),
+    ("probs2d", xarray.DataArray),
+    ("best", xarray.DataArray),
+])
 
+
+def calculate_probability_map(pp: xarray.Dataset, *, metric: str) -> BestMetrics:
+    """Calculates the probabilit-of-highest-value map from a posterior predictive.
+    
+    Parameters
+    ----------
+    pp
+        Posterior predictive group.
+    metric
+        Name of the metric variable in the posterior predictive group.
+
+    Returns
+    -------
+    probs1d
+        Vector of probabilities with dims ("dense_id",).
+    best
+        Design with the highest probability of being optimal.
+        With dims ("design_dim",).
+    probs2
+        Matrix of probabilities with "dense_design_{ddim}" dimensions for all design_dims.
+    """
     # For each dense design determine the probability that it's the best
-    probs = pyrff.sampling_probabilities(pp.dense_k_design.stack(sample=("chain", "draw")), correlated=True)
+    probs = pyrff.sampling_probabilities(pp[metric].stack(sample=("chain", "draw")), correlated=True)
     probs1d = xarray.DataArray(probs, name="p_best", dims="dense_id", coords={"dense_id": pp.dense_id.values})
     best_did = pp.dense_id.values[numpy.argmax(probs)]
     best = pp.dense_long.sel(dense_id=best_did)
@@ -1094,19 +1118,28 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
         to_shape=[pp.dense_grid.sizes[ddim] for ddim in dense_design_dims],
         coords=pp.coords
     )
+    return BestMetrics(metric, probs1d, probs2d, best)
+
+
+def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    ipp = arviz.from_netcdf(wd / "predictive_posterior.nc")
+    pp = ipp.posterior_predictive
+
+    metrics = calculate_probability_map(pp, metric="dense_k_design")
 
     # Plot it as a heatmap
     fig, ax = pyplot.subplots(figsize=(5, 5))
     img = plotting.xarrshow(
         ax,
-        probs2d,
+        metrics.probs2d,
         aspect="auto",
         vmin=0,
     )
     ax.scatter(*idata.constant_data.X_design_log10.values[:,::-1].T, marker="x", color="white")
     ax.scatter(
-        [best.sel(design_dim="iptg")],
-        [best.sel(design_dim="glucose")],
+        [metrics.best.sel(design_dim="iptg")],
+        [metrics.best.sel(design_dim="glucose")],
         marker="o",
         s=100,
         facecolor="none",
@@ -1114,8 +1147,8 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
     )
     if ts_seed and ts_batch_size:
         next_dids = pyrff.sample_batch(
-            pp.dense_k_design.stack(sample=("chain", "draw")),
-            ids=probs1d.dense_id.values,
+            pp[metrics.var_name].stack(sample=("chain", "draw")),
+            ids=metrics.probs1d.dense_id.values,
             correlated=True,
             batch_size=ts_batch_size,
             seed=ts_seed,
@@ -1144,7 +1177,7 @@ def plot_p_best_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
         title="",
     )
     plotting.savefig(fig, "p_best_k_design", wd=wd)
-    return best.to_dataframe().dense_long.to_dict()
+    return metrics.best.to_dataframe().dense_long.to_dict()
 
 
 def plot_p_best_tested(wd: pathlib.Path):
