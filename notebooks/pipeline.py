@@ -1263,6 +1263,76 @@ def plot_p_best_single_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48,
     return metrics.best.to_dataframe().dense_long.to_dict()
 
 
+def plot_p_best_all_rounds(wd: pathlib.Path, ts_seed=1234, ts_batch_size=48):
+    rounds = [
+        "2022-05-26T16-53-13",
+        "2022-05-27T09-19-40",
+        "2022-05-27T21-11-21",
+        "2022-05-09T13-00-03",
+    ]
+
+    fig, axs = pyplot.subplots(
+        ncols=2,
+        nrows=len(rounds),
+        figsize=(10, 5*len(rounds)),
+        sharex=True,
+        sharey=True,
+    )
+
+    for r, rdname in enumerate(rounds):
+        rwd = wd.absolute().parent / rdname
+        idata = arviz.from_netcdf(rwd / "trace.nc")
+        ipp = arviz.from_netcdf(rwd / "predictive_posterior.nc")
+        pp = ipp.posterior_predictive
+
+        probs_s = calculate_probability_map(pp, metric="dense_s_design")
+        probs_k = calculate_probability_map(pp, metric="dense_k_design")
+
+        ax = axs[r, 0]
+        plot_probability_heatmap(ax, probs_s, idata, pp, ts_seed, ts_batch_size)
+
+        ax = axs[r, 1]
+        plot_probability_heatmap(ax, probs_k, idata, pp, ts_seed, ts_batch_size)
+
+    for ax in axs[:, 0]:
+        ax.set(
+            title="",
+            ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ /\ g\ L^{-1}\ h^{-1})}$",
+            xlabel="",
+        )
+    for ax in axs[:, 1]:
+        ax.set(
+            title="",
+            yticks=[],
+            ylabel="",
+            xlabel="",
+        )
+    for ax in axs[-1, :]:
+        ax.set(
+            xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+        )
+
+    # Put a legend above the figure
+    handles = [
+        ax.scatter([], [], label="observations", color="grey", marker="x"),
+        ax.scatter([], [], label="probability maximum", color="red", marker="o", s=100, facecolor="none", edgecolor="red"),
+    ]
+    if ts_seed and ts_batch_size:
+        handles.append(ax.scatter([], [], label="proposals", color="orange", marker="+"))
+    fig.legend(
+        loc="upper center",
+        borderaxespad=-0.2,
+        ncol=5,
+        frameon=False,
+        fancybox=False,
+        handles=handles,
+    )
+    fig.tight_layout()
+
+    plotting.savefig(fig, "p_best_all_rounds", wd=wd)
+    return
+
+
 def plot_p_best_tested(wd: pathlib.Path):
     idata = arviz.from_netcdf(wd / "trace.nc")
 
