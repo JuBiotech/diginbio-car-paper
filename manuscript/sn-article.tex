@@ -246,7 +246,7 @@ To ensure sterile operation of the LHS, the pipetting needles of the LHS were wa
 
 All tasks (substrate addition, pH control, inductor addition, sampling) were initiated by a priority-based scheduler which weighed the tasks based on their real-time priority to enable optimal process control when more than one task was eligible.
 The detailed description of the scheduler working principle, aim and software engineering may be found in Bromig \& von den Eichen et al.
-The priorities were feed $\rightarrow$ inductor addition $\rightarrow$ sampling $\rightarrow$ pH control.
+The priorities were feed > inductor addition > sampling > pH control.
 
 \subsection{Analytical procedures}
 The cultivations on the L-scale were just followed by sensor data, whereas samples on the mL-scale generally were taken every hour by the LHS, with two exceptions:
