@@ -19,6 +19,7 @@ import numpy
 import pandas
 import pymc as pm
 import pyrff
+import scipy.stats
 from matplotlib import pyplot
 import xarray
 
@@ -1471,6 +1472,39 @@ def report_best_tested_vs_predicted(wd: pathlib.Path):
         xlim=newlims,
     )
     plotting.savefig(fig, "plot_best_k_design_correlation", wd=wd)
+    return
+
+
+def plot_run_effect(wd: pathlib.Path):
+    idata = arviz.from_netcdf(wd / "trace.nc")
+    pmodel = _build_model(wd)
+
+    # Evaluate the run_effect prior PDF
+    mu = pmodel["run_effect"].owner.inputs[-2].eval()
+    sd = pmodel["run_effect"].owner.inputs[-1].eval()
+    x = numpy.linspace(0.5, 1.5, 300)
+    y = scipy.stats.lognorm.pdf(loc=mu, s=sd, x=x)
+
+    axs = arviz.plot_forest(
+        idata, var_names=["run_effect"], combined=True, hdi_prob=0.9,
+        kind="ridgeplot", ridgeplot_truncate=False, ridgeplot_overlap=0.7,
+    )
+    fig = pyplot.gcf()
+    ax = axs[0]
+    ax.set(
+        xlabel="run effect / -",
+        yticklabels=[
+            "run 4\n(Carboxylase 23)",
+            "run 3\n(Carboxylase 21)",
+            "run 2\n(Carboxylase 20)",
+            "run 1\n(Carboxylase 19)",
+        ],
+    )
+    ax.plot(x, y / y.max()*0.7 + ax.get_ylim()[0], ls="--", color="#AAAAAA", label="prior")
+    ax.legend(loc="lower right", frameon=False)
+    ax.spines.top.set_visible(False)
+    fig.tight_layout()
+    plotting.savefig(fig, "plot_run_effect", wd=wd)
     return
 
 
