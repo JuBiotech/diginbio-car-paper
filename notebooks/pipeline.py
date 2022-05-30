@@ -1275,7 +1275,7 @@ def plot_p_best_all_rounds(wd: pathlib.Path, ts_seed=1234, ts_batch_size=48):
     fig, axs = pyplot.subplots(
         ncols=2,
         nrows=len(rounds),
-        figsize=(10, 5*len(rounds)),
+        figsize=(10, 3.2*len(rounds)),
         sharex=True,
         sharey=True,
     )
@@ -1295,6 +1295,8 @@ def plot_p_best_all_rounds(wd: pathlib.Path, ts_seed=1234, ts_batch_size=48):
         ax = axs[r, 1]
         plot_probability_heatmap(ax, probs_k, idata, pp, ts_seed, ts_batch_size)
 
+    axs[0, 0].set_title("$s_{design}$")
+    axs[0, 1].set_title("$k_{design}$")
     for ax in axs[:, 0]:
         ax.set(
             title="",
