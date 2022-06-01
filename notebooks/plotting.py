@@ -376,8 +376,8 @@ def plot_calibration_A600(df_layout, df_A600, df_time):
         ax.plot([], [], color=color, label=label)
     ax.legend(frameon=False)
     ax.set(
-        xlabel="Time [h]",
-        ylabel="Absorbance at 600 nm [a.u.]",
+        xlabel=r"$\mathrm{Time\ [h]}$",
+        ylabel=r"$\mathrm{Absorbance\ at\ 600\ nm\ [a.u.]}$",
         ylim=(0, None),
         xlim=(0, None),
     )
@@ -576,7 +576,7 @@ def plot_reaction(
     )
     ax.set(
         title="A600 contributions",
-        ylabel="$A_{600\ nm}$   [a.u.]",
+        ylabel=r"$\mathrm{A_{600\ nm}\ [a.u.]}$",
     )
     ax.legend(frameon=False, loc="upper left")
 
@@ -637,7 +637,7 @@ def plot_reaction(
     )
     ax.set(
         title="A360 contributions",
-        ylabel="$A_{360\ nm}$   [a.u.]",
+        ylabel=r"$\mathrm{A_{360\ nm}\ [a.u.]}$",
     )
     ax.legend(
         handles=[
@@ -659,15 +659,15 @@ def plot_reaction(
     )
     ax.set(
         title="production",
-        ylabel="reaction product   [mM]",
-        xlabel="time   [h]",
+        ylabel=r"$\mathrm{reaction\ product\ [mM]}$",
+        xlabel=r"$\mathrm{time\ [h]}$",
         ylim=(0, None),
     )
 
 
     ax = axs[1, 1]
     metric = "k_reaction"
-    ylabel = "rate constant   [1/h]"
+    ylabel = r"$\mathrm{rate\ constant\ [1/h]}$"
 
     x = posterior[metric]
     if "cycle" in x.coords:
@@ -730,11 +730,11 @@ def plot_reactor_positions(data: Dict[str, xarray.Dataset], df_layout: pandas.Da
 
 
 def plot_3d_s_design(idata, azim=-65):
-    return plot_3d_by_design(idata, "s_design", azim=azim, label="specific activity\n$k_{design}\ [(1/h) / (g_{CDW}/h)]$")
+    return plot_3d_by_design(idata, "s_design", azim=azim, label="specific activity\n$\mathrm{k_{design}\ [h^{-1} / (g_{CDW}\ h^{-1})]}$")
 
 
 def plot_3d_k_design(idata, azim=-65):
-    return plot_3d_by_design(idata, "k_design", azim=azim, label="rate constant\n$v_{design}\ [1/h]$")
+    return plot_3d_by_design(idata, "k_design", azim=azim, label="rate constant\n$v_{design}\ [h^{-1}]$")
 
 
 def plot_3d_by_design(idata, var_name: str, *, label: str, azim=-65):
