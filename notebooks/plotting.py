@@ -29,7 +29,7 @@ _log = logging.getLogger(__file__)
 pyplot.style.use(DP_ROOT / "notebooks" / "DigInBio.mplstyle")
 
 
-def savefig(fig, name: str, *, wd=DP_RESULTS, facecolor="white", **kwargs):
+def savefig(fig, name: str, *, wd=DP_RESULTS, **kwargs):
     """Saves a bitmapped and vector version of the figure.
     Parameters
     ----------
@@ -37,10 +37,19 @@ def savefig(fig, name: str, *, wd=DP_RESULTS, facecolor="white", **kwargs):
         The figure object.
     name : str
         Filename without extension.
+    wd : pathlib.Path
+        Directory where to save the figure.
     **kwargs
         Additional kwargs for `pyplot.savefig`.
     """
-    kwargs.setdefault("facecolor", facecolor)
+    _savefig(fig, name, wd=wd, **kwargs)
+    return
+
+
+def _savefig(fig, name: str, *, wd, **kwargs):
+    """Internal function used to save figures. See `savefig()`."""
+    _log.info("Saving figure '%s' to %s", name, wd)
+    kwargs.setdefault("facecolor", "white")
     kwargs.setdefault("bbox_inches", "tight")
     max_pixels = numpy.array([2250, 2625])
     max_dpi = min(max_pixels / fig.get_size_inches())
