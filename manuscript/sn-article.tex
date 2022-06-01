@@ -34,6 +34,8 @@
 
 %%%% Standard Packages
 %%<additional latex packages if required can be included here>
+% The following command fixes a rendering problem with vectors in equations
+\def\vec{\mathaccent "017E\relax }
 %%%%
 
 %%%%%=============================================================================%%%%
@@ -150,7 +152,7 @@
 
 Because of the need to perform time-consuming and labor-intensive experiments for bioprocess development, miniaturized and automated bioreactor systems have been developed with which a variety of process parameters can be screened rapidly \cite{weuster2005parallel,hemmerich2018microbioreactor}.
 Parallel microbioreactor systems are often coupled with a pipetting robot (liquid handling station, LHS) in order to use the flexibility of the pipetting robot for at-line process analysis \cite{haby2019integrated,puskeiler2005development,rohe2012automated}. It has been shown that microbioreactors systems can yield scalable results for both biomass growth and product formation \cite{puskeiler2005development,schmideder2016high,kensy2009scale}.
-Heterologous proteins are usually overexpressed by cloning the encoding gene downstream from a regulated promoter in a suitable host to allow for cheap and simple protein production \cite{terpe2006overview}.
+Heterologous proteins are usually over expressed by cloning the encoding gene downstream from a regulated promoter in a suitable host to allow for cheap and simple protein production \cite{terpe2006overview}.
 To reduce adverse effects on biomass growth due to the formation of the heterologous protein, the cell formation phase is usually separated from the product formation phase \cite{choi2000efficient,schmideder2016high,jahic2006process,neubauer2001expression}.
 This is accomplished by making protein formation controllable by inducers and activating it only after the desired cell density has been reached \cite{neubauer2001expression}.
 
@@ -159,16 +161,16 @@ Protein expression studies and product analysis are then conducted at the mL sca
 In the past, however, both this system and other microbioreactor systems have predominantly investigated model proteins with highly simplified product analytics \cite{schmideder2017high,von2021automated,huber2009robo} or product analysis involved manual processing steps \cite{haby2019integrated}.
 Manual steps in the context of automated process development carry the risk of merely shifting the effort required for bioprocess development rather than reducing it.
 Therefore, the goal of this study was to apply a fully automated parallel bioreactor system for studies on the expression of a carboxyl reductase (CAR) in \textit{Escherichia coli} (\textit{E. coli}).
-Carboxyl reductases are a class of large enzymes (approximately 130 kD) used for the selective reduction of aldehydes from carboxylic acids in various applications \cite{weber2021production}.
+Carboxyl reductases are a class of large enzymes (approximately 130 kDa) used for the selective reduction of aldehydes from carboxylic acids in various applications \cite{weber2021production}.
 Chemicals resulting from those reactions include uses such as cardiovascular, antiparasitic, and anticholinergic drugs\cite{erdmann2017enzymatic,weber2021production,ruff2012biocatalytic}.
-To quantify the expression success in \textit{E. coli}, whole-cell-biotransformations were performed in deep-well-plates (DWP) for the determination of enzyme activity \cite{schwendenwein2019random}.
+To quantify the expression success in \textit{E. coli}, whole-cell biotransformations were performed in deep-well-plates (DWP) for the determination of enzyme activity \cite{schwendenwein2019random}.
 To keep the necessary robotic equipment as simple as possible, the analysis of the biotransformation was carried out without prior separation of the cells.
 However, this necessitated the model-based evaluation of the enzyme activity, since the photometric detection of the biotransformation product is disturbed by the growing cells.
 
 \subsection{Aim of this study}
 \label{sec_intro_aim}
 
-To demonstrate the potential of miniaturized bioprocess development, a total of 192 protein expressions and 264 whole-cell-biotransformations were performed in 4 sequential experiments.
+To demonstrate the potential of miniaturized bioprocess development, a total of 192 protein expressions and 264 whole-cell biotransformations were performed in 4 sequential experiments.
 The feed rate during protein expression and the inducer concentration were examined in a total of 42 different combinations.
 These two parameters were selected because they have been shown in the past to be critical for heterologous protein production \cite{neubauer2001expression,von2021automated}.
 
@@ -183,7 +185,7 @@ Through Bayesian modeling, we determined the biomass-specific and absolute enzym
 
 \subsection{Bacterial Strain}
 
-\textit{E. coli} K12 MG1655 RARE (\#61440 at Addgene, Watertown, USA) with a pETDuet plasmid with a carboxylase gene from \textit{Nocardia otitidiscaviarum} and a pyrophasphatase from \textit{E. coli} (EcPPase) under the control of a T7 Promoter \cite{weber2021production} kindly provided by Dörte Rother (Synthetic Enzyme Cascades, Research Centre Jülich, Jülich, Germany) was used for all cultivations.
+\textit{E. coli} K12 MG1655 RARE (\#61440 at Addgene, Watertown, USA) with a pETDuet plasmid with a carboxylase gene from \textit{Nocardia otitidiscaviarum} and a pyrophosphatase from \textit{E. coli} (EcPPase) under the control of a T7 Promoter \cite{weber2021production} kindly provided by Dörte Rother (Synthetic Enzyme Cascades, Forschungszentrum Jülich, Jülich, Germany) was used for all cultivations.
 The recombinant \textit{E. coli} cells were stored at -80 °C after mixing the cell suspension 1:1 with a 50~\% (v/v) glycerol solution.
 
 \subsection{Media}
@@ -194,7 +196,7 @@ Sterile-filtered ampicillin  was added aseptically after autoclaving of the LB-M
 
 All cultivations on the mL- and L-scales were carried out with a defined minimal medium \cite{riesenberg1991high}.
 The final concentrations in the medium were as follows:
-$8.4\ mg\ L^{-1}$ ethylene-diamine-tetra-acetic acid (EDTA), $8.4 mg\ L^{-1}$ $CoCl_{2}*6H_{2}O$, $15\ mg\ L^{-1} MnCl_{2}*4H_{2}O$, $1.5\ mg\ L^{-1} CuCl_{2}*2H_{2}O$, $3\ mg\ L^{-1} H_{3}BO_{3}$, $2.5\ mg\ L^{-1} Na_{2}MoO_{4}*2H_{2}O$, $13\ mg\ L^{-1} Zn(CH_{3}COO)_{2}*2H_{2}O$, $100\ mg\ L^{-1}$ Fe(III)citrate, $13.3\ g\ L^{-1} KH_{2}PO_{4}$, $4\ g\ L^{-1} (NH_{4})_{2}HPO_{4}$, $1.7\ g\ L^{-1}\ \mathrm{citric\ acid}*H_{2}O$, $2.4\ g\ L^{-1}$ NaOH, $1.2\ g\ L^{-1} MgSO_{4}*7H_{2}O$, $50\ mg\ L^{-1}$ ampicillin.
+$8.4\ mg\ L^{-1}$ ethylenediaminetetraacetic acid (EDTA), $8.4 mg\ L^{-1}$ $CoCl_{2}*6H_{2}O$, $15\ mg\ L^{-1} MnCl_{2}*4H_{2}O$, $1.5\ mg\ L^{-1} CuCl_{2}*2H_{2}O$, $3\ mg\ L^{-1} H_{3}BO_{3}$, $2.5\ mg\ L^{-1} Na_{2}MoO_{4}*2H_{2}O$, $13\ mg\ L^{-1} Zn(CH_{3}COO)_{2}*2H_{2}O$, $100\ mg\ L^{-1}$ Fe(III)citrate, $13.3\ g\ L^{-1} KH_{2}PO_{4}$, $4\ g\ L^{-1} (NH_{4})_{2}HPO_{4}$, $1.7\ g\ L^{-1}\ \mathrm{citric\ acid}*H_{2}O$, $2.4\ g\ L^{-1}$ NaOH, $1.2\ g\ L^{-1} MgSO_{4}*7H_{2}O$, $50\ mg\ L^{-1}$ ampicillin.
 The pH was not adjusted prior to addition to the bioreactor.
 The initial glucose concentration was $5\ g\ L^{-1}$.
 The feed medium consisted of $500\ g\ L^{-1}$ glucose with $12.5\ g\ L^{-1} MgSO_{4}$ in fed-batch processes on an L-scale.
@@ -204,7 +206,7 @@ For the experiment with the feed rates varied from 2-4 $g\ L^{-1}h^{-1}$ the fee
 For the experiment with the feed rates varied from 1 - $2\ g\ L^{-1} h^{-1}$ the feed medium consisted of $100\ g\ L ^{-1}$ glucose with $2.5\ g\ L^{-1} MgSO_{4}$.
 The varying feed concentrations were necessary to allow different feed rates with the same feed dosage frequency by the liquid handling system (LHS) without overfilling the mL-scale reactors.
 
-Prior to transfer of the cells from the L-scale to mL-scale, 0.5~\% (v/v) antifoam agent (Antifoam 204, Sigma-Aldrich / Merck KgaA, Darmstadt, Germany) was added aseptically.
+Prior to transfer of the cells from the L-scale to mL-scale, 0.5~\% (v/v) antifoam agent (Antifoam 204, Sigma-Aldrich / Merck KGaA, Darmstadt, Germany) was added aseptically.
 $MgSO_{4}*7H_{2}O$, glucose and ampicillin were added aseptically after autoclaving of the medium.
 $MgSO_{4}*7H_{2}O$ and glucose were autoclaved separately, ampicillin was sterile-filtered.
 
@@ -245,8 +247,8 @@ IPTG concentrations were calculated based on the initial reaction volume of 10 m
 To ensure sterile operation of the LHS, the pipetting needles of the LHS were washed with an aqueous solution of 70~\% (v/v) ethanol and with sterile filtered deionised water after each pipetting step.
 
 All tasks (substrate addition, pH control, inductor addition, sampling) were initiated by a priority-based scheduler which weighed the tasks based on their real-time priority to enable optimal process control when more than one task was eligible.
-The detailed description of the scheduler working principle, aim and software engineering may be found in Bromig \& von den Eichen et al.
-The priorities were $feed > inductor\ addition > sampling > pH control$.
+The detailed description of the scheduler working principle, aim and software engineering may be found in Bromig \& von den Eichen et al. \cite{von2021automated}.
+The priorities were feed $>$ inductor addition $>$ sampling $>$ pH control.
 
 \subsection{Analytical procedures}
 The cultivations on the L-scale were just followed by sensor data, whereas samples on the mL-scale generally were taken every hour by the LHS, with two exceptions:
@@ -265,20 +267,20 @@ The pellet was dried for at least 24 h at 80 °C before weighing.
 
 \subsection{Whole-Cell biotransformations}
 The used biotransformation procedure is adapted from Schwendenwein et al. \cite{schwendenwein2019random}.
-The whole-cell-biotransformations were conducted automatically at the end of the mL-scale processes in a deep-well-plate (DWP) with working volumes of 1 mL.
+The whole-cell biotransformations were conducted automatically at the end of the mL-scale processes in a deep-well-plate (DWP) with working volumes of 1 mL.
 The biotransformation consists of the conversion of 3-hydroxybenzoic acid to 3-hydroxybenzaldehyde.
 For detection purposes 2-amino benzamidoxime (ABAO) is added which reacts with the 3-hydroxybenzaldehyde formed in the biotransformations to 4-amino-2-(3-hydroxyphenyl)-1,2,3,4-tetrahydroquinazoline-3-oxide which can be measured photometrically at 360 nm.
 For all 48 sample positions, 25 µL cell broth from the stirred-tank bioreactors on the mL-scale were mixed with 250 µL 10 mM 3-Hydroxybenzoic acid dissolved in PBS, 500 µL minimal  medium (see section "Media") with $10\ g\ L^{-1}$ glucose and 225 µL PBS.
 For each sequential cultivation, three identical sets of calibration curves were generated.
 Each calibration set includes six different product concentrations.
-Basically, the educt solution (3-hydroxybenzoic acid) was replaced with different amounts of the product solution (12 mM 3-hydroxybenzoic aldehyd dissolved in PBS) to achieve a final product concentration in the DWP ranging from 0 to 3 mM.
+Basically, the educt solution (3-hydroxybenzoic acid) was replaced with different amounts of the product solution (12 mM 3-hydroxybenzoic aldehyde dissolved in PBS) to achieve a final product concentration in the DWP ranging from 0 to 3 mM.
 To have identical volumes in all calibration wells, the wells were filled up to 1 mL with PBS after the addition of cell solution and mineral medium.
 The biomass for all calibration samples was aspirated from the first (A1) bioreactor position of the respective experiment.
-All solutions required for the whole-cell-biotransformations were prepared freshly for each experiment.
+All solutions required for the whole-cell biotransformations were prepared freshly for each experiment.
 
 After preparing the initial reaction mixture for the biotransformations, the deep-well-plate was shaken at 35 °C and 1000 rpm (Hamilton Heater Shaker, Hamilton Bonaduz AG, Switzerland).
-Every 1.1 hours, 50 µL of all positions (48 sample positions and 18 calibration positions) was transferred to a microtiter plate and mixed with 50 µL ABAO-Solution.
-The ABAO solution consisted of 10 mM ABAO dissolved in sodium acetate buffer ($3.69\ g\ L^{-1}$ sodium acetat, 3.15~\% (v/v) acetic acid, 5~\% (v/v) dimethyl sulfoxide, pH 4.5).
+Every 1.1 hours, 50 µL of all positions (48 sample positions and 18 calibration positions) was transferred to a microtiter plate and mixed with 50 µL ABAO solution.
+The ABAO solution consisted of 10 mM ABAO dissolved in sodium acetate buffer ($3.69\ g\ L^{-1}$ sodium acetate, 3.15~\% (v/v) acetic acid, 5~\% (v/v) dimethyl sulfoxide, pH 4.5).
 Afterwards, the microtiter plate was incubated at room temperature for 45 minutes and measured photometrically at 360 nm and 600 nm in a microtiter plate reader (Synergy HTX, Biotek, Winooski, USA).
 The microtiter plate was washed with a microtiter plate washer (405 LS, Biotek, Winooski, USA) operated by the LHS.
 The sample liquids were initially aspirated and discarded followed by three dispensing and aspiration steps with 300 µL deionised water with 0.1~\% (v/v) tween (Tween 20, Amresco, Solon, USA).
@@ -291,7 +293,7 @@ A total of 5 measurements including a measurement directly after biotransformati
 The dataset exported from the laboratory automation platform was processed into a set of tabular \texttt{DataFrame} structures using \texttt{pandas} \cite{pandasSoftware,pandasPaper}.
 Every unique combination of glucose feed rate and IPTG concentration was assigned a unique identifier (\texttt{design\_id}) for identification inside the model.
 Likewise, every biotransformation reaction was assigned a \texttt{replicate\_id}.
-The association between all experimental designs, whole-cell-biotransformation reactions and relevant metainformation such as assay well positions was tracked in a tabular form ("df\_layout" sheet in \texttt{dataset.xlsx}).
+The association between all experimental designs, whole-cell biotransformation reactions and relevant meta information such as assay well positions was tracked in a tabular form ("df\_layout" sheet in \texttt{dataset.xlsx}).
 Reference wells of known product concentration were equally included in the dataset, hence the layout table includes a sparse column for known product concentrations.
 Measurements of absorbance at 360 nm and 600~nm, respectively, were kept in separate tables ("df\_360" and "df\_600" in \texttt{dataset.xlsx}), organized by the previously assigned \texttt{replicate\_id}.
 
@@ -299,7 +301,7 @@ A generative hierarchical Bayesian model of the experimental process was built u
 It resembles the data generating process from experimental design via performance metrics and experimental effects to concentration trajectories and eventually predicting the resulting observations.
 A detailed explanation of the model will be presented in Results and Discussion.
 Posterior samples were obtained by MCMC sampling with the No-U-turn-Sampler (NUTS) implemented in PyMC.
-Diagnostics and visualizations were prepared using ArviZ and matplotlib \cite{arviz,arvizPaper,matplotlib,matplotlibPaper} and probabilities were calculated from posterior samples using pyrff \cite{pyrff}.
+Diagnostics and visualizations were prepared using ArviZ and matplotlib \cite{arviz,arvizPaper,matplotlib,matplotlibPaper} and probabilities were calculated from posterior samples using \texttt{pyrff}~\cite{pyrff}.
 
 
 \section{Results and Discussion}
@@ -308,7 +310,7 @@ Diagnostics and visualizations were prepared using ArviZ and matplotlib \cite{ar
 \subsection{Experimental design}
 
 Two variables were investigated during four parallel experiments, the glucose feed rate and the inducer concentration at the mL-scale.
-In total, 42 unique combinations of inducer concentration (IPTG) and feed rate (Fig. 1) were investigated with 4 to 8 biological replicates per unique combination.
+In total, 42 unique combinations of inducer concentration (IPTG) and feed rate (Fig.~\ref{fig_expdesign}) were investigated with 4 to 8 biological replicates per unique combination.
 For controlling of the sequential reproducibility of the mL-scale experiments, the reaction conditions at the feed rate of 
 $2\ g\ L^{-1}h^{-1}$ were investigated twice in two sequential experiments.
 
@@ -362,10 +364,10 @@ This may be due to the starvation period between intermittent glucose additions 
 \end{figure}
 
 
-After process start, the DO rises to about 90~\% air saturation (Fig 3.).
+After process start, the DO rises to about 90~\% air saturation (Fig.~\ref{fig_o2overview}.).
 After that, the DO drops to about 40-60~\% air saturation after each substrate addition with a step-time of \~10 min followed by an increase after a few minutes due to the consumption of the glucose added intermittently.
 After several hours process time, the DO drop seems to be proportional to the glucose feed rate, i.e. the DO minimum after each substrate addition is approximately 40~\% at a feed rate of 4.8 $ g\ L^{-1} h^{-1}$ compared to 60~\% at a feed rate of 1 $ g\ L^{-1} h{-1}$.
-This is probably caused by the higher biomass density at a higher feed rate (see Fig. 2).
+This is probably caused by the higher biomass density at a higher feed rate (see Fig.~\ref{fig_btmoverview}).
 During the first hour at a feed rate of $4.8\ g\ L^{-1} h^{-1}$, there is no increase of the DO signal indicating no limiting substrate concentrations between the substrate additions.
 The initially reduced metabolic activity of the recombinant \textit{E. coli} observed at the highest feed rate may be caused by adapting of the cells to the new cultivation temperature (37 °C in the L-scale, 30 °C in the mL-scale).
 
@@ -384,7 +386,7 @@ The initially reduced metabolic activity of the recombinant \textit{E. coli} obs
 \end{figure}
 
 The pH-setpoint for the proportional controller was pH 7.0.
-Due to the nature of a proportional controller, a small deviation (~ pH 0.1) from the setpoint was observed (Fig. 4).
+Due to the nature of a proportional controller, a small deviation (approx. pH 0.1) from the setpoint was observed (Fig.~\ref{fig_pHoverview}).
 Apart from that, the pH oscillates due to the intermittent pH correction by the LHS and the intermittent metabolic activity of the cells due to the intermittent feeding \cite{kim2004high}.
 Overall, the pH was tightly controlled at about pH 6.9.
 The small pH deviations from that value will most likely be too small to have biological impact on \textit{E. coli} growth \cite{presser1997modelling,gale1942effect}.
@@ -399,10 +401,10 @@ From the biotransformation in the Deep-Well-Plate (DWP) Samples were taken every
 A sophisticated data analysis workflow is needed to gain quantitative insight from a dataset that is not only heterogeneous due to the number of investigated conditions and observed variables, but also grows over time as more experiments are conducted.
 The goal is to quantify metrics that characterize the performance of the whole-cell biocatalysts produced at varying process conditions.
 Most importantly, these metrics must be independent of individual experimental batches to avoid drawing incorrect conclusions from "golden batch" effects.
-Also, the metrics and the uncertainty around them must be inter- and extrapolated towards yet untested process conditions.
+Also, the metrics and the uncertainty about them must be inter- and extrapolated towards yet untested process conditions.
 On the other hand, the analysis must deal with a variety of experimental effects that inevitably occur in the automated testing workflow:
-(a) The initial CDW concentration in all whole-cell biotransformations and reference wells of the DWP depends on the feed rate applied in the previous fed-batch processes (Fig. 5).
-(b) The \textit{E. coli} cells continue to grow during the 5~h biotransformation, but the growth rate depends on the product concentration (Fig. 5).
+(a) The initial CDW concentration in all whole-cell biotransformations and reference wells of the DWP depends on the feed rate applied in the previous fed-batch processes (Fig.~\ref{fig_a600kinetics}).
+(b) The \textit{E. coli} cells continue to grow during the 5~h biotransformation, but the growth rate depends on the product concentration (Fig.~\ref{fig_a600kinetics}).
 (c) The biomass contributes to absorbance at 360~nm such that product concentration can not be measured independently.
 
 \begin{figure}[h]
@@ -424,7 +426,7 @@ In the following sections, we will introduce various components of and results f
 
 \subsubsection{Biomass concentration}
 
-A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig. 6, 7).
+A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig.~\ref{fig_cmXA360},~\ref{cmXA600}).
 
 \begin{figure}[h]
     \centering
@@ -454,7 +456,7 @@ The models explain the observations reasonably well, even outside the experiment
 \subsubsection{Product concentration}
 The ABAO reaction was performed to quantify 3-hydroxy benzaldehyde.
 The absorbance of its reaction product was measured at 360~nm in all assays.
-A separate calibration dataset was obtained by performing the assay procedure with reference samples of known 3-hydroxy benzaldehyde concentrations (Fig. 8).
+A separate calibration dataset was obtained by performing the assay procedure with reference samples of known 3-hydroxy benzaldehyde concentrations (Fig.~\ref{fig_cmPA360}).
 Reference samples were prepared without biomass and with different amounts of acetic acid to exclude biomass absorbance, and investigate pH robustness of the method.
 
 A linear calibration model $\phi_\mathrm{cm,P,360\ nm}$ with heteroscedastic, normally distributed observation noise was fitted to the 360~nm measurements of product calibration samples.
@@ -464,7 +466,7 @@ A linear calibration model $\phi_\mathrm{cm,P,360\ nm}$ with heteroscedastic, no
     \includegraphics[width=1.0\textwidth]{figures/cm_product_A360.png}
     \caption{
         \textbf{Product calibration at 360 nm:}
-        In the observed range, the absorbances at 360~nm (blue dots) followed a linear trend in dependence on the 3-hydroxy benzaldehyde concentration.
+        In the observed range, the absorbance at 360~nm (blue dots) followed a linear trend in dependence on the 3-hydroxy benzaldehyde concentration.
         The model was built from a \texttt{calibr8.BasePolynomialModelN} model with \texttt{mu\_degree=1} and \texttt{scale\_degree=1}.
     }
     \label{fig_cmPA360}
@@ -478,7 +480,7 @@ For code and Jupyter notebooks that can be executed to reproduce this analysis w
 This model closely resembles the biotechnological process that generated the dataset, therefore we call it \textit{process model} henceforth.
 Starting from input parameters such as specific biotransformation activity, random effects or dependence of final 10~mL reactor CDW concentration on glucose feed rate, the process model simulates CDW and 3-hydroxy benzaldehyde concentrations in each biotransformation well across all experiments.
 
-\ref{tab_abbreviations} summarizes the symbols, meaning and units used in the context of the process model.
+Tab.~\ref{tab_abbreviations} summarizes the symbols, meaning and units used in the context of the process model.
 
 
 \begin{table}[h]
@@ -495,8 +497,8 @@ MBR & n.a. & macro bioreactor\\
 DWP & n.a. & deep-well plate\\
 $\phi_{cm}$ & n.a. & calibration model\\
 $\phi_{pm}$ & n.a. & process model\\
-$X$ & $\frac{g_{CDW}}{L}$ & biomass concentration\\
-$P$ & $\frac{mmol}{L}$ & 3-hydroxy benzaldehyde concentration\\
+$X$ & $g_{CDW}\ L^{-1}$ & biomass concentration\\
+$P$ & $mmol\ L^{-1}$ & 3-hydroxy benzaldehyde concentration\\
 $A_{... nm}$ & a.u. & absorbance at wavelength ...\\
 $\mu_X$, $\mu_P$ & a.u. & mean of absorbance readouts expected from biomass/product\\
 $\sigma_X$, $\sigma_P$ & a.u. & standard deviation of absorbance readouts from biomass/product\\
@@ -505,37 +507,38 @@ $\ell$ & - & lengthscale of fluctuations in dependence on $d$\\
 $GP$ & n.a. & Gaussian process distribution\\
 $d$ & - & $log_{10}$ of the process design (feed rate, IPTG conc. or both)\\
 $k(d, d')$ & n.a. & Covariance function to obtain the kernel of a Gaussian process\\
-$s$ & $\frac{1}{h}/\frac{g_{CDW}}{L}$ & Specific biocatalyst rate constant\\
-$k$ & $\frac{1}{h}$ & Absolute biocatalyst rate constant ($\frac{n_{product}}{n_{substrate}}/h$)\\
+$s$ & $h^{-1}/(g_{CDW}\ L^{-1})$ & Specific biocatalyst rate constant\\
+$k$ & $h^{-1}$ & Absolute biocatalyst rate constant ($\frac{n_{product}}{n_{substrate}}\ h^{-1}$)\\
 \botrule
     \end{tabular}
     \end{minipage}
     \end{center}
 \end{table}
 
-A likelihood needed for parameter inference by Markov-chain Monte Carlo (MCMC) is created from process model predictions and observed absorbances according to relationships described by the separately fitted calibration models $\phi_\mathrm{cm,X,600\ nm}$, $\phi_\mathrm{cm,X,360\ nm}$ and $\phi_\mathrm{cm,P,360\ nm}$.
+A likelihood needed for parameter inference by Markov-chain Monte Carlo (MCMC) is created from process model predictions and observed absorbance according to relationships described by the separately fitted calibration models $\phi_\mathrm{cm,X,600\ nm}$, $\phi_\mathrm{cm,X,360\ nm}$ and $\phi_\mathrm{cm,P,360\ nm}$~\eqref{eq_likelihood}.
 At 600~nm this is the likelihood of the observed data given the predicted CDW concentration $X$.
-At 360~nm however, both biomass $X$ and ABAO reaction product absorb and therefore the sum of their absorbances needs to be taken into account for the likelihood.
+At 360~nm however, both biomass $X$ and ABAO reaction product absorb and therefore the sum of their absorbance needs to be taken into account for the likelihood.
 
 Note that while it is the ABAO reaction product that contributes absorbance at 360~nm we performed the ABAO assay calibration with known 3-hydroxy benzaldehyde concentrations, so the corresponding model $\phi_\mathrm{cm,P,360\ nm}$ describes 360~nm ABAO reaction product absorbance as a function of 3-hydroxy benzaldehyde concentration.
 For simplicity, we therefore use the symbol $P$ to refer to the product of interest concentration: 3-hydroxy benzaldehyde in the biotransformation solution.
 
 \begin{equation}
-\label{eq_likelihood}
-\begin{aligned}
-    \mathcal{L_\Pi} &= \mathcal{L}_\mathrm{600\ nm}(\mathrm{A_{600\ nm}} \mid \mathrm{A_{600\ nm,obs}}) \cdot \mathcal{L}_\mathrm{360\ nm}(\mathrm{A_{360\ nm}} \mid \mathrm{A_{360\ nm,obs}}) \\
+    \begin{aligned}
+        \mathcal{L}_{\Pi} =&\ \mathcal{L}_\mathrm{600\ nm}(\mathrm{A_{600\ nm}} \mid \mathrm{A_{600\ nm,obs}}) \\
+                   \cdot&\ \mathcal{L}_\mathrm{360\ nm}(\mathrm{A_{360\ nm}} \mid \mathrm{A_{360\ nm,obs}}) \\
     \textrm{where} \\
-    \mathrm{A_{600\ nm}} &\sim Normal(\mathrm{\mu_{X,600\ nm}}, \mathrm{\sigma_{X,600\ nm}}) \\
-    (\mathrm{\mu_{X,600\ nm}}, \mathrm{\sigma_{X,600\ nm}}) &= \phi_\mathrm{cm,X,600\ nm}(X) \\
-    \mathrm{A_{360\ nm}} &\sim Normal(\mathrm{\mu_{360\ nm}}, \mathrm{\sigma_{360\ nm}}) \\
-    \mathrm{\mu_{360\ nm}} &= \mathrm{\mu_{X,360\ nm}} + \mathrm{\mu_{P,360\ nm}} \\
-    \mathrm{\sigma_{360\ nm}} &= \sqrt{\mathrm{\sigma_{X,360\ nm}}^2 + \mathrm{\sigma_{P,360\ nm}}^2} \\
-    (\mathrm{\mu_{X,360\ nm}}, \mathrm{\sigma_{X,360\ nm}}) &= \phi_\mathrm{cm,X,360\ nm}(\mathrm{\vec{X}_{\vec{t},\vec{replicate}}}) \\
-    (\mathrm{\mu_{P,360\ nm}}, \mathrm{\sigma_{P,360\ nm}}) &= \phi_\mathrm{cm,P,360\ nm}(\mathrm{\vec{P}_{\vec{t},\vec{replicate}}}) \\
+    \mathrm{A_{600\ nm}} \sim&\ Normal(\mathrm{\mu_{X,600\ nm}}, \mathrm{\sigma_{X,600\ nm}}) \\
+    (\mathrm{\mu_{X,600\ nm}}, \mathrm{\sigma_{X,600\ nm}}) =&\ \phi_\mathrm{cm,X,600\ nm}(X) \\
+    \mathrm{A_{360\ nm}} \sim&\(\) Normal(\mathrm{\mu_{360\ nm}}, \mathrm{\sigma_{360\ nm}}) \\
+    \mathrm{\mu_{360\ nm}} =&\ \mathrm{\mu_{X,360\ nm}} + \mathrm{\mu_{P,360\ nm}} \\
+    \mathrm{\sigma_{360\ nm}} =&\ \sqrt{\mathrm{\sigma_{X,360\ nm}}^2 + \mathrm{\sigma_{P,360\ nm}}^2} \\
+    (\mathrm{\mu_{X,360\ nm}}, \mathrm{\sigma_{X,360\ nm}}) =&\ \phi_\mathrm{cm,X,360\ nm}(\mathrm{\vec{X}_{\vec{t},\vec{replicate}}}) \\
+    (\mathrm{\mu_{P,360\ nm}}, \mathrm{\sigma_{P,360\ nm}}) =&\ \phi_\mathrm{cm,P,360\ nm}(\mathrm{\vec{P}_{\vec{t},\vec{replicate}}}) \\
 \end{aligned}
+\label{eq_likelihood}
 \end{equation}
 
-The above observation model applies to biomass $X$ and 3-hydroxy benzaldehyde concentration $P$ \textit{at every time point}, \textit{in every replicate} of either a biotransformation reaction or reference sample.
+The above observation model applies to biomass $X$ and 3-hydroxy benzaldehyde concentration $P$ \textit{at every time point}, \textit{in every replicate} of either a biotransformation reaction or reference sample~\eqref{eq_XandP}.
 Reference wells of known product concentrations, but without 3-hydroxy benzoic acid are also included in the model, albeit with the assumption that the 3-hydroxy benzaldehyde concentration remains constant over time.
 
 \begin{equation}
@@ -543,13 +546,14 @@ Reference wells of known product concentrations, but without 3-hydroxy benzoic a
     \mathrm{\vec{X}_{\vec{t},\vec{replicate}}} &= \{ \mathrm{\vec{X}_{\vec{t},\vec{reference}}}, \mathrm{\vec{X}_{\vec{t},\vec{DWP}}}\} \\
     \mathrm{\vec{P}_{\vec{t},\vec{replicate}}} &= \{ \mathrm{\vec{P}_{(\vec{t}),\vec{reference}}}, \mathrm{\vec{P}_{\vec{t},\vec{DWP}}}\} \\
 \end{aligned}
+\label{eq_XandP}
 \end{equation}
 
 The process model to describe these \textit{per replicate} and \textit{per time point} concentrations is described in the following sections.
 
 Since almost all process model variables are vectors or matrices, we denote dimensions by subscripts with arrows.
 For example, the notation $\vec{X}_{\vec{t},\vec{DWP}}$ or $\vec{P}_{\vec{t},\vec{DWP}}$ should be interpreted as 2-dimensional variables (matrices) with entries for each combination of time point and DWP well.
-The meanings of dimension symbols is summarized in \ref{tab_dimensions}.
+The meanings of dimension symbols is summarized in Tab.~\ref{tab_dimensions}.
 
 
 \begin{table}[h]
@@ -588,7 +592,7 @@ A universally applicable activity metric, that can be interpreted independently 
 Therefore, the model must additionally describe biomass in a way that excludes random experimental batch effects.
 The first process stage at which such an experiment-independent prediction is needed, is the final biomass concentration of the 1~L batch cultivation.
 
-Concretely, we describe the per-experiment final biomass concentration at the 1~L scale as a LogNormal-distributed variable called $\mathrm{\vec{X}_{end,\vec{BTR}}}$ with an entry for each experimental run.
+Concretely, we describe the per-experiment final biomass concentration at the 1~L scale as a LogNormal-distributed variable called $\mathrm{\vec{X}_{end,\vec{BTR}}}$ with an entry for each experimental run~\eqref{eq_XendBTR}.
 To obtain an experiment-independent prediction, we introduced $\mathrm{X_{end,batch}}$ as a \textit{group mean prior}, also known as a \textit{hyperprior}, around which the $\mathrm{\vec{X}_{end,\vec{BTR}}}$ is centered.
 The prior on $\mathrm{X_{end,batch}}$ is weakly (large $\sigma$) centered at $0.5\ g/L$, whereas actual batches should only deviate from that group mean by about $5\ \%$.
 
@@ -597,6 +601,7 @@ The prior on $\mathrm{X_{end,batch}}$ is weakly (large $\sigma$) centered at $0.
     \mathrm{X_{end,batch}} &\sim LogNormal(\mu=ln(0.5), \sigma=0.5)\\
     \mathrm{\vec{X}_{end,\vec{BTR}}} &\sim LogNormal(\mu=ln(\mathrm{X_{end,batch}}), \sigma=0.05)
 \end{aligned}
+\label{eq_XendBTR}
 \end{equation}
 
 This hierarchical structure is a common motif in Bayesian modeling since it enables a model to learn variables that are essential to the process understanding (here: $\mathrm{X_{end,batch}}$) while retaining the ability to describe the fine-grained structure of the experimental data (here: $\mathrm{\vec{X}_{end,\vec{BTR}}}$).
@@ -607,12 +612,12 @@ The second process stage in the biomass seed train is the enzyme expression in a
 Every 10~mL stirred-tank reactor was inoculated with culture broth from a 1~L reactor, hence a mapping $f_\mathrm{\vec{BTR} \rightarrow \vec{MBR}}$ yields initial biomass concentrations $\mathrm{\vec{X}_{start,\vec{MBR}}}$ by sub-indexing the $\mathrm{\vec{X}_{end,\vec{BTR}}}$ variable.
 The experimental design of the fed-batches comprised varying glucose feed rates and IPTG concentrations.
 It is plausible to assume a dependence of the final biomass concentration $\mathrm{\vec{X}_{end,\vec{MBR}}}$ on the glucose feed rate.
-Without any mechanistic assumptions, we lump the final biomass concentration per 1~mL-scale reactor as the product of initial biomass concentration with a positive factor $\mathrm{\vec{X}_{factor,\vec{glc}}}$ that depends on the glucose feed rate.
-Dependence of $\mathrm{\vec{X}_{factor,\vec{glc}}}$ on the glucose feed rate is modeled by a Gaussian process such that our model can also interpolate and make predictions for new glucose feed rate settings.
+Without any mechanistic assumptions, we lump the final biomass concentration per 1~mL-scale reactor as the product of initial biomass concentration with a positive factor $\mathrm{\vec{X}_{factor,\vec{glc}}}$ that depends on the glucose feed rate~\eqref{eq_XfactorGP}.
+Dependence of $\mathrm{\vec{X}_{factor,\vec{glc}}}$ on the glucose feed rate is modeled by a Gaussian process \eqref{eq_XfactorGP} such that our model can also interpolate and make predictions for new glucose feed rate settings.
 
-Formally, a GP is an uncountable sequence of random variables, any subset of which follows a multivariate normal (also known as "gaussian") distribution \cite{gpdefinition}.
+Formally, a GP is an uncountable sequence of random variables, any subset of which follows a multivariate normal (also known as "Gaussian") distribution \cite{gpdefinition}.
 For understanding our model, however, it is sufficient to think of GPs as a probability distribution of \textit{functions} that fluctuate with some lengthscale and variance.
-Here, this distribution over functions is used, because the model muest describe $\vec{s}_{\vec{design}}$ as a function of the glucose feed rate $\vec{D}_{\vec{design}}$, but we are uncertain which function would be appropriate.
+Here, this distribution over functions is used, because the model must describe $\vec{s}_{\vec{design}}$ as a function of the glucose feed rate $\vec{D}_{\vec{design}}$, but we are uncertain which function would be appropriate.
 
 \begin{equation}
 \begin{aligned}
@@ -625,18 +630,19 @@ Here, this distribution over functions is used, because the model muest describe
     \sigma &\sim LogNormal(ln(0.3), 0.1) \\
     \ell &\sim LogNormal(ln(0.34), 0.1)
 \end{aligned}
+\label{eq_XfactorGP}
 \end{equation}
 
 The Gaussian process was parametrized by a mean function of $0$, thereby centering the prior for $\mathrm{\vec{X}_{factor,\vec{glc}}}$ around $1$.
 For the covariance function we chose a scaling parameter $\sigma$ such that the prior variance for the factor is around $\pm30\ \%$.
-The prior for $\ell$ in the exponential quadratic kernel encodes a belief that $\mathrm{\vec{X}_{factor,\vec{glc}}}$ varies smoothly on a lengthscale of around half of the (logarithmic) design space.
+The prior for $\ell$ in the exponential quadratic kernel encodes a belief that $\mathrm{\vec{X}_{factor,\vec{glc}}}$ varies smoothly on a lengthscale of around half of the (logarithmic) design space~(Fig.~\ref{fig_gpXfactor}).
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/plot_gp_X_factor.png}
     \caption{
         \textbf{Prior and posterior of feedrate-dependent final fed-batch biomass concentration:}
-        Before observing the data (prior, left) the model predicts a broad distribution of functions (thin lines) that could describe the relationship between feed rate and final fedbatch biomass concentration.
+        Before observing the data (prior, left) the model predicts a broad distribution of functions (thin lines) that could describe the relationship between feed rate and final fed-batch biomass concentration.
         After observing the data (posterior, right), the final biomass turned out lower than expected, but the distribution of possible relationships is much narrower.
         Only outside the experimentally investigated range of $1.0-4.8\ g\ L^{-1}$ the uncertainty increases again.
     }
@@ -644,10 +650,10 @@ The prior for $\ell$ in the exponential quadratic kernel encodes a belief that $
 \end{figure}
 
 The third and final process stage is the biotransformation.
-Here, the initial biomass concentration in every replicate well of the DWP $\mathrm{\vec{X}_{0,\vec{replicate}}}$ equals the final biomass concentration from a corresponding 10~mL reactor.
+Here, the initial biomass concentration in every replicate well of the DWP $\mathrm{\vec{X}_{0,\vec{replicate}}}$ equals the final biomass concentration from a corresponding 10~mL reactor~\eqref{eq_Xrandomwalk}.
 The biomass concentration continued to change over the course of the biotransformation, because the solution also contained glucose as a carbon source.
 Inspired by the $\mu(t)$ method described in \cite{bletlPaper} we account for this biomass growth during the biotransformation with a Gaussian random walk of the discretized growth rate $\vec{\mu}_{\vec{t},\vec{replicate}}$.
-The result are biomass concentrations for every replicate well and measurement cycle $\mathrm{\vec{X}_{\vec{t},\vec{replicate}}}$.
+The result are biomass concentrations for every replicate well and measurement cycle $\mathrm{\vec{X}_{\vec{t},\vec{replicate}}}$~\eqref{eq_Xrandomwalk}.
 
 \begin{equation}
 \begin{aligned}
@@ -655,6 +661,7 @@ The result are biomass concentrations for every replicate well and measurement c
     \mathrm{\vec{X}_{t \ge 1,\vec{replicate}}} &= \mathrm{\vec{X}_{0,\vec{replicate}}} \cdot e^{cumsum(\vec{\mu}_{\vec{t},\vec{replicate}} \cdot \vec{dt}_{\vec{t},\vec{replicate}})}\\
     \vec{\mu}_{\vec{t},\vec{replicate}} &\sim GaussianRandomWalk(\sigma=0.1) \\
 \end{aligned}
+\label{eq_Xrandomwalk}
 \end{equation}
 
 
@@ -664,7 +671,7 @@ The result are biomass concentrations for every replicate well and measurement c
 Next to biomass, the second important contributor to observed absorbance is the 3-hydroxy benzaldehyde concentration $\mathrm{\vec{P}_{\vec{t},\vec{replicate}}}$ that reacted with ABAO.
 In the reference samples this concentration $\vec{P}_{(\vec{t}),\vec{reference}}$ is known and assumed to be constant.
 For the remaining wells it is the reaction product concentration of the biotransformation $\mathrm{\vec{P}_{\vec{t},\vec{DWP}}}$.
-Here we assume an initial product concentration $P_0=0$ and model the biotransformation reaction as a 1st order reaction starting from a global initial benzoic acid concentration $S_0$ with a rate constant $\vec{k}_{0,\vec{DWP}}$.
+Here we assume an initial product concentration $P_0=0$ and model the biotransformation reaction as a 1st order reaction \eqref{eq_productformation} starting from a global initial benzoic acid concentration $S_0$ with a rate constant $\vec{k}_{0,\vec{DWP}}$.
 
 \begin{equation}
 \begin{aligned}
@@ -672,12 +679,13 @@ Here we assume an initial product concentration $P_0=0$ and model the biotransfo
     \vec{t}_\mathrm{actual,\vec{DWP}} &= \vec{t}_\mathrm{recorded,\vec{DWP}} + t_\mathrm{delay} \\
     t_\mathrm{delay} &\sim HalfNormal(\sigma = 0.1)
 \end{aligned}
+\label{eq_productformation}
 \end{equation}
 
-This well-wise rate coefficient $\vec{k}_{\vec{t},\vec{DWP}}\ [h^{-1}]$ depends on three factors.
+This well-wise rate coefficient $\vec{k}_{\vec{t},\vec{DWP}}\ [h^{-1}]$ from \eqref{eq_productformation} depends on three factors.
 The first is the concentration of the whole-cell biocatalyst $\vec{X}_{\vec{t},\vec{DWP}}\ [g_{CDW}/L]$ as obtained from the biomass model described above.
 The second factor is the biocatalyst' specific rate coefficient $\vec{s}_\mathrm{\vec{design}}\ [\frac{1}{h} / \frac{g_{CDW}}{L}]$ that depends on the experimental design of the expression phase.
-The third factor is a batch-wise random effect $\vec{F}_{\vec{BTR}}\ [-]$ to account remaining experimental variability.
+The third factor is a batch-wise random effect $\vec{F}_{\vec{BTR}}\ [-]$ to account remaining experimental variability~\eqref{eq_kdwp}.
 
 \begin{equation}
 \begin{aligned}
@@ -687,35 +695,40 @@ The third factor is a batch-wise random effect $\vec{F}_{\vec{BTR}}\ [-]$ to acc
     f_1 &: \vec{design} \rightarrow \vec{DWP} \\
     f_2 &: \vec{BTR} \rightarrow \vec{DWP} \\
 \end{aligned}
+\label{eq_kdwp}
 \end{equation}
 
 For the overall bioprocess optimization study we were interested in two quantities:
 Design-wise specific rate coefficients $\vec{s}_{\vec{design}}$ and an experiment-independent initial rate coefficient $\vec{k}_{0,\vec{design}}$ that accounts for the biomass concentration resulting from the fed-batch expression.
 The $\vec{s}_{\vec{design}}$ parameter is part of the above equation and modeled by a two-dimensional Gaussian process to allow for inter- and extrapolation to new experimental designs.
 
-$\vec{s}_{\vec{design}}$ is strictly positive and we expect it around $0.1-0.8\ [h^{-1}]$.
-The model outlined below achieves both properties by describing a Gaussian process (GP) for $ln(\vec{s}_{\vec{design}})$ and assigning a corresponding prior for the kernel variance $\sigma$.
+$\vec{s}_{\vec{design}}$ is strictly positive, and we expect it around $0.1-0.8\ [h^{-1}]$.
+The model outlined in \eqref{eq_sdesignGP} achieves both properties by describing a Gaussian process (GP) for $ln(\vec{s}_{\vec{design}})$ and assigning a corresponding prior for the kernel variance $\sigma$.
 The prior for lengthscales $\vec{\ell}$ was centered on the half of the $log_{10}$ range (upper minus lower bound) of the design space.
 A similar structure was used earlier for the $\mathrm{\vec{X}_{factor,\vec{glc}}}$ variable in the upstream biomass model.
 
 \begin{equation}
 \begin{aligned}
-    ln(\vec{s}_{\vec{design}}) &= f_{\vec{log\ s}_{\vec{design}}}(log_{10}(\vec{D}_{\vec{design}})) \\
-    f_{\vec{log\ s}_{\vec{design}}}(d) &\sim GP(0, k(d,d')) \\
+    \vec{s}_{\vec{design}} &= \mu_{s_{\vec{design}}} \cdot \vec{F}_{s_{\vec{design}}} \\
+    \vec{\mu}_{s_{\vec{design}}} &\sim LogNormal(ln(0.75), 0.3) \\
+    ln(\vec{F}_{s_{\vec{design}}}) &= f_\mathcal{GP}( log_{10}(\vec{D}_{\vec{design}}) ) \\
+    f_\mathcal{GP}(d) &\sim \mathcal{GP}(0, k(d, d')) \\
     k(d,d') &= \sigma^2 \cdot e^{-\frac{(d-d')^2}{2\vec{\ell}^2}} \\
     \sigma &\sim LogNormal(ln(0.7), 0.2) \\
     \vec{\ell} &\sim LogNormal(ln(\mathrm{\vec{range}}), 0.1) \\
     \vec{\mathrm{range}} &= (0.681, 2.125)^T
 \end{aligned}
+\label{eq_sdesignGP}
 \end{equation}
 
-Finally, the initial rate coefficient metric $\vec{k}_{0,\vec{design}}\ [h^{-1}]$ is derived from model parameters that do not depend on batch/reactor/replicate-specific variables:
+Finally, the initial rate coefficient metric $\vec{k}_{0,\vec{design}}\ [h^{-1}]$ is derived from model parameters that do not depend on batch/reactor/replicate-specific variables~\eqref{eq_metrics}.
 
 \begin{equation}
 \begin{aligned}
     \vec{k}_{0,\vec{design}} &= \vec{s}_{\vec{design}} \cdot \mathrm{\vec{X}_{end,\vec{design}}} \\
     \mathrm{\vec{X}_{end,\vec{design}}} &= \mathrm{X_{end,batch}} \cdot \mathrm{\vec{X}_{factor,\vec{glc}}}
 \end{aligned}
+\label{eq_metrics}
 \end{equation}
 
 
@@ -723,10 +736,10 @@ Finally, the initial rate coefficient metric $\vec{k}_{0,\vec{design}}\ [h^{-1}]
 The previous three chapters outlined how trajectories of CDW concentration Section \ref{sec_biomass_model} and product concentration (Section \ref{sec_product_model}) were predicted and how these trajectories were fed into the three calibration models (Section \ref{sec_calibrations}) relating them to observed data.
 Because this entire model was implemented as a symbolic computation graph, the PyMC and Aesara frameworks can auto-differentiate the likelihood \eqref{eq_likelihood} to obtain gradients needed for efficient MCMC sampling (Section \ref{sec_mm_computational}).
 
-After MCMC-sampling of the process model parameters, a variety of diagnostics, predictions and visualizations were prepared from the result.
-Similar to the posterior predictive distribution of the biomass/feed rate relationship (Figure 9), the 2-dimensional Gaussian process component of the model was used to predict inter- and extrapolated specific biotransformation activity in dependence on the experimental design parameters.
-The visualization of the specific activity relationships posterior distribution (Figure 10) exhibits a peak at low glucose feed rates and high IPTG concentrations.
-Generally, the specific activity is higher for high IPTG concentrations, but at least for high glucose feed rates where more experimental data are available (see Fig. 1) we observed the IPTG concentration to saturate at $\approx 10^{0.5} \mu M$.
+After MCMC sampling of the process model parameters, a variety of diagnostics, predictions and visualizations were prepared from the result.
+Similar to the posterior predictive distribution of the biomass/feed rate relationship (Fig.~\ref{fig_gpXfactor}), the 2-dimensional Gaussian process component of the model was used to predict inter- and extrapolated specific biotransformation activity in dependence on the experimental design parameters.
+The visualization of the specific activity relationships posterior distribution (Fig.~\ref{fig_3Dsdesign}) exhibits a peak at low glucose feed rates and high IPTG concentrations.
+Generally, the specific activity is higher for high IPTG concentrations, but at least for high glucose feed rates where more experimental data are available (see Fig.~\ref{fig_expdesign}) we observed the IPTG concentration to saturate at $\approx 10^{0.5} \mu M$.
 This observation is in line with a previous study on mCherry expression where the IPTG saturation concentration was found at $10^1 \mu M$ \cite{von2021automated}.
 
 
@@ -745,7 +758,7 @@ This observation is in line with a previous study on mCherry expression where th
 
 
 The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG.
-This is more than two-fold higher that at an feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such low feed rate.
+This is more than two-fold higher that at a feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such low feed rate.
 Consequently, a benefit of lower feed rate during protein expression cannot be ruled out for this protein.
 
 
@@ -761,7 +774,7 @@ Consequently, a benefit of lower feed rate during protein expression cannot be r
 \end{figure}
 
 The oscillatory behavior of the prediction is in line with the localization of tested experiment designs, i.e. the uncertainty rises between each investigated experimental setup.
-This is visualized in Fig. 12, where the width of the 90~\% highest density interval---the distance between the lower and upper surface in Fig. 11 is shown as a heatmap.
+This is visualized in Fig.~\ref{fig_expdesign}, where the width of the 90~\% highest density interval---the distance between the lower and upper surface in Fig.~\ref{fig_expdesign}1 is shown as a heatmap.
 In future investigations, a more evenly distributed localization of tested experiment designs should help the model to make smoother predictions.
 
 In this study, the best rate constant was predicted at a feed rate of $4.8\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 27.6 µM with $0.64\ h^{-1}$, which can be converted to an initial enzymatic activity of $1068\ U\ mL^{-1}$ (mL refers to bioreactor broth).
@@ -770,7 +783,7 @@ In a previous study, NoCAR was produced with an extremely low growth and express
 The low temperature was chosen to avoid the formation of inclusion bodies. Inclusion bodies usually do not show enzymatic activity and tend to form when a big protein is expressed in \textit{E.~coli} to high concentrations \cite{bhatwa2021challenges}.
 
 This shows that active NoCAR can be produced at a cultivation temperature of 30 °C in defined medium. Several factors might have aided the production of active NoCAR in this study.
-The use of definied medium as opposed to complex medium in previous studies might have reduced inclusion body formation \cite{neubauer2001expression}.
+The use of defined medium as opposed to complex medium in previous studies might have reduced inclusion body formation \cite{neubauer2001expression}.
 Furthermore, the tightly controlled pH in the stirred-tank bioreactors on a mL-scale might have aided to reduce antibody formation due to pH drift \cite{strandberg1991factors}.
 
 \begin{figure}[h]
@@ -786,9 +799,9 @@ Furthermore, the tightly controlled pH in the stirred-tank bioreactors on a mL-s
     \label{fig_sdesign_interval}
 \end{figure}
 
-The oscillations in the two-dimensional uncertainty shown in Fig. 11 and Fig. 12 are the result of the underlying Gaussian process model that descibes possible functions of $s_\text{design}$ dependence on the two process design parameters.
-Fig. 13 shows posterior predictive samples of that Gaussian process model, conditioned on the highest glucose feed rate.
-In essence, Fig. 13 is a more detailed cros-section that is marked by black lines in Fig. 11.
+The oscillations in the two-dimensional uncertainty shown in Fig.~\ref{fig_expdesign}1 and Fig.~\ref{fig_expdesign}2 are the result of the underlying Gaussian process model that describes possible functions of $s_\text{design}$ dependence on the two process design parameters.
+Fig.~\ref{fig_expdesign}3 shows posterior predictive samples of that Gaussian process model, conditioned on the highest glucose feed rate.
+In essence, Fig.~\ref{fig_expdesign}3 is a more detailed cross-section that is marked by black lines in Fig.~\ref{fig_expdesign}1.
 Note that the GP samples are drawn with different lengthscales, hence some may fluctuate more smoothly than others.
 Again, a more evenly spread localization of experimentally tested process designs should help to smoothen the prediction by providing more information about the spatial dependence, at the expense of higher uncertainty at individual process designs.
 
@@ -805,14 +818,14 @@ Again, a more evenly spread localization of experimentally tested process design
     \label{fig_kdesign_crossection}
 \end{figure}
 
-Our model found lower feed rates to be possibly beneficial for specific activity (Fig. 10), even after taking the resulting biomass concentration into account (rate constant, Fig. 11).
-At the same time, the model is still undecided about the lengthscale of IPTG dependency (Fig. 13, inset plot).
+Our model found lower feed rates to be possibly beneficial for specific activity (Fig.~\ref{fig_expdesign}0), even after taking the resulting biomass concentration into account (rate constant, Fig.~\ref{fig_expdesign}1).
+At the same time, the model is still undecided about the lengthscale of IPTG dependency (Fig.~\ref{fig_expdesign}3, inset plot).
 At short lengthscale the functions drawn from the Gaussian process are rougher (fluctuate faster) which widens the uncertainty faster as the distance to a tested  process design increases.
 With long lengthscale on the other hand the functions are smoother, and fluctuate less between the designs.
 The Gaussian process in makes an uncertain extrapolation of this trend towards lower feed rates where the density of observations was much lower.
 Counterintuitively this leads to a vague prediction that the optimal process design could be at lower feed rates and moderately high IPTG concentration.
 
-The probability map (Fig. 14) is a more direct visualization out this prediction.
+The probability map (Fig.~\ref{fig_expdesign}4) is a more direct visualization out this prediction.
 The overlaid coordinates of experimentally tested process parameters show that this part of the parameter spaces was not extensively investigated yet.
 
 \begin{figure}[h]
@@ -838,7 +851,7 @@ Due to the sophisticated mechanistic modelling based on Bayesian statistics, the
 This makes automation much simpler, because cell separation with automated liquid handling systems is costly and requires a lot of space in the working area of the robot.
 Furthermore, the probabilistic analysis opens the door for iterative Bayesian optimization that can further accelerate the identification of the optimal process conditions, while reducing the needed experimental effort.
 
-At the optimal investigated expression conditions, an activity of $1153\ U\ mL^{-1}$ was estimated with a $90\ \%$ crebile interval of $[992, 1321]\ U\ mL^{-1}$.
+At the optimal investigated expression conditions, an activity of $1153\ U\ mL^{-1}$ was estimated with a $90\ \%$ credible interval of $[992, 1321]\ U\ mL^{-1}$.
 Taking the uncertainty into account, this about 38 to 50-fold higher than the highest published data for the enzyme under study.
 It would be interesting for further studies to investigate parameter combinations that are predicted to be beneficial by the model.
 
@@ -846,6 +859,7 @@ It would be interesting for further studies to investigate parameter combination
 \bmhead{Acknowledgments}
 The authors gratefully acknowledge funding by the German Ministry of Education and Research (BMBF) within the national joint research project DigInBio [Grant number 031B0463B].
 Nikolas von den Eichen and Lukas Bromig thank for the support provided by the TUM Graduate School (Technical University of Munich, Germany).
+Open Access publication funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) - 491111487.
 
 
 \bibliography{literature}% common bib file

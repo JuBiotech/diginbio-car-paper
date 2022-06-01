@@ -704,7 +704,9 @@ FUNCTION {format.names}
         {
           nameptr #1
           #1 + =
-          numnames #5
+          % The following line determines that maximum number of authors
+          % that are not compressed into "et al.".
+          numnames #40
           > and
             { "others" 't :=
               #1 'namesleft := }
