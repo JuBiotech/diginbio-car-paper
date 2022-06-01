@@ -309,7 +309,7 @@ Diagnostics and visualizations were prepared using ArviZ and matplotlib \cite{ar
 \subsection{Experimental design}
 
 Two variables were investigated during four parallel experiments, the glucose feed rate and the inducer concentration at the mL-scale.
-In total, 42 unique combinations of inducer concentration (IPTG) and feed rate (Fig. 1) were investigated with 4 to 8 biological replicates per unique combination.
+In total, 42 unique combinations of inducer concentration (IPTG) and feed rate (Fig.~\ref{fig_expdesign}) were investigated with 4 to 8 biological replicates per unique combination.
 For controlling of the sequential reproducibility of the mL-scale experiments, the reaction conditions at the feed rate of 
 $2\ g\ L^{-1}h^{-1}$ were investigated twice in two sequential experiments.
 
@@ -363,10 +363,10 @@ This may be due to the starvation period between intermittent glucose additions 
 \end{figure}
 
 
-After process start, the DO rises to about 90~\% air saturation (Fig 3.).
+After process start, the DO rises to about 90~\% air saturation (Fig.~\ref{fig_o2overview}.).
 After that, the DO drops to about 40-60~\% air saturation after each substrate addition with a step-time of \~10 min followed by an increase after a few minutes due to the consumption of the glucose added intermittently.
 After several hours process time, the DO drop seems to be proportional to the glucose feed rate, i.e. the DO minimum after each substrate addition is approximately 40~\% at a feed rate of 4.8 $ g\ L^{-1} h^{-1}$ compared to 60~\% at a feed rate of 1 $ g\ L^{-1} h{-1}$.
-This is probably caused by the higher biomass density at a higher feed rate (see Fig. 2).
+This is probably caused by the higher biomass density at a higher feed rate (see Fig.~\ref{fig_btmoverview}).
 During the first hour at a feed rate of $4.8\ g\ L^{-1} h^{-1}$, there is no increase of the DO signal indicating no limiting substrate concentrations between the substrate additions.
 The initially reduced metabolic activity of the recombinant \textit{E. coli} observed at the highest feed rate may be caused by adapting of the cells to the new cultivation temperature (37 °C in the L-scale, 30 °C in the mL-scale).
 
@@ -385,7 +385,7 @@ The initially reduced metabolic activity of the recombinant \textit{E. coli} obs
 \end{figure}
 
 The pH-setpoint for the proportional controller was pH 7.0.
-Due to the nature of a proportional controller, a small deviation (approx. pH 0.1) from the setpoint was observed (Fig. 4).
+Due to the nature of a proportional controller, a small deviation (approx. pH 0.1) from the setpoint was observed (Fig.~\ref{fig_pHoverview}).
 Apart from that, the pH oscillates due to the intermittent pH correction by the LHS and the intermittent metabolic activity of the cells due to the intermittent feeding \cite{kim2004high}.
 Overall, the pH was tightly controlled at about pH 6.9.
 The small pH deviations from that value will most likely be too small to have biological impact on \textit{E. coli} growth \cite{presser1997modelling,gale1942effect}.
@@ -402,8 +402,8 @@ The goal is to quantify metrics that characterize the performance of the whole-c
 Most importantly, these metrics must be independent of individual experimental batches to avoid drawing incorrect conclusions from "golden batch" effects.
 Also, the metrics and the uncertainty around them must be inter- and extrapolated towards yet untested process conditions.
 On the other hand, the analysis must deal with a variety of experimental effects that inevitably occur in the automated testing workflow:
-(a) The initial CDW concentration in all whole-cell biotransformations and reference wells of the DWP depends on the feed rate applied in the previous fed-batch processes (Fig. 5).
-(b) The \textit{E. coli} cells continue to grow during the 5~h biotransformation, but the growth rate depends on the product concentration (Fig. 5).
+(a) The initial CDW concentration in all whole-cell biotransformations and reference wells of the DWP depends on the feed rate applied in the previous fed-batch processes (Fig.~\ref{fig_a600kinetics}).
+(b) The \textit{E. coli} cells continue to grow during the 5~h biotransformation, but the growth rate depends on the product concentration (Fig.~\ref{fig_a600kinetics}).
 (c) The biomass contributes to absorbance at 360~nm such that product concentration can not be measured independently.
 
 \begin{figure}[h]
@@ -425,7 +425,7 @@ In the following sections, we will introduce various components of and results f
 
 \subsubsection{Biomass concentration}
 
-A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig. 6, 7).
+A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig.~\ref{fig_cmXA360},~\ref{cmXA600}).
 
 \begin{figure}[h]
     \centering
@@ -455,7 +455,7 @@ The models explain the observations reasonably well, even outside the experiment
 \subsubsection{Product concentration}
 The ABAO reaction was performed to quantify 3-hydroxy benzaldehyde.
 The absorbance of its reaction product was measured at 360~nm in all assays.
-A separate calibration dataset was obtained by performing the assay procedure with reference samples of known 3-hydroxy benzaldehyde concentrations (Fig. 8).
+A separate calibration dataset was obtained by performing the assay procedure with reference samples of known 3-hydroxy benzaldehyde concentrations (Fig.~\ref{fig_cmPA360}).
 Reference samples were prepared without biomass and with different amounts of acetic acid to exclude biomass absorbance, and investigate pH robustness of the method.
 
 A linear calibration model $\phi_\mathrm{cm,P,360\ nm}$ with heteroscedastic, normally distributed observation noise was fitted to the 360~nm measurements of product calibration samples.
@@ -614,7 +614,7 @@ Dependence of $\mathrm{\vec{X}_{factor,\vec{glc}}}$ on the glucose feed rate is 
 
 Formally, a GP is an uncountable sequence of random variables, any subset of which follows a multivariate normal (also known as "gaussian") distribution \cite{gpdefinition}.
 For understanding our model, however, it is sufficient to think of GPs as a probability distribution of \textit{functions} that fluctuate with some lengthscale and variance.
-Here, this distribution over functions is used, because the model muest describe $\vec{s}_{\vec{design}}$ as a function of the glucose feed rate $\vec{D}_{\vec{design}}$, but we are uncertain which function would be appropriate.
+Here, this distribution over functions is used, because the model must describe $\vec{s}_{\vec{design}}$ as a function of the glucose feed rate $\vec{D}_{\vec{design}}$, but we are uncertain which function would be appropriate.
 
 \begin{equation}
 \begin{aligned}
@@ -631,7 +631,7 @@ Here, this distribution over functions is used, because the model muest describe
 
 The Gaussian process was parametrized by a mean function of $0$, thereby centering the prior for $\mathrm{\vec{X}_{factor,\vec{glc}}}$ around $1$.
 For the covariance function we chose a scaling parameter $\sigma$ such that the prior variance for the factor is around $\pm30\ \%$.
-The prior for $\ell$ in the exponential quadratic kernel encodes a belief that $\mathrm{\vec{X}_{factor,\vec{glc}}}$ varies smoothly on a lengthscale of around half of the (logarithmic) design space.
+The prior for $\ell$ in the exponential quadratic kernel encodes a belief that $\mathrm{\vec{X}_{factor,\vec{glc}}}$ varies smoothly on a lengthscale of around half of the (logarithmic) design space~(Fig.~\ref{fig_gpXfactor}).
 
 \begin{figure}[h]
     \centering
@@ -726,9 +726,9 @@ The previous three chapters outlined how trajectories of CDW concentration Secti
 Because this entire model was implemented as a symbolic computation graph, the PyMC and Aesara frameworks can auto-differentiate the likelihood \eqref{eq_likelihood} to obtain gradients needed for efficient MCMC sampling (Section \ref{sec_mm_computational}).
 
 After MCMC-sampling of the process model parameters, a variety of diagnostics, predictions and visualizations were prepared from the result.
-Similar to the posterior predictive distribution of the biomass/feed rate relationship (Figure 9), the 2-dimensional Gaussian process component of the model was used to predict inter- and extrapolated specific biotransformation activity in dependence on the experimental design parameters.
-The visualization of the specific activity relationships posterior distribution (Figure 10) exhibits a peak at low glucose feed rates and high IPTG concentrations.
-Generally, the specific activity is higher for high IPTG concentrations, but at least for high glucose feed rates where more experimental data are available (see Fig. 1) we observed the IPTG concentration to saturate at $\approx 10^{0.5} \mu M$.
+Similar to the posterior predictive distribution of the biomass/feed rate relationship (Fig.~\ref{fig_gpXfactor}), the 2-dimensional Gaussian process component of the model was used to predict inter- and extrapolated specific biotransformation activity in dependence on the experimental design parameters.
+The visualization of the specific activity relationships posterior distribution (Fig.~\ref{fig_3Dsdesign}) exhibits a peak at low glucose feed rates and high IPTG concentrations.
+Generally, the specific activity is higher for high IPTG concentrations, but at least for high glucose feed rates where more experimental data are available (see Fig.~\ref{fig_expdesign}) we observed the IPTG concentration to saturate at $\approx 10^{0.5} \mu M$.
 This observation is in line with a previous study on mCherry expression where the IPTG saturation concentration was found at $10^1 \mu M$ \cite{von2021automated}.
 
 
@@ -747,7 +747,7 @@ This observation is in line with a previous study on mCherry expression where th
 
 
 The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG.
-This is more than two-fold higher that at an feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such low feed rate.
+This is more than two-fold higher that at a feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such low feed rate.
 Consequently, a benefit of lower feed rate during protein expression cannot be ruled out for this protein.
 
 
@@ -763,7 +763,7 @@ Consequently, a benefit of lower feed rate during protein expression cannot be r
 \end{figure}
 
 The oscillatory behavior of the prediction is in line with the localization of tested experiment designs, i.e. the uncertainty rises between each investigated experimental setup.
-This is visualized in Fig. 12, where the width of the 90~\% highest density interval---the distance between the lower and upper surface in Fig. 11 is shown as a heatmap.
+This is visualized in Fig.~\ref{fig_expdesign}, where the width of the 90~\% highest density interval---the distance between the lower and upper surface in Fig.~\ref{fig_expdesign}1 is shown as a heatmap.
 In future investigations, a more evenly distributed localization of tested experiment designs should help the model to make smoother predictions.
 
 In this study, the best rate constant was predicted at a feed rate of $4.8\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 27.6 µM with $0.64\ h^{-1}$, which can be converted to an initial enzymatic activity of $1068\ U\ mL^{-1}$ (mL refers to bioreactor broth).
@@ -788,9 +788,9 @@ Furthermore, the tightly controlled pH in the stirred-tank bioreactors on a mL-s
     \label{fig_sdesign_interval}
 \end{figure}
 
-The oscillations in the two-dimensional uncertainty shown in Fig. 11 and Fig. 12 are the result of the underlying Gaussian process model that descibes possible functions of $s_\text{design}$ dependence on the two process design parameters.
-Fig. 13 shows posterior predictive samples of that Gaussian process model, conditioned on the highest glucose feed rate.
-In essence, Fig. 13 is a more detailed cros-section that is marked by black lines in Fig. 11.
+The oscillations in the two-dimensional uncertainty shown in Fig.~\ref{fig_expdesign}1 and Fig.~\ref{fig_expdesign}2 are the result of the underlying Gaussian process model that descibes possible functions of $s_\text{design}$ dependence on the two process design parameters.
+Fig.~\ref{fig_expdesign}3 shows posterior predictive samples of that Gaussian process model, conditioned on the highest glucose feed rate.
+In essence, Fig.~\ref{fig_expdesign}3 is a more detailed cros-section that is marked by black lines in Fig.~\ref{fig_expdesign}1.
 Note that the GP samples are drawn with different lengthscales, hence some may fluctuate more smoothly than others.
 Again, a more evenly spread localization of experimentally tested process designs should help to smoothen the prediction by providing more information about the spatial dependence, at the expense of higher uncertainty at individual process designs.
 
@@ -807,14 +807,14 @@ Again, a more evenly spread localization of experimentally tested process design
     \label{fig_kdesign_crossection}
 \end{figure}
 
-Our model found lower feed rates to be possibly beneficial for specific activity (Fig. 10), even after taking the resulting biomass concentration into account (rate constant, Fig. 11).
-At the same time, the model is still undecided about the lengthscale of IPTG dependency (Fig. 13, inset plot).
+Our model found lower feed rates to be possibly beneficial for specific activity (Fig.~\ref{fig_expdesign}0), even after taking the resulting biomass concentration into account (rate constant, Fig.~\ref{fig_expdesign}1).
+At the same time, the model is still undecided about the lengthscale of IPTG dependency (Fig.~\ref{fig_expdesign}3, inset plot).
 At short lengthscale the functions drawn from the Gaussian process are rougher (fluctuate faster) which widens the uncertainty faster as the distance to a tested  process design increases.
 With long lengthscale on the other hand the functions are smoother, and fluctuate less between the designs.
 The Gaussian process in makes an uncertain extrapolation of this trend towards lower feed rates where the density of observations was much lower.
 Counterintuitively this leads to a vague prediction that the optimal process design could be at lower feed rates and moderately high IPTG concentration.
 
-The probability map (Fig. 14) is a more direct visualization out this prediction.
+The probability map (Fig.~\ref{fig_expdesign}4) is a more direct visualization out this prediction.
 The overlaid coordinates of experimentally tested process parameters show that this part of the parameter spaces was not extensively investigated yet.
 
 \begin{figure}[h]
