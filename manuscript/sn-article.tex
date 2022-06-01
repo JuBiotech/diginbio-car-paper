@@ -514,7 +514,7 @@ $k$ & $h^{-1}$ & Absolute biocatalyst rate constant ($\frac{n_{product}}{n_{subs
     \end{center}
 \end{table}
 
-A likelihood needed for parameter inference by Markov-chain Monte Carlo (MCMC) is created from process model predictions and observed absorbances according to relationships described by the separately fitted calibration models $\phi_\mathrm{cm,X,600\ nm}$, $\phi_\mathrm{cm,X,360\ nm}$ and $\phi_\mathrm{cm,P,360\ nm}$.
+A likelihood needed for parameter inference by Markov-chain Monte Carlo (MCMC) is created from process model predictions and observed absorbances according to relationships described by the separately fitted calibration models $\phi_\mathrm{cm,X,600\ nm}$, $\phi_\mathrm{cm,X,360\ nm}$ and $\phi_\mathrm{cm,P,360\ nm}$~\eqref{eq_likelihood}.
 At 600~nm this is the likelihood of the observed data given the predicted CDW concentration $X$.
 At 360~nm however, both biomass $X$ and ABAO reaction product absorb and therefore the sum of their absorbances needs to be taken into account for the likelihood.
 
@@ -537,7 +537,7 @@ For simplicity, we therefore use the symbol $P$ to refer to the product of inter
 \label{eq_likelihood}
 \end{equation}
 
-The above observation model applies to biomass $X$ and 3-hydroxy benzaldehyde concentration $P$ \textit{at every time point}, \textit{in every replicate} of either a biotransformation reaction or reference sample.
+The above observation model applies to biomass $X$ and 3-hydroxy benzaldehyde concentration $P$ \textit{at every time point}, \textit{in every replicate} of either a biotransformation reaction or reference sample~\eqref{eq_XandP}.
 Reference wells of known product concentrations, but without 3-hydroxy benzoic acid are also included in the model, albeit with the assumption that the 3-hydroxy benzaldehyde concentration remains constant over time.
 
 \begin{equation}
@@ -545,6 +545,7 @@ Reference wells of known product concentrations, but without 3-hydroxy benzoic a
     \mathrm{\vec{X}_{\vec{t},\vec{replicate}}} &= \{ \mathrm{\vec{X}_{\vec{t},\vec{reference}}}, \mathrm{\vec{X}_{\vec{t},\vec{DWP}}}\} \\
     \mathrm{\vec{P}_{\vec{t},\vec{replicate}}} &= \{ \mathrm{\vec{P}_{(\vec{t}),\vec{reference}}}, \mathrm{\vec{P}_{\vec{t},\vec{DWP}}}\} \\
 \end{aligned}
+\label{eq_XandP}
 \end{equation}
 
 The process model to describe these \textit{per replicate} and \textit{per time point} concentrations is described in the following sections.
@@ -590,7 +591,7 @@ A universally applicable activity metric, that can be interpreted independently 
 Therefore, the model must additionally describe biomass in a way that excludes random experimental batch effects.
 The first process stage at which such an experiment-independent prediction is needed, is the final biomass concentration of the 1~L batch cultivation.
 
-Concretely, we describe the per-experiment final biomass concentration at the 1~L scale as a LogNormal-distributed variable called $\mathrm{\vec{X}_{end,\vec{BTR}}}$ with an entry for each experimental run.
+Concretely, we describe the per-experiment final biomass concentration at the 1~L scale as a LogNormal-distributed variable called $\mathrm{\vec{X}_{end,\vec{BTR}}}$ with an entry for each experimental run~\eqref{eq_XendBTR}.
 To obtain an experiment-independent prediction, we introduced $\mathrm{X_{end,batch}}$ as a \textit{group mean prior}, also known as a \textit{hyperprior}, around which the $\mathrm{\vec{X}_{end,\vec{BTR}}}$ is centered.
 The prior on $\mathrm{X_{end,batch}}$ is weakly (large $\sigma$) centered at $0.5\ g/L$, whereas actual batches should only deviate from that group mean by about $5\ \%$.
 
@@ -599,6 +600,7 @@ The prior on $\mathrm{X_{end,batch}}$ is weakly (large $\sigma$) centered at $0.
     \mathrm{X_{end,batch}} &\sim LogNormal(\mu=ln(0.5), \sigma=0.5)\\
     \mathrm{\vec{X}_{end,\vec{BTR}}} &\sim LogNormal(\mu=ln(\mathrm{X_{end,batch}}), \sigma=0.05)
 \end{aligned}
+\label{eq_XendBTR}
 \end{equation}
 
 This hierarchical structure is a common motif in Bayesian modeling since it enables a model to learn variables that are essential to the process understanding (here: $\mathrm{X_{end,batch}}$) while retaining the ability to describe the fine-grained structure of the experimental data (here: $\mathrm{\vec{X}_{end,\vec{BTR}}}$).
@@ -609,8 +611,8 @@ The second process stage in the biomass seed train is the enzyme expression in a
 Every 10~mL stirred-tank reactor was inoculated with culture broth from a 1~L reactor, hence a mapping $f_\mathrm{\vec{BTR} \rightarrow \vec{MBR}}$ yields initial biomass concentrations $\mathrm{\vec{X}_{start,\vec{MBR}}}$ by sub-indexing the $\mathrm{\vec{X}_{end,\vec{BTR}}}$ variable.
 The experimental design of the fed-batches comprised varying glucose feed rates and IPTG concentrations.
 It is plausible to assume a dependence of the final biomass concentration $\mathrm{\vec{X}_{end,\vec{MBR}}}$ on the glucose feed rate.
-Without any mechanistic assumptions, we lump the final biomass concentration per 1~mL-scale reactor as the product of initial biomass concentration with a positive factor $\mathrm{\vec{X}_{factor,\vec{glc}}}$ that depends on the glucose feed rate.
-Dependence of $\mathrm{\vec{X}_{factor,\vec{glc}}}$ on the glucose feed rate is modeled by a Gaussian process such that our model can also interpolate and make predictions for new glucose feed rate settings.
+Without any mechanistic assumptions, we lump the final biomass concentration per 1~mL-scale reactor as the product of initial biomass concentration with a positive factor $\mathrm{\vec{X}_{factor,\vec{glc}}}$ that depends on the glucose feed rate~\eqref{eq_XfactorGP}.
+Dependence of $\mathrm{\vec{X}_{factor,\vec{glc}}}$ on the glucose feed rate is modeled by a Gaussian process \eqref{eq_XfactorGP} such that our model can also interpolate and make predictions for new glucose feed rate settings.
 
 Formally, a GP is an uncountable sequence of random variables, any subset of which follows a multivariate normal (also known as "gaussian") distribution \cite{gpdefinition}.
 For understanding our model, however, it is sufficient to think of GPs as a probability distribution of \textit{functions} that fluctuate with some lengthscale and variance.
@@ -627,6 +629,7 @@ Here, this distribution over functions is used, because the model must describe 
     \sigma &\sim LogNormal(ln(0.3), 0.1) \\
     \ell &\sim LogNormal(ln(0.34), 0.1)
 \end{aligned}
+\label{eq_XfactorGP}
 \end{equation}
 
 The Gaussian process was parametrized by a mean function of $0$, thereby centering the prior for $\mathrm{\vec{X}_{factor,\vec{glc}}}$ around $1$.
@@ -646,10 +649,10 @@ The prior for $\ell$ in the exponential quadratic kernel encodes a belief that $
 \end{figure}
 
 The third and final process stage is the biotransformation.
-Here, the initial biomass concentration in every replicate well of the DWP $\mathrm{\vec{X}_{0,\vec{replicate}}}$ equals the final biomass concentration from a corresponding 10~mL reactor.
+Here, the initial biomass concentration in every replicate well of the DWP $\mathrm{\vec{X}_{0,\vec{replicate}}}$ equals the final biomass concentration from a corresponding 10~mL reactor~\eqref{eq_Xrandomwalk}.
 The biomass concentration continued to change over the course of the biotransformation, because the solution also contained glucose as a carbon source.
 Inspired by the $\mu(t)$ method described in \cite{bletlPaper} we account for this biomass growth during the biotransformation with a Gaussian random walk of the discretized growth rate $\vec{\mu}_{\vec{t},\vec{replicate}}$.
-The result are biomass concentrations for every replicate well and measurement cycle $\mathrm{\vec{X}_{\vec{t},\vec{replicate}}}$.
+The result are biomass concentrations for every replicate well and measurement cycle $\mathrm{\vec{X}_{\vec{t},\vec{replicate}}}$~\eqref{eq_Xrandomwalk}.
 
 \begin{equation}
 \begin{aligned}
@@ -657,6 +660,7 @@ The result are biomass concentrations for every replicate well and measurement c
     \mathrm{\vec{X}_{t \ge 1,\vec{replicate}}} &= \mathrm{\vec{X}_{0,\vec{replicate}}} \cdot e^{cumsum(\vec{\mu}_{\vec{t},\vec{replicate}} \cdot \vec{dt}_{\vec{t},\vec{replicate}})}\\
     \vec{\mu}_{\vec{t},\vec{replicate}} &\sim GaussianRandomWalk(\sigma=0.1) \\
 \end{aligned}
+\label{eq_Xrandomwalk}
 \end{equation}
 
 
@@ -666,7 +670,7 @@ The result are biomass concentrations for every replicate well and measurement c
 Next to biomass, the second important contributor to observed absorbance is the 3-hydroxy benzaldehyde concentration $\mathrm{\vec{P}_{\vec{t},\vec{replicate}}}$ that reacted with ABAO.
 In the reference samples this concentration $\vec{P}_{(\vec{t}),\vec{reference}}$ is known and assumed to be constant.
 For the remaining wells it is the reaction product concentration of the biotransformation $\mathrm{\vec{P}_{\vec{t},\vec{DWP}}}$.
-Here we assume an initial product concentration $P_0=0$ and model the biotransformation reaction as a 1st order reaction starting from a global initial benzoic acid concentration $S_0$ with a rate constant $\vec{k}_{0,\vec{DWP}}$.
+Here we assume an initial product concentration $P_0=0$ and model the biotransformation reaction as a 1st order reaction \eqref{eq_productformation} starting from a global initial benzoic acid concentration $S_0$ with a rate constant $\vec{k}_{0,\vec{DWP}}$.
 
 \begin{equation}
 \begin{aligned}
@@ -674,12 +678,13 @@ Here we assume an initial product concentration $P_0=0$ and model the biotransfo
     \vec{t}_\mathrm{actual,\vec{DWP}} &= \vec{t}_\mathrm{recorded,\vec{DWP}} + t_\mathrm{delay} \\
     t_\mathrm{delay} &\sim HalfNormal(\sigma = 0.1)
 \end{aligned}
+\label{eq_productformation}
 \end{equation}
 
-This well-wise rate coefficient $\vec{k}_{\vec{t},\vec{DWP}}\ [h^{-1}]$ depends on three factors.
+This well-wise rate coefficient $\vec{k}_{\vec{t},\vec{DWP}}\ [h^{-1}]$ from \eqref{eq_productformation} depends on three factors.
 The first is the concentration of the whole-cell biocatalyst $\vec{X}_{\vec{t},\vec{DWP}}\ [g_{CDW}/L]$ as obtained from the biomass model described above.
 The second factor is the biocatalyst' specific rate coefficient $\vec{s}_\mathrm{\vec{design}}\ [\frac{1}{h} / \frac{g_{CDW}}{L}]$ that depends on the experimental design of the expression phase.
-The third factor is a batch-wise random effect $\vec{F}_{\vec{BTR}}\ [-]$ to account remaining experimental variability.
+The third factor is a batch-wise random effect $\vec{F}_{\vec{BTR}}\ [-]$ to account remaining experimental variability~\eqref{eq_kdwp}.
 
 \begin{equation}
 \begin{aligned}
@@ -689,6 +694,7 @@ The third factor is a batch-wise random effect $\vec{F}_{\vec{BTR}}\ [-]$ to acc
     f_1 &: \vec{design} \rightarrow \vec{DWP} \\
     f_2 &: \vec{BTR} \rightarrow \vec{DWP} \\
 \end{aligned}
+\label{eq_kdwp}
 \end{equation}
 
 For the overall bioprocess optimization study we were interested in two quantities:
@@ -696,7 +702,7 @@ Design-wise specific rate coefficients $\vec{s}_{\vec{design}}$ and an experimen
 The $\vec{s}_{\vec{design}}$ parameter is part of the above equation and modeled by a two-dimensional Gaussian process to allow for inter- and extrapolation to new experimental designs.
 
 $\vec{s}_{\vec{design}}$ is strictly positive and we expect it around $0.1-0.8\ [h^{-1}]$.
-The model outlined below achieves both properties by describing a Gaussian process (GP) for $ln(\vec{s}_{\vec{design}})$ and assigning a corresponding prior for the kernel variance $\sigma$.
+The model outlined in \eqref{eq_sdesignGP} achieves both properties by describing a Gaussian process (GP) for $ln(\vec{s}_{\vec{design}})$ and assigning a corresponding prior for the kernel variance $\sigma$.
 The prior for lengthscales $\vec{\ell}$ was centered on the half of the $log_{10}$ range (upper minus lower bound) of the design space.
 A similar structure was used earlier for the $\mathrm{\vec{X}_{factor,\vec{glc}}}$ variable in the upstream biomass model.
 
@@ -711,15 +717,17 @@ A similar structure was used earlier for the $\mathrm{\vec{X}_{factor,\vec{glc}}
     \vec{\ell} &\sim LogNormal(ln(\mathrm{\vec{range}}), 0.1) \\
     \vec{\mathrm{range}} &= (0.681, 2.125)^T
 \end{aligned}
+\label{eq_sdesignGP}
 \end{equation}
 
-Finally, the initial rate coefficient metric $\vec{k}_{0,\vec{design}}\ [h^{-1}]$ is derived from model parameters that do not depend on batch/reactor/replicate-specific variables:
+Finally, the initial rate coefficient metric $\vec{k}_{0,\vec{design}}\ [h^{-1}]$ is derived from model parameters that do not depend on batch/reactor/replicate-specific variables~\eqref{eq_metrics}.
 
 \begin{equation}
 \begin{aligned}
     \vec{k}_{0,\vec{design}} &= \vec{s}_{\vec{design}} \cdot \mathrm{\vec{X}_{end,\vec{design}}} \\
     \mathrm{\vec{X}_{end,\vec{design}}} &= \mathrm{X_{end,batch}} \cdot \mathrm{\vec{X}_{factor,\vec{glc}}}
 \end{aligned}
+\label{eq_metrics}
 \end{equation}
 
 
