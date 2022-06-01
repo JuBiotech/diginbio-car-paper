@@ -29,6 +29,33 @@ _log = logging.getLogger(__file__)
 pyplot.style.use(DP_ROOT / "notebooks" / "DigInBio.mplstyle")
 
 
+def apply_fzj_style(fig: pyplot.Figure):
+    """Applies the following figure style:
+    * First letter small
+    * Unit with / notation according to DIN 461
+    * No coordinate grid
+    * Biomass instead of CDW
+    """
+    return
+
+
+def apply_tum_style(fig: pyplot.Figure):
+    """Applies the following figure style:
+    * First letter capitalized
+    * Unit with [] notation
+    * Coordinate grid
+    * CDW instead of biomass
+    """
+    return
+
+
+_FIGURE_STYLES = {
+    # Subfolder name : function to apply the style
+    "figs_fzj": apply_fzj_style,
+    "figs_tum": apply_tum_style,
+}
+
+
 def savefig(fig, name: str, *, wd=DP_RESULTS, **kwargs):
     """Saves a bitmapped and vector version of the figure.
     Parameters
@@ -42,7 +69,10 @@ def savefig(fig, name: str, *, wd=DP_RESULTS, **kwargs):
     **kwargs
         Additional kwargs for `pyplot.savefig`.
     """
-    _savefig(fig, name, wd=wd, **kwargs)
+    for subfolder, apply_style in _FIGURE_STYLES.items():
+        _log.debug("Applying figure style for subfolder %s", subfolder)
+        apply_style(fig)
+        _savefig(fig, name, wd=wd / subfolder, **kwargs)
     return
 
 
@@ -55,6 +85,7 @@ def _savefig(fig, name: str, *, wd, **kwargs):
     max_dpi = min(max_pixels / fig.get_size_inches())
     if not "dpi" in kwargs:
         kwargs["dpi"] = max_dpi
+    wd.mkdir(exist_ok=True)
     fig.savefig(wd / f"{name}.pdf", **kwargs)
     # Save with & without border to measure the "shrink".
     # This is needed to rescale the dpi setting such that we get max pixels also without the border.

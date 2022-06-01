@@ -1531,7 +1531,7 @@ def copy_results_to_manuscript(wd: pathlib.Path):
     dp_dst = wd.parent.parent / "manuscript" / "figures"
     if not dp_dst.exists():
         raise FileExistsError(dp_dst)
-    fps_src = [wd / fn for fn in files]
+    fps_src = [wd / "figs_tum" / fn for fn in files]
     fps_dst = [dp_dst / fn for fn in files]
     for src, dst in zip(fps_src, fps_dst):
         _log.info("Copying %s → %s", src, dst)
