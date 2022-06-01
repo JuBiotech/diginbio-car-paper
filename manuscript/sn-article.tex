@@ -34,6 +34,7 @@
 
 %%%% Standard Packages
 %%<additional latex packages if required can be included here>
+\def\vec{\mathaccent "017E\relax }
 %%%%
 
 %%%%%=============================================================================%%%%
@@ -245,8 +246,8 @@ IPTG concentrations were calculated based on the initial reaction volume of 10 m
 To ensure sterile operation of the LHS, the pipetting needles of the LHS were washed with an aqueous solution of 70~\% (v/v) ethanol and with sterile filtered deionised water after each pipetting step.
 
 All tasks (substrate addition, pH control, inductor addition, sampling) were initiated by a priority-based scheduler which weighed the tasks based on their real-time priority to enable optimal process control when more than one task was eligible.
-The detailed description of the scheduler working principle, aim and software engineering may be found in Bromig \& von den Eichen et al.
-The priorities were $feed > inductor\ addition > sampling > pH control$.
+The detailed description of the scheduler working principle, aim and software engineering may be found in Bromig \& von den Eichen et al. \cite{von2021automated}.
+The priorities were feed $>$ inductor addition $>$ sampling $>$ pH control.
 
 \subsection{Analytical procedures}
 The cultivations on the L-scale were just followed by sensor data, whereas samples on the mL-scale generally were taken every hour by the LHS, with two exceptions:
@@ -384,7 +385,7 @@ The initially reduced metabolic activity of the recombinant \textit{E. coli} obs
 \end{figure}
 
 The pH-setpoint for the proportional controller was pH 7.0.
-Due to the nature of a proportional controller, a small deviation (~ pH 0.1) from the setpoint was observed (Fig. 4).
+Due to the nature of a proportional controller, a small deviation (approx. pH 0.1) from the setpoint was observed (Fig. 4).
 Apart from that, the pH oscillates due to the intermittent pH correction by the LHS and the intermittent metabolic activity of the cells due to the intermittent feeding \cite{kim2004high}.
 Overall, the pH was tightly controlled at about pH 6.9.
 The small pH deviations from that value will most likely be too small to have biological impact on \textit{E. coli} growth \cite{presser1997modelling,gale1942effect}.
@@ -478,7 +479,7 @@ For code and Jupyter notebooks that can be executed to reproduce this analysis w
 This model closely resembles the biotechnological process that generated the dataset, therefore we call it \textit{process model} henceforth.
 Starting from input parameters such as specific biotransformation activity, random effects or dependence of final 10~mL reactor CDW concentration on glucose feed rate, the process model simulates CDW and 3-hydroxy benzaldehyde concentrations in each biotransformation well across all experiments.
 
-\ref{tab_abbreviations} summarizes the symbols, meaning and units used in the context of the process model.
+Tab.~\ref{tab_abbreviations} summarizes the symbols, meaning and units used in the context of the process model.
 
 
 \begin{table}[h]
@@ -495,8 +496,8 @@ MBR & n.a. & macro bioreactor\\
 DWP & n.a. & deep-well plate\\
 $\phi_{cm}$ & n.a. & calibration model\\
 $\phi_{pm}$ & n.a. & process model\\
-$X$ & $\frac{g_{CDW}}{L}$ & biomass concentration\\
-$P$ & $\frac{mmol}{L}$ & 3-hydroxy benzaldehyde concentration\\
+$X$ & $g_{CDW}\ L^{-1}$ & biomass concentration\\
+$P$ & $mmol\ L^{-1}$ & 3-hydroxy benzaldehyde concentration\\
 $A_{... nm}$ & a.u. & absorbance at wavelength ...\\
 $\mu_X$, $\mu_P$ & a.u. & mean of absorbance readouts expected from biomass/product\\
 $\sigma_X$, $\sigma_P$ & a.u. & standard deviation of absorbance readouts from biomass/product\\
@@ -505,8 +506,8 @@ $\ell$ & - & lengthscale of fluctuations in dependence on $d$\\
 $GP$ & n.a. & Gaussian process distribution\\
 $d$ & - & $log_{10}$ of the process design (feed rate, IPTG conc. or both)\\
 $k(d, d')$ & n.a. & Covariance function to obtain the kernel of a Gaussian process\\
-$s$ & $\frac{1}{h}/\frac{g_{CDW}}{L}$ & Specific biocatalyst rate constant\\
-$k$ & $\frac{1}{h}$ & Absolute biocatalyst rate constant ($\frac{n_{product}}{n_{substrate}}/h$)\\
+$s$ & $h^{-1}/(g_{CDW}\ L^{-1})$ & Specific biocatalyst rate constant\\
+$k$ & $h^{-1}$ & Absolute biocatalyst rate constant ($\frac{n_{product}}{n_{substrate}}\ h^{-1}$)\\
 \botrule
     \end{tabular}
     \end{minipage}
@@ -521,18 +522,19 @@ Note that while it is the ABAO reaction product that contributes absorbance at 3
 For simplicity, we therefore use the symbol $P$ to refer to the product of interest concentration: 3-hydroxy benzaldehyde in the biotransformation solution.
 
 \begin{equation}
-\label{eq_likelihood}
-\begin{aligned}
-    \mathcal{L_\Pi} &= \mathcal{L}_\mathrm{600\ nm}(\mathrm{A_{600\ nm}} \mid \mathrm{A_{600\ nm,obs}}) \cdot \mathcal{L}_\mathrm{360\ nm}(\mathrm{A_{360\ nm}} \mid \mathrm{A_{360\ nm,obs}}) \\
+    \begin{aligned}
+        \mathcal{L}_{\Pi} =&\ \mathcal{L}_\mathrm{600\ nm}(\mathrm{A_{600\ nm}} \mid \mathrm{A_{600\ nm,obs}}) \\
+                   \cdot&\ \mathcal{L}_\mathrm{360\ nm}(\mathrm{A_{360\ nm}} \mid \mathrm{A_{360\ nm,obs}}) \\
     \textrm{where} \\
-    \mathrm{A_{600\ nm}} &\sim Normal(\mathrm{\mu_{X,600\ nm}}, \mathrm{\sigma_{X,600\ nm}}) \\
-    (\mathrm{\mu_{X,600\ nm}}, \mathrm{\sigma_{X,600\ nm}}) &= \phi_\mathrm{cm,X,600\ nm}(X) \\
-    \mathrm{A_{360\ nm}} &\sim Normal(\mathrm{\mu_{360\ nm}}, \mathrm{\sigma_{360\ nm}}) \\
-    \mathrm{\mu_{360\ nm}} &= \mathrm{\mu_{X,360\ nm}} + \mathrm{\mu_{P,360\ nm}} \\
-    \mathrm{\sigma_{360\ nm}} &= \sqrt{\mathrm{\sigma_{X,360\ nm}}^2 + \mathrm{\sigma_{P,360\ nm}}^2} \\
-    (\mathrm{\mu_{X,360\ nm}}, \mathrm{\sigma_{X,360\ nm}}) &= \phi_\mathrm{cm,X,360\ nm}(\mathrm{\vec{X}_{\vec{t},\vec{replicate}}}) \\
-    (\mathrm{\mu_{P,360\ nm}}, \mathrm{\sigma_{P,360\ nm}}) &= \phi_\mathrm{cm,P,360\ nm}(\mathrm{\vec{P}_{\vec{t},\vec{replicate}}}) \\
+    \mathrm{A_{600\ nm}} \sim&\ Normal(\mathrm{\mu_{X,600\ nm}}, \mathrm{\sigma_{X,600\ nm}}) \\
+    (\mathrm{\mu_{X,600\ nm}}, \mathrm{\sigma_{X,600\ nm}}) =&\ \phi_\mathrm{cm,X,600\ nm}(X) \\
+    \mathrm{A_{360\ nm}} \sim&\(\) Normal(\mathrm{\mu_{360\ nm}}, \mathrm{\sigma_{360\ nm}}) \\
+    \mathrm{\mu_{360\ nm}} =&\ \mathrm{\mu_{X,360\ nm}} + \mathrm{\mu_{P,360\ nm}} \\
+    \mathrm{\sigma_{360\ nm}} =&\ \sqrt{\mathrm{\sigma_{X,360\ nm}}^2 + \mathrm{\sigma_{P,360\ nm}}^2} \\
+    (\mathrm{\mu_{X,360\ nm}}, \mathrm{\sigma_{X,360\ nm}}) =&\ \phi_\mathrm{cm,X,360\ nm}(\mathrm{\vec{X}_{\vec{t},\vec{replicate}}}) \\
+    (\mathrm{\mu_{P,360\ nm}}, \mathrm{\sigma_{P,360\ nm}}) =&\ \phi_\mathrm{cm,P,360\ nm}(\mathrm{\vec{P}_{\vec{t},\vec{replicate}}}) \\
 \end{aligned}
+\label{eq_likelihood}
 \end{equation}
 
 The above observation model applies to biomass $X$ and 3-hydroxy benzaldehyde concentration $P$ \textit{at every time point}, \textit{in every replicate} of either a biotransformation reaction or reference sample.
@@ -549,7 +551,7 @@ The process model to describe these \textit{per replicate} and \textit{per time 
 
 Since almost all process model variables are vectors or matrices, we denote dimensions by subscripts with arrows.
 For example, the notation $\vec{X}_{\vec{t},\vec{DWP}}$ or $\vec{P}_{\vec{t},\vec{DWP}}$ should be interpreted as 2-dimensional variables (matrices) with entries for each combination of time point and DWP well.
-The meanings of dimension symbols is summarized in \ref{tab_dimensions}.
+The meanings of dimension symbols is summarized in Tab.~\ref{tab_dimensions}.
 
 
 \begin{table}[h]
