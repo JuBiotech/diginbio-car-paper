@@ -1,0 +1,7 @@
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qcoli).\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QAll cultivations on the mL- and L-scales were carried out with a defined minimal medium \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q.\\E$"}
+{"rule":"ENGLISH_WORD_REPEAT_BEGINNING_RULE","sentence":"^\\QFor each sequential cultivation, three identical sets of calibration curves were generated.\\E$"}
+{"rule":"AGREEMENT_SENT_START","sentence":"^\\QThe meanings of dimension symbols is summarized in Tab.\\E$"}
+{"rule":"ENGLISH_WORD_REPEAT_BEGINNING_RULE","sentence":"^\\QFor the experiment with the feed rates varied from 2-4 \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q the feed medium consisted of \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q glucose with \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q.\\E$"}
+{"rule":"ENGLISH_WORD_REPEAT_BEGINNING_RULE","sentence":"^\\QFor the experiment with the feed rates varied from 1 - \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q the feed medium consisted of \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q glucose with \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q.\\E$"}
+{"rule":"MD_BE_NON_VBP","sentence":"^\\QAlso, the metrics and the uncertainty about them must be inter- and extrapolated towards yet untested process conditions.\\E$"}

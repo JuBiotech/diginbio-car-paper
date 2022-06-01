@@ -537,3 +537,6 @@ results/**
 *.blg
 *.out
 manuscript/*.pdf
+
+# Custom dictionary of the LTeX spellchecker extension
+!.vscode/ltex.*
