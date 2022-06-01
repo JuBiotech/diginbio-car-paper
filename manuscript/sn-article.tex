@@ -702,8 +702,10 @@ A similar structure was used earlier for the $\mathrm{\vec{X}_{factor,\vec{glc}}
 
 \begin{equation}
 \begin{aligned}
-    ln(\vec{s}_{\vec{design}}) &= f_{\vec{log\ s}_{\vec{design}}}(log_{10}(\vec{D}_{\vec{design}})) \\
-    f_{\vec{log\ s}_{\vec{design}}}(d) &\sim GP(0, k(d,d')) \\
+    \vec{s}_{\vec{design}} &= \mu_{s_{\vec{design}}} \cdot \vec{F}_{s_{\vec{design}}} \\
+    \vec{\mu}_{s_{\vec{design}}} &\sim LogNormal(ln(0.75), 0.3) \\
+    ln(\vec{F}_{s_{\vec{design}}}) &= f_\mathcal{GP}( log_{10}(\vec{D}_{\vec{design}}) ) \\
+    f_\mathcal{GP}(d) &\sim \mathcal{GP}(0, k(d, d')) \\
     k(d,d') &= \sigma^2 \cdot e^{-\frac{(d-d')^2}{2\vec{\ell}^2}} \\
     \sigma &\sim LogNormal(ln(0.7), 0.2) \\
     \vec{\ell} &\sim LogNormal(ln(\mathrm{\vec{range}}), 0.1) \\
