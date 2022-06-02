@@ -89,7 +89,7 @@ def fit_biomass_calibration(wd: pathlib.Path, wavelength: int):
 def plot_biomass_calibration(wd: pathlib.Path, wavelength: int):
     cm = models.LogisticBiomassAbsorbanceModel.load(wd / f"cm_biomass_A{wavelength}.json")
     fig, axs = calibr8.plot_model(cm)
-    xlabel = r"$\mathrm{Biomass\ [g_{CDW}\ L^{-1}]}$"
+    xlabel = r"$\mathrm{CDW\ [g\ L^{-1}]}$"
     axs[0].set(
         ylabel=r"$\mathrm{Absorbance_{%s\ nm}}\ [-]$" % wavelength,
         xlabel=xlabel,
@@ -142,7 +142,7 @@ def fit_product_calibration(wd: pathlib.Path):
 def plot_product_calibration(wd: pathlib.Path):
     cm = models.LinearProductAbsorbanceModel.load(wd / "cm_product_A360.json")
     fig, axs = calibr8.plot_model(cm)
-    xlabel = r"$\mathrm{Product\ [mM]}$"
+    xlabel = r"$\mathrm{3-hydroxy\ benzaldehyde\ [mM]}$"
     axs[0].set(
         ylabel=r"$\mathrm{Absorbance_{360\ nm}}\ [-]$",
         xlabel=xlabel,
@@ -511,12 +511,12 @@ def plot_gp_X_factor(wd: pathlib.Path):
             palette=pyplot.cm.Greens,
         )
         ax.set(
-            xlabel="$\mathrm{Glucose\ feed\ rate}\ \ \ [g_\mathrm{glucose}\ L_\mathrm{reactor}^{-1}\ h^{-1}]}$",
+            xlabel=r"$\mathrm{Glucose\ feed\ rate\ \ \ [g_{glucose}\ L_{reactor}^{-1}\ h^{-1}]}}$",
             xlim=(0, max(dense)),
         )
         ax.text(0.02, 0.92, letter, size=24, weight="bold", transform=ax.transAxes)
     axs[0].set(
-        ylabel="$X_{end,2mag}\ \ \ [g_\mathrm{CDW}\ L^{-1}]$",
+        ylabel=r"$\mathrm{X_{end,MBR}\ \ \ [g_{CDW}\ L^{-1}]}$",
         ylim=(0, 1.5),
     )
     axs[1].set(
@@ -723,13 +723,13 @@ def plot_gp_metric_pp_interval(
     )
     cbar = ax.figure.colorbar(**cbar_kw)
     cbar.ax.set_ylabel({
-        "dense_s_design": r"$\mathrm{width\ of\ specific\ activity\ 90\ \%\ HDI\ /\ h^{-1}\ g^{-1}\ L}$",
-        "dense_k_design": r"$\mathrm{width\ of\ rate\ constant\ 90\ \%\ HDI\ /\ h^{-1}}$",
+        "dense_s_design": r"$\mathrm{width\ of\ specific\ activity\ 90\ \%\ HDI\ [h^{-1}\ g^{-1}\ L]}$",
+        "dense_k_design": r"$\mathrm{width\ of\ rate\ constant\ 90\ \%\ HDI\ [h^{-1}]}$",
     }[var_name], rotation=90, va="top")
 
     ax.set(
-        ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ /\ g\ L^{-1}\ h^{-1})}$",
-        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+        ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$",
+        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$",
         title="",
     )
     plotting.savefig(fig, f"plot_pp_dense_{var_name}_interval", wd=wd)
@@ -745,7 +745,7 @@ def plot_gp_metric_posterior_predictive(
     def fn_plot(azim=-65):
         fig = pyplot.figure(dpi=140)
         ax = fig.add_subplot(111, projection='3d')
-        ax.set_xlabel(r"$\mathrm{log_{10}(Glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$")
+        ax.set_xlabel(r"$\mathrm{log_{10}(glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$")
         ax.set_ylabel(r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$")
         ax.set_zlabel(label)
 
@@ -856,6 +856,7 @@ def plot_gp_metric_crossection(
 
     # Turn of background grid because it's too busy
     matplotlib.rcParams["axes.grid"] = False
+    matplotlib.rcParams["grid.linewidth"] = 0
     matplotlib.rcParams["legend.frameon"] = False
 
     fig, ax = pyplot.subplots(figsize=(8, 4))
@@ -876,7 +877,7 @@ def plot_gp_metric_crossection(
         color="gray",
     )
     axr.set(
-        ylabel="p(maximum)",
+        ylabel=r"$\mathrm{p(maximum)}$",
         ylim=(0, max(p_best) * 4),
     )
 
@@ -945,9 +946,9 @@ def plot_gp_metric_crossection(
         for ls, patch in zip(bin_centers, patches):
             pyplot.setp(patch, "facecolor", clipped_heatmap(ls))
     ax2.set(
-        ylabel="$p(\mathrm{ls} \mid \mathrm{D})$",
+        ylabel=r"$\mathrm{p(ls\ \mid\ D)}$",
         yticks=[],
-        xlabel="lengthscale / $log_{10}(IPTG\ /\ µM)$",
+        xlabel=r"$\mathrm{lengthscale\ [log_{10}(IPTG\ /\ µM)]}$",
     )
 
     ax.plot(
@@ -973,10 +974,10 @@ def plot_gp_metric_crossection(
     
     ax.set(
         ylabel={
-            "dense_s_design": r"$\mathrm{specific\ activity /\ h^{-1}\ g^{-1}\ L}$",
-            "dense_k_design": r"$\mathrm{rate\ constant\ /\ h^{-1}}$",
+            "dense_s_design": r"$\mathrm{specific\ activity\ [h^{-1}\ g^{-1}\ L]}$",
+            "dense_k_design": r"$\mathrm{rate\ constant\ [h^{-1}]}$",
         }[var_name],
-        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$",
         ylim=(0, ymax)
     )
     plotting.savefig(fig, f"plot_pp_dense_{var_name}_crossection", wd=wd)
@@ -1199,14 +1200,14 @@ def plot_p_best_dual_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48):
         cbar.ax.set_ylabel("$\mathrm{probability(best\ %s)}$" % metric, rotation=90, va="top")
 
     axs[0].set(
-        ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ /\ g\ L^{-1}\ h^{-1})}$",
-        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+        ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$",
+        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$",
         title="",
     )
     axs[1].set(
         ylabel="",
         yticks=[],
-        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+        xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$",
         title="",
     )
     
@@ -1256,7 +1257,7 @@ def plot_p_best_single_heatmap(wd: pathlib.Path, ts_seed=None, ts_batch_size=48,
     }[metric], rotation=90, va="top")
 
     ax.set(
-        ylabel=r"$\mathrm{log_{10}(Glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$",
+        ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$",
         xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$",
         title="",
     )
@@ -1300,7 +1301,7 @@ def plot_p_best_all_rounds(wd: pathlib.Path, ts_seed=1234, ts_batch_size=48):
     for ax in axs[:, 0]:
         ax.set(
             title="",
-            ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ /\ g\ L^{-1}\ h^{-1})}$",
+            ylabel=r"$\mathrm{log_{10}(glucose\ feed\ rate\ [g\ L^{-1}\ h^{-1}])}$",
             xlabel="",
         )
     for ax in axs[:, 1]:
@@ -1312,7 +1313,7 @@ def plot_p_best_all_rounds(wd: pathlib.Path, ts_seed=1234, ts_batch_size=48):
         )
     for ax in axs[-1, :]:
         ax.set(
-            xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ /\ µM)}$",
+            xlabel=r"$\mathrm{log_{10}(IPTG\ concentration\ [µM])}$",
         )
 
     # Put a legend above the figure
@@ -1494,7 +1495,7 @@ def plot_run_effect(wd: pathlib.Path):
     fig = pyplot.gcf()
     ax = axs[0]
     ax.set(
-        xlabel="run effect / -",
+        xlabel=r"$\mathrm{run\ effect\ [-]}$",
         yticklabels=[
             "run 4\n(Carboxylase 23)",
             "run 3\n(Carboxylase 21)",
@@ -1531,7 +1532,7 @@ def copy_results_to_manuscript(wd: pathlib.Path):
     dp_dst = wd.parent.parent / "manuscript" / "figures"
     if not dp_dst.exists():
         raise FileExistsError(dp_dst)
-    fps_src = [wd / fn for fn in files]
+    fps_src = [wd / "figs_tum" / fn for fn in files]
     fps_dst = [dp_dst / fn for fn in files]
     for src, dst in zip(fps_src, fps_dst):
         _log.info("Copying %s → %s", src, dst)

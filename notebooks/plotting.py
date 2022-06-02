@@ -15,6 +15,7 @@ import sklearn.preprocessing
 import scipy
 import numpy
 import os
+import re
 import xarray
 from PIL import Image
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -29,7 +30,107 @@ _log = logging.getLogger(__file__)
 pyplot.style.use(DP_ROOT / "notebooks" / "DigInBio.mplstyle")
 
 
-def savefig(fig, name: str, *, wd=DP_RESULTS, facecolor="white", **kwargs):
+def _apply_to_first_letter(label: str, action) -> str:
+    """Applies a callable `action` to the first non-LaTeX command alphabetic character in a `label`."""
+    newlabel = ""
+    intex = False
+    for i,l in enumerate(label):
+        if l == "\\":
+            intex = True
+            newlabel += l
+        elif intex and l == "{":
+            intex = False
+            newlabel += l
+        elif not intex and str.isalpha(l):
+            return newlabel + action(l) + label[i+1:]
+        else:
+            newlabel += l
+    return newlabel
+
+
+def _labelformat_fzj(olabel: Optional[str]) -> str:
+    """Applies DIN 461 unit formatting and de-capitalizes the first letter."""
+    if not olabel:
+        return ""
+    label = olabel
+
+    # Find & replace
+    label = label.replace("CDW\ [g\ L^{-1}]", "Biomass\ [g_{CDW}\ L^{-1}]")
+
+    # De-capitalize first letter
+    label = _apply_to_first_letter(label, str.lower)
+    # Exceptions:
+    label = label.replace("iPTG", "IPTG")
+    label = label.replace("dO", "DO")
+
+    # Reformatting of the unit
+    label = re.sub(
+        pattern=r"\\ \[(.*?)\]",
+        repl="\ /\ {\g<1>}",
+        string=label,
+    )
+
+    _log.info("Labelconversion FZJ\n\t>>>%s<<<\n\t>>>%s<<<", olabel, label)
+    return label
+
+
+def _labelformat_tum(olabel: Optional[str]) -> str:
+    """Uses bracketed unit formatting and capitalizes the first letter."""
+    if not olabel:
+        return ""
+    label = olabel
+
+    # Capitalize first letter
+    label = _apply_to_first_letter(label, str.upper)
+    # Exceptions:
+    label = label.replace("PH", "pH")
+    label = label.replace("P(", "p(")
+
+    # NoChange: Original unit formatting is with brackes (easier to RegEx match)
+    # NoChange: Biomass vs. CDW wording (original in TUM style)
+
+    _log.info("Labelconversion TUM\n\t>>>%s<<<\n\t>>>%s<<<", olabel, label)
+    return label
+
+
+def apply_fzj_style(fig: pyplot.Figure, orig_labels):
+    """Applies the following figure style:
+    * First letter small
+    * Unit with / notation according to DIN 461
+    * No coordinate grid
+    * Biomass instead of CDW
+    """
+    for ax in fig.axes:
+        ylabel, xlabel, zlabel = orig_labels[ax]
+        # Disable the grid (except for 3D plots)
+        if not zlabel:
+            ax.grid(False)
+        ax.set_ylabel(_labelformat_fzj(ylabel))
+        ax.set_xlabel(_labelformat_fzj(xlabel))
+        if hasattr(ax, "set_zlabel"):
+            ax.set_zlabel(_labelformat_fzj(zlabel))
+    return
+
+
+def apply_tum_style(fig: pyplot.Figure, orig_labels):
+    """Applies the following figure style:
+    * First letter capitalized
+    * Unit with [] notation
+    * Coordinate grid
+    * CDW instead of biomass
+    """
+    for ax in fig.axes:
+        ylabel, xlabel, zlabel = orig_labels[ax]
+        # Enable the grid
+        ax.grid(True)
+        ax.set_ylabel(_labelformat_tum(ylabel))
+        ax.set_xlabel(_labelformat_tum(xlabel))
+        if hasattr(ax, "set_zlabel"):
+            ax.set_zlabel(_labelformat_tum(zlabel))
+    return
+
+
+def savefig(fig, name: str, *, wd=DP_RESULTS, **kwargs):
     """Saves a bitmapped and vector version of the figure.
     Parameters
     ----------
@@ -37,15 +138,41 @@ def savefig(fig, name: str, *, wd=DP_RESULTS, facecolor="white", **kwargs):
         The figure object.
     name : str
         Filename without extension.
+    wd : pathlib.Path
+        Directory where to save the figure.
     **kwargs
         Additional kwargs for `pyplot.savefig`.
     """
-    kwargs.setdefault("facecolor", facecolor)
+    orig_labels = {}
+    for ax in fig.axes:
+        ylabel = ax.get_ylabel()
+        xlabel = ax.get_xlabel()
+        zlabel = getattr(ax, "get_zlabel", lambda: "")()
+        orig_labels[ax] = (ylabel, xlabel, zlabel)
+
+    figure_styles = {
+        # Subfolder name : function to apply the style
+        "figs_fzj": apply_fzj_style,
+        "figs_tum": apply_tum_style,
+    }
+
+    for subfolder, apply_style in figure_styles.items():
+        _log.debug("Applying figure style for subfolder %s", subfolder)
+        apply_style(fig, orig_labels)
+        _savefig(fig, name, wd=wd / subfolder, **kwargs)
+    return
+
+
+def _savefig(fig, name: str, *, wd, **kwargs):
+    """Internal function used to save figures. See `savefig()`."""
+    _log.info("Saving figure '%s' to %s", name, wd)
+    kwargs.setdefault("facecolor", "white")
     kwargs.setdefault("bbox_inches", "tight")
     max_pixels = numpy.array([2250, 2625])
     max_dpi = min(max_pixels / fig.get_size_inches())
     if not "dpi" in kwargs:
         kwargs["dpi"] = max_dpi
+    wd.mkdir(exist_ok=True)
     fig.savefig(wd / f"{name}.pdf", **kwargs)
     # Save with & without border to measure the "shrink".
     # This is needed to rescale the dpi setting such that we get max pixels also without the border.
@@ -336,8 +463,8 @@ def plot_calibration_A600(df_layout, df_A600, df_time):
         ax.plot([], [], color=color, label=label)
     ax.legend(frameon=False)
     ax.set(
-        xlabel="Time [h]",
-        ylabel="Absorbance at 600 nm [a.u.]",
+        xlabel=r"$\mathrm{Time\ [h]}$",
+        ylabel=r"$\mathrm{Absorbance\ at\ 600\ nm\ [a.u.]}$",
         ylim=(0, None),
         xlim=(0, None),
     )
@@ -536,7 +663,7 @@ def plot_reaction(
     )
     ax.set(
         title="A600 contributions",
-        ylabel="$A_{600\ nm}$   [a.u.]",
+        ylabel=r"$\mathrm{A_{600\ nm}\ [a.u.]}$",
     )
     ax.legend(frameon=False, loc="upper left")
 
@@ -597,7 +724,7 @@ def plot_reaction(
     )
     ax.set(
         title="A360 contributions",
-        ylabel="$A_{360\ nm}$   [a.u.]",
+        ylabel=r"$\mathrm{A_{360\ nm}\ [a.u.]}$",
     )
     ax.legend(
         handles=[
@@ -619,15 +746,15 @@ def plot_reaction(
     )
     ax.set(
         title="production",
-        ylabel="reaction product   [mM]",
-        xlabel="time   [h]",
+        ylabel=r"$\mathrm{reaction\ product\ [mM]}$",
+        xlabel=r"$\mathrm{time\ [h]}$",
         ylim=(0, None),
     )
 
 
     ax = axs[1, 1]
     metric = "k_reaction"
-    ylabel = "rate constant   [1/h]"
+    ylabel = r"$\mathrm{rate\ constant\ [1/h]}$"
 
     x = posterior[metric]
     if "cycle" in x.coords:
@@ -690,11 +817,11 @@ def plot_reactor_positions(data: Dict[str, xarray.Dataset], df_layout: pandas.Da
 
 
 def plot_3d_s_design(idata, azim=-65):
-    return plot_3d_by_design(idata, "s_design", azim=azim, label="specific activity\n$k_{design}\ [(1/h) / (g_{CDW}/h)]$")
+    return plot_3d_by_design(idata, "s_design", azim=azim, label="specific activity\n$\mathrm{k_{design}\ [h^{-1} / (g_{CDW}\ h^{-1})]}$")
 
 
 def plot_3d_k_design(idata, azim=-65):
-    return plot_3d_by_design(idata, "k_design", azim=azim, label="rate constant\n$v_{design}\ [1/h]$")
+    return plot_3d_by_design(idata, "k_design", azim=azim, label="rate constant\n$v_{design}\ [h^{-1}]$")
 
 
 def plot_3d_by_design(idata, var_name: str, *, label: str, azim=-65):
