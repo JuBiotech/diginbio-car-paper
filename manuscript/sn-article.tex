@@ -303,7 +303,7 @@ Posterior samples were obtained by MCMC sampling with the No-U-turn-Sampler (NUT
 Diagnostics and visualizations were prepared using ArviZ and matplotlib \cite{arviz,arvizPaper,matplotlib,matplotlibPaper} and probabilities were calculated from posterior samples using \texttt{pyrff}~\cite{pyrff}.
 
 
-\newpage
+
 \section{Results and Discussion}
 \label{sec_results}
 
@@ -434,7 +434,7 @@ A separately acquired biomass calibration dataset was used to fit two models $\p
     \caption{
         \textbf{CDW calibration at 360 nm:}
         The spread of observations (blue dots) is modeled by a \texttt{calibr8.LogIndependentAsymmetricLogisticN} model with \texttt{scale\_degree=1} to account for non-linearity (left) and heteroscedasticity (right). 
-        Green areas depict the intervals of 95~\%, 90~\% and 68~\% probability of observations according to the model.
+        Green areas depict the intervals of 95~\%, 90~\% and 68~\% probability of observations according to the model. The grey ares depict the experimentally relevant areas of the calibration.
     }
     \label{fig_cmXA360}
 \end{figure}
@@ -445,6 +445,7 @@ A separately acquired biomass calibration dataset was used to fit two models $\p
     \caption{
         \textbf{CDW calibration at 600 nm:}
         Observations (blue dots) at 600~nm indicated lower absorbance compared to 360~nm. Like for 360~nm, the model is a \texttt{calibr8.LogIndependentAsymmetricLogisticN} model with \texttt{scale\_degree=1}.
+        The grey ares depict the experimentally relevant areas of the calibration.
     }
     \label{fig_cmXA600}
 \end{figure}
@@ -467,7 +468,8 @@ A linear calibration model $\phi_\mathrm{cm,P,360\ nm}$ with heteroscedastic, no
     \caption{
         \textbf{Product calibration at 360 nm:}
         In the observed range, the absorbance at 360~nm (blue dots) followed a linear trend in dependence on the 3-hydroxy benzaldehyde concentration.
-        The model was built from a \texttt{calibr8.BasePolynomialModelN} model with \texttt{mu\_degree=1} and \texttt{scale\_degree=1}.
+        The model was built from a \texttt{calibr8.BasePolynomialModelN} model with \texttt{mu\_degree=1} and \texttt{scale\_degree=1}. 
+        The grey ares depict the experimentally relevant areas of the calibration.
     }
     \label{fig_cmPA360}
 \end{figure}
@@ -780,10 +782,11 @@ In future investigations, a more evenly distributed localization of tested exper
 In this study, the best rate constant was predicted at a feed rate of $4.8\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 27.6 µM with $0.64\ h^{-1}$, which can be converted to an initial enzymatic activity of $1068\ U\ mL^{-1}$ (mL refers to bioreactor broth).
 The best tested process design was a feed rate of $1.5\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 12 µM with $0.69\ h^{-1}$, translating to a volumetric activity of $1153\ UmL^{-1}$.
 In a previous study, NoCAR was produced with an extremely low growth and expression temperature of 15 °C in a batch process with complex medium in shake flasks with a final volumetric activity of approximately $26\ U\ mL^{-1}$\cite{weber2021production}.
-The low temperature was chosen to avoid the formation of inclusion bodies. Inclusion bodies usually do not show enzymatic activity and tend to form when a big protein is expressed in \textit{E.~coli} to high concentrations \cite{bhatwa2021challenges}.
+The low temperature was chosen to avoid the formation of inclusion bodies. Inclusion bodies are aggregates of protein that can form when a heterologous protein is expressed in \textit{E. coli}. As inclusion bodies usually do not show enzymatic activity, they are usually not the desired product of protein expression.
+The risk of inclusion body formation is correlated to big proteins that are expressed fast in hosts that do not offer the proper environment for correct protein folding \cite{bhatwa2021challenges,neubauer2001expression,fahnert2004inclusion}.
 
 This shows that active NoCAR can be produced at a cultivation temperature of 30 °C in defined medium. Several factors might have aided the production of active NoCAR in this study.
-The use of defined medium as opposed to complex medium in previous studies might have reduced inclusion body formation \cite{neubauer2001expression}.
+The use of defined medium as opposed to complex medium in previous studies might have reduced inclusion body formation \cite{neubauer2001expression,fahnert2004inclusion}.
 Furthermore, the tightly controlled pH in the stirred-tank bioreactors on a mL-scale might have aided to reduce antibody formation due to pH drift \cite{strandberg1991factors}.
 
 \begin{figure}[h]
@@ -841,7 +844,7 @@ The overlaid coordinates of experimentally tested process parameters show that t
     \label{fig_kdesign_probs}
 \end{figure}
 
-\newpage
+
 \section{Conclusion}
 
 The automated cascade of stirred-tank bioreactors enabled screening of 42 different combinations of inductor concentration and feed rate during protein expression of \textit{E.~coli} NoCAR in a scalable bioreactor setup.
