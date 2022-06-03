@@ -314,7 +314,7 @@ In total, 42 unique combinations of inducer concentration (IPTG) and feed rate (
 For controlling of the sequential reproducibility of the mL-scale experiments, the reaction conditions at the feed rate of 
 $2\ g\ L^{-1}h^{-1}$ were investigated twice in two sequential experiments.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.5\textwidth]{figures/ExpDesign.png}
     \caption{
@@ -332,7 +332,7 @@ This indicates that it was possible to get similar initial conditions for each o
 
 Cell dry weight concentrations (CDW), pH and DO signals of three fed-btach processes performed on a mL-scale are shown exemplarily.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/btm_overview.png}
     \caption{
@@ -371,7 +371,7 @@ This is probably caused by the higher biomass density at a higher feed rate (see
 During the first hour at a feed rate of $4.8\ g\ L^{-1} h^{-1}$, there is no increase of the DO signal indicating no limiting substrate concentrations between the substrate additions.
 The initially reduced metabolic activity of the recombinant \textit{E. coli} observed at the highest feed rate may be caused by adapting of the cells to the new cultivation temperature (37 °C in the L-scale, 30 °C in the mL-scale).
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/pH_overview.png}
     \caption{
@@ -407,7 +407,7 @@ On the other hand, the analysis must deal with a variety of experimental effects
 (b) The \textit{E. coli} cells continue to grow during the 5~h biotransformation, but the growth rate depends on the product concentration (Fig.~\ref{fig_a600kinetics}).
 (c) The biomass contributes to absorbance at 360~nm such that product concentration can not be measured independently.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/plot_A600_kinetics.png}
     \caption{
@@ -428,7 +428,7 @@ In the following sections, we will introduce various components of and results f
 
 A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig.~\ref{fig_cmXA360},~\ref{cmXA600}).
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/cm_biomass_A360.png}
     \caption{
@@ -439,7 +439,7 @@ A separately acquired biomass calibration dataset was used to fit two models $\p
     \label{fig_cmXA360}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/cm_biomass_A600.png}
     \caption{
@@ -462,7 +462,7 @@ Reference samples were prepared without biomass and with different amounts of ac
 
 A linear calibration model $\phi_\mathrm{cm,P,360\ nm}$ with heteroscedastic, normally distributed observation noise was fitted to the 360~nm measurements of product calibration samples.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/cm_product_A360.png}
     \caption{
@@ -639,7 +639,7 @@ The Gaussian process was parametrized by a mean function of $0$, thereby centeri
 For the covariance function we chose a scaling parameter $\sigma$ such that the prior variance for the factor is around $\pm30\ \%$.
 The prior for $\ell$ in the exponential quadratic kernel encodes a belief that $\mathrm{\vec{X}_{factor,\vec{glc}}}$ varies smoothly on a lengthscale of around half of the (logarithmic) design space~(Fig.~\ref{fig_gpXfactor}).
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/plot_gp_X_factor.png}
     \caption{
@@ -745,7 +745,7 @@ Generally, the specific activity is higher for high IPTG concentrations, but at 
 This observation is in line with a previous study on mCherry expression where the IPTG saturation concentration was found at $10^1 \mu M$ \cite{von2021automated}.
 
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/plot_3d_pp_dense_s_design.png}
     \caption{
@@ -764,7 +764,7 @@ This is more than two-fold higher that at a feed rate of $4.8\ g\ L^{-1} h^{-1}$
 Consequently, a benefit of lower feed rate during protein expression cannot be ruled out for this protein.
 
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/plot_3d_pp_dense_k_design.png}
     \caption{
@@ -789,7 +789,7 @@ This shows that active NoCAR can be produced at a cultivation temperature of 30 
 The use of defined medium as opposed to complex medium in previous studies might have reduced inclusion body formation \cite{neubauer2001expression,fahnert2004inclusion}.
 Furthermore, the tightly controlled pH in the stirred-tank bioreactors on a mL-scale might have aided to reduce antibody formation due to pH drift \cite{strandberg1991factors}.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/plot_pp_dense_dense_k_design_interval.png}
     \caption{
@@ -808,7 +808,7 @@ In essence, Fig.~\ref{fig_expdesign}3 is a more detailed cross-section that is m
 Note that the GP samples are drawn with different lengthscales, hence some may fluctuate more smoothly than others.
 Again, a more evenly spread localization of experimentally tested process designs should help to smoothen the prediction by providing more information about the spatial dependence, at the expense of higher uncertainty at individual process designs.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/plot_pp_dense_dense_k_design_crossection.png}
     \caption{
@@ -831,7 +831,7 @@ Counterintuitively this leads to a vague prediction that the optimal process des
 The probability map (Fig.~\ref{fig_expdesign}4) is a more direct visualization out this prediction.
 The overlaid coordinates of experimentally tested process parameters show that this part of the parameter spaces was not extensively investigated yet.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/p_best_k_design.png}
     \caption{
