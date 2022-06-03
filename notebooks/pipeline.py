@@ -1512,7 +1512,10 @@ def plot_run_effect(wd: pathlib.Path):
 
 
 def copy_results_to_manuscript(wd: pathlib.Path):
-    files = [
+    dp_dst = wd.parent.parent / "manuscript" / "figures"
+    if not dp_dst.exists():
+        raise FileExistsError(dp_dst)
+    figs = [
         "ExpDesign.png",
         "btm_overview.png",
         "O2_overview.png",
@@ -1527,13 +1530,18 @@ def copy_results_to_manuscript(wd: pathlib.Path):
         "plot_pp_dense_dense_k_design_crossection.png",
         "plot_pp_dense_dense_k_design_interval.png",
         "p_best_k_design.png",
+    ]
+    files = [
         "summary_tested_vs_predicted.txt",
     ]
-    dp_dst = wd.parent.parent / "manuscript" / "figures"
-    if not dp_dst.exists():
-        raise FileExistsError(dp_dst)
-    fps_src = [wd / "figs_tum" / fn for fn in files]
-    fps_dst = [dp_dst / fn for fn in files]
+    fps_src = [
+        wd / "figs_tum" / fn
+        for fn in figs
+    ] + [
+        wd / fn
+        for fn in files
+    ]
+    fps_dst = [dp_dst / fn for fn in figs + files]
     for src, dst in zip(fps_src, fps_dst):
         _log.info("Copying %s → %s", src, dst)
         shutil.copy(src, dst)
