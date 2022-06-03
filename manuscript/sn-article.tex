@@ -50,7 +50,6 @@
 %%%%  of the journal take precedence. A detailed User Manual is available in the 
 %%%%  template package for technical guidance.
 %%%%%=============================================================================%%%%
-
 \jyear{2021}%
 
 %% as per the requirement new theorem styles can be included as shown below
@@ -247,8 +246,8 @@ IPTG concentrations were calculated based on the initial reaction volume of 10 m
 To ensure sterile operation of the LHS, the pipetting needles of the LHS were washed with an aqueous solution of 70~\% (v/v) ethanol and with sterile filtered deionised water after each pipetting step.
 
 All tasks (substrate addition, pH control, inductor addition, sampling) were initiated by a priority-based scheduler which weighed the tasks based on their real-time priority to enable optimal process control when more than one task was eligible.
-The detailed description of the scheduler working principle, aim and software engineering may be found in Bromig \& von den Eichen et al. \cite{von2021automated}.
-The priorities were feed $>$ inductor addition $>$ sampling $>$ pH control.
+The detailed description of the scheduler working principle, aim and software engineering may be found in the accompanying manuscript Control of Parallelized Bioreactors I.
+The priorities for this application were feed $>$ inductor addition $>$ sampling $>$ pH control.
 
 \subsection{Analytical procedures}
 The cultivations on the L-scale were just followed by sensor data, whereas samples on the mL-scale generally were taken every hour by the LHS, with two exceptions:
@@ -304,6 +303,7 @@ Posterior samples were obtained by MCMC sampling with the No-U-turn-Sampler (NUT
 Diagnostics and visualizations were prepared using ArviZ and matplotlib \cite{arviz,arvizPaper,matplotlib,matplotlibPaper} and probabilities were calculated from posterior samples using \texttt{pyrff}~\cite{pyrff}.
 
 
+\newpage
 \section{Results and Discussion}
 \label{sec_results}
 
@@ -350,7 +350,7 @@ As expected, there is a positive correlation between the applied feed rate and t
 However, the biomass yields ($0.25\ g_{cells}\ g^{-1}$ glucose, $0.22\ g_{cells}\ g^{-1}$ glucose and $0.28\ g_{cells}\ g^{-1}$ glucose at feed rates of $4.8\ g\ L^{-1} h^{-1}$, $3\ g\ L^{-1} h^{-1}$ and $1\ g\ L^{-1} h^{-1}$, respectively) is lower than expected for \textit{E. coli} growing with glucose as a carbon source \cite{schmideder2015novel}.
 This may be due to the starvation period between intermittent glucose additions with a step-time of approximately 10 min or due to the protein production.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=1.0\textwidth]{figures/O2_overview.png}
     \caption{
@@ -841,7 +841,7 @@ The overlaid coordinates of experimentally tested process parameters show that t
     \label{fig_kdesign_probs}
 \end{figure}
 
-
+\newpage
 \section{Conclusion}
 
 The automated cascade of stirred-tank bioreactors enabled screening of 42 different combinations of inductor concentration and feed rate during protein expression of \textit{E.~coli} NoCAR in a scalable bioreactor setup.
