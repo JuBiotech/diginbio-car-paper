@@ -96,6 +96,8 @@
 
 \author[1]{\fnm{Lukas} \sur{Bromig}}
 
+\author[2]{\fnm{Wolfgang} \sur{Wiechert}}
+
 \author[2,3]{\fnm{Marco} \sur{Oldiges}}
 
 \author[1]{\fnm{Dirk} \sur{Weuster-Botz}}
@@ -150,7 +152,7 @@
 \label{sec_intro}
 
 Because of the need to perform time-consuming and labor-intensive experiments for bioprocess development, miniaturized and automated bioreactor systems have been developed with which a variety of process parameters can be screened rapidly \cite{weuster2005parallel,hemmerich2018microbioreactor}.
-Parallel microbioreactor systems are often coupled with a pipetting robot (liquid handling station, LHS) in order to use the flexibility of the pipetting robot for at-line process analysis \cite{haby2019integrated,puskeiler2005development,rohe2012automated}. It has been shown that microbioreactors systems can yield scalable results for both biomass growth and product formation \cite{puskeiler2005development,schmideder2016high,kensy2009scale}.
+Parallel microbioreactor systems are often coupled with a pipetting robot (liquid handling station, LHS) in order to use the flexibility of the LHS for at-line process analysis \cite{haby2019integrated,puskeiler2005development,rohe2012automated}. It has been shown that microbioreactors systems can yield scalable results for both biomass growth and product formation \cite{puskeiler2005development,schmideder2016high,kensy2009scale}.
 Heterologous proteins are usually over expressed by cloning the encoding gene downstream from a regulated promoter in a suitable host to allow for cheap and simple protein production \cite{terpe2006overview}.
 To reduce adverse effects on biomass growth due to the formation of the heterologous protein, the cell formation phase is usually separated from the product formation phase \cite{choi2000efficient,schmideder2016high,jahic2006process,neubauer2001expression}.
 This is accomplished by making protein formation controllable by inducers and activating it only after the desired cell density has been reached \cite{neubauer2001expression}.
@@ -174,31 +176,31 @@ The feed rate during protein expression and the inducer concentration were exami
 These two parameters were selected because they have been shown in the past to be critical for heterologous protein production \cite{neubauer2001expression,von2021automated}.
 
 A detailed computational model of the experimental process was implemented to describe observed absorbance from underlying biomass and product concentrations.
-The model captured not only the concentrations at observed time points, but also comprises mechanistic descriptions of how these concentrations result from otherwise unobservable parameters and key performance indicators (KPIs) such as specific activity.
+The model captured not only the concentrations at observed time points, but also comprises mechanistic descriptions of how these concentrations result from otherwise unobservable parameters and key performance indicators (KPIs) such as specific enzyme activity.
 Using Markov-chain Monte Carlo (MCMC) methods, we quantified the posterior probability distributions of model parameters and variables, thereby obtaining uncertainty estimates for KPIs of interest.
 
-Through Bayesian modeling, we determined the biomass-specific and absolute enzyme activity within the investigated parameter space and predicted optimal expression conditions.
+Through Bayesian modeling, we determined the biomass-specific and absolute enzyme activity within the investigated parameter space and predicted optimal expression conditions for the CAR protein in the \textit{E. coli} process.
 
 \section*{Materials and Methods}
 \label{sec_mmm}
 
 \subsection{Bacterial Strain}
 
-\textit{E. coli} K12 MG1655 RARE (\#61440 at Addgene, Watertown, USA) with a pETDuet plasmid with a carboxylase gene from \textit{Nocardia otitidiscaviarum} and a pyrophosphatase from \textit{E. coli} (EcPPase) under the control of a T7 Promoter \cite{weber2021production} kindly provided by Dörte Rother (Synthetic Enzyme Cascades, Forschungszentrum Jülich, Jülich, Germany) was used for all cultivations.
-The recombinant \textit{E. coli} cells were stored at -80 °C after mixing the cell suspension 1:1 with a 50~\% (v/v) glycerol solution.
+\textit{E. coli} K12 MG1655 RARE (\#61440 at Addgene, Watertown, USA) with a pETDuet plasmid with a carboxylase gene from \textit{Nocardia otitidiscaviarum} and a pyrophosphatase from \textit{E. coli} (EcPPase) under the control of a T7 promoter \cite{weber2021production} kindly provided by Prof. Dörte Rother (Forschungszentrum Jülich, Jülich, Germany) was used for all cultivations.
+The recombinant \textit{E. coli} cells were stored as cryo-cultures at -80 °C after mixing the cell suspension 1:1 with a 50~\% (v/v) glycerol solution.
 
 \subsection{Media}
 
 Seed cultures were grown at 37 °C with LB-Medium ($5\ g\ L^{-1}$ yeast extract, $10\ g\ L^{-1}$ peptone, $5\ g\ L^{-1}$ NaCl, $50\ mg\ L^{-1}$ Ampicillin, pH 7.5) in 1 L shake flasks with baffles at 150 rpm with a working volume of 100 mL.
 The pH of the LB-Medium was adjusted with 2 M NaOH prior to autoclaving (20 min at 121 °C).
-Sterile-filtered ampicillin  was added aseptically after autoclaving of the LB-Medium.
+Sterile-filtered ampicillin  was added aseptically after autoclaving the LB-Medium.
 
 All cultivations on the mL- and L-scales were carried out with a defined minimal medium \cite{riesenberg1991high}.
 The final concentrations in the medium were as follows:
 $8.4\ mg\ L^{-1}$ ethylenediaminetetraacetic acid (EDTA), $8.4 mg\ L^{-1}$ $CoCl_{2}*6H_{2}O$, $15\ mg\ L^{-1} MnCl_{2}*4H_{2}O$, $1.5\ mg\ L^{-1} CuCl_{2}*2H_{2}O$, $3\ mg\ L^{-1} H_{3}BO_{3}$, $2.5\ mg\ L^{-1} Na_{2}MoO_{4}*2H_{2}O$, $13\ mg\ L^{-1} Zn(CH_{3}COO)_{2}*2H_{2}O$, $100\ mg\ L^{-1}$ Fe(III)citrate, $13.3\ g\ L^{-1} KH_{2}PO_{4}$, $4\ g\ L^{-1} (NH_{4})_{2}HPO_{4}$, $1.7\ g\ L^{-1}\ \mathrm{citric\ acid}*H_{2}O$, $2.4\ g\ L^{-1}$ NaOH, $1.2\ g\ L^{-1} MgSO_{4}*7H_{2}O$, $50\ mg\ L^{-1}$ ampicillin.
 The pH was not adjusted prior to addition to the bioreactor.
 The initial glucose concentration was $5\ g\ L^{-1}$.
-The feed medium consisted of $500\ g\ L^{-1}$ glucose with $12.5\ g\ L^{-1} MgSO_{4}$ in fed-batch processes on an L-scale.
+The feed medium consisted of $500\ g\ L^{-1}$ glucose with $12.5\ g\ L^{-1} MgSO_{4}$ in fed-batch processes on L-scale.
 For the mL-scale, the feed medium varied depending on the applied feed rate.
 For the experiments with a feed rate of $4.8\ g\ L^{-1} h^{-1}$ the feed medium consisted of $300\ g\ L^{-1}$ glucose with $7.5\ g\ L^{-1} MgSO_{4}$.
 For the experiment with the feed rates varied from 2-4 $g\ L^{-1}h^{-1}$ the feed medium consisted of $200\ g\ L^{-1}$ glucose with $5\ g\ L^{-1} MgSO_{4}$.
@@ -250,7 +252,7 @@ The detailed description of the scheduler working principle, aim and software en
 The priorities for this application were feed $>$ inductor addition $>$ sampling $>$ pH control.
 
 \subsection{Analytical procedures}
-The cultivations on the L-scale were just followed by sensor data, whereas samples on the mL-scale generally were taken every hour by the LHS, with two exceptions:
+The cultivations on the L-scale were monitored online by sensor data, whereas samples on the mL-scale were generally taken every hour by the LHS, with two exceptions:
 (a) the first and the second sample were taken at 0.083 h and 1.25 h, respectively and (b) the last three samples were taken every two hours.
 
 Sampling for the measurement of the optical density was conducted automatically by the LHS.
@@ -311,7 +313,7 @@ Diagnostics and visualizations were prepared using ArviZ and matplotlib \cite{ar
 
 Two variables were investigated during four parallel experiments, the glucose feed rate and the inducer concentration at the mL-scale.
 In total, 42 unique combinations of inducer concentration (IPTG) and feed rate (Fig.~\ref{fig_expdesign}) were investigated with 4 to 8 biological replicates per unique combination.
-For controlling of the sequential reproducibility of the mL-scale experiments, the reaction conditions at the feed rate of 
+For controlling of the sequential batch to batch reproducibility of the mL-scale experiments, the reaction conditions at the feed rate of 
 $2\ g\ L^{-1}h^{-1}$ were investigated twice in two sequential experiments.
 
 \begin{figure}[H]
@@ -387,13 +389,13 @@ The initially reduced metabolic activity of the recombinant \textit{E. coli} obs
 
 The pH-setpoint for the proportional controller was pH 7.0.
 Due to the nature of a proportional controller, a small deviation (approx. pH 0.1) from the setpoint was observed (Fig.~\ref{fig_pHoverview}).
-Apart from that, the pH oscillates due to the intermittent pH correction by the LHS and the intermittent metabolic activity of the cells due to the intermittent feeding \cite{kim2004high}.
+Apart from that, the pH oscillates in a very narror window of approximately pH 0.15 due to the intermittent pH correction by the LHS and the intermittent metabolic activity of the cells due to the intermittent feeding \cite{kim2004high}.
 Overall, the pH was tightly controlled at about pH 6.9.
 The small pH deviations from that value will most likely be too small to have biological impact on \textit{E. coli} growth \cite{presser1997modelling,gale1942effect}.
 However, there might be an influence on protein expression and enzyme activity \cite{cui2009influence,strandberg1991factors}.
-Due to the intermittent dosage by the LHS and the limited LHS time, those pH oscillations can not be avoided with this setup.
+Due to the intermittent dosage by the LHS and due to the limited LHS time assigned for such tasks, those pH oscillations can not be avoided with this setup.
 
-After 18 process time on the mL-scale (17 hours protein expression) a biotransformation was prepared for each bioreactor to determine the final enzymatic activity in each bioreactor.
+After 18 h process time on the mL-scale (17 hours protein expression) a biotransformation was prepared for each bioreactor to determine the final enzymatic activity in each bioreactor.
 Additionally, a calibration curve with a total of 18 positions was prepared based with the biomass from the first mL-scale bioreactor in the current experiment (A1).
 From the biotransformation in the Deep-Well-Plate (DWP) Samples were taken every 1.1 h to measure the product concentration (360 nm) and biomass growth (600 nm) photometrically.
 
@@ -426,7 +428,7 @@ In the following sections, we will introduce various components of and results f
 
 \subsubsection{Biomass concentration}
 
-A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig.~\ref{fig_cmXA360},Fig.~\ref{cmXA600}).
+A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig.~\ref{fig_cmXA360},Fig.~\ref{cmXA600}). The calibration at 360 nm is required to counteract potential interference with the product determination at the same wavelength.
 
 \begin{figure}[H]
     \centering
@@ -635,7 +637,7 @@ Here, this distribution over functions is used, because the model must describe 
 \label{eq_XfactorGP}
 \end{equation}
 
-The Gaussian process was parametrized by a mean function of $0$, thereby centering the prior for $\mathrm{\vec{X}_{factor,\vec{glc}}}$ around $1$.
+The GP was parametrized by a mean function of $0$, thereby centering the prior for $\mathrm{\vec{X}_{factor,\vec{glc}}}$ around $1$.
 For the covariance function we chose a scaling parameter $\sigma$ such that the prior variance for the factor is around $\pm30\ \%$.
 The prior for $\ell$ in the exponential quadratic kernel encodes a belief that $\mathrm{\vec{X}_{factor,\vec{glc}}}$ varies smoothly on a lengthscale of around half of the (logarithmic) design space~(Fig.~\ref{fig_gpXfactor}).
 
@@ -670,7 +672,7 @@ The result are biomass concentrations for every replicate well and measurement c
 \subsection{Biotransformation reaction process model}
 \label{sec_product_model}
 
-Next to biomass, the second important contributor to observed absorbance is the 3-hydroxy benzaldehyde concentration $\mathrm{\vec{P}_{\vec{t},\vec{replicate}}}$ that reacted with ABAO.
+Next to biomass, the second important contributor to observed absorbance is the 3-hydroxy benzaldehyde concentration $\mathrm{\vec{P}_{\vec{t},\vec{replicate}}}$ that reacted with ABAO reagent.
 In the reference samples this concentration $\vec{P}_{(\vec{t}),\vec{reference}}$ is known and assumed to be constant.
 For the remaining wells it is the reaction product concentration of the biotransformation $\mathrm{\vec{P}_{\vec{t},\vec{DWP}}}$.
 Here we assume an initial product concentration $P_0=0$ and model the biotransformation reaction as a 1st order reaction \eqref{eq_productformation} starting from a global initial benzoic acid concentration $S_0$ with a rate constant $\vec{k}_{0,\vec{DWP}}$.
@@ -705,7 +707,7 @@ Design-wise specific rate coefficients $\vec{s}_{\vec{design}}$ and an experimen
 The $\vec{s}_{\vec{design}}$ parameter is part of the above equation and modeled by a two-dimensional Gaussian process to allow for inter- and extrapolation to new experimental designs.
 
 $\vec{s}_{\vec{design}}$ is strictly positive, and we expect it around $0.1-0.8\ [h^{-1}]$.
-The model outlined in \eqref{eq_sdesignGP} achieves both properties by describing a Gaussian process (GP) for $ln(\vec{s}_{\vec{design}})$ and assigning a corresponding prior for the kernel variance $\sigma$.
+The model outlined in \eqref{eq_sdesignGP} achieves both properties by describing a GP for $ln(\vec{s}_{\vec{design}})$ and assigning a corresponding prior for the kernel variance $\sigma$.
 The prior for lengthscales $\vec{\ell}$ was centered on the half of the $log_{10}$ range (upper minus lower bound) of the design space.
 A similar structure was used earlier for the $\mathrm{\vec{X}_{factor,\vec{glc}}}$ variable in the upstream biomass model.
 
