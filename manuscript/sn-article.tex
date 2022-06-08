@@ -103,8 +103,8 @@
 \author[1]{\fnm{Dirk} \sur{Weuster-Botz}}
 
 \affil[1]{
-    \orgdiv{Chair of Biochemical Engineering},
     \orgname{Technical University of Munich},
+    \orgdiv{Chair of Biochemical Engineering},
     \orgaddress{\city{Garching}, \country{Germany}}
 }
 
@@ -248,7 +248,7 @@ IPTG concentrations were calculated based on the initial reaction volume of 10 m
 To ensure sterile operation of the LHS, the pipetting needles of the LHS were washed with an aqueous solution of 70~\% (v/v) ethanol and with sterile filtered deionised water after each pipetting step.
 
 All tasks (substrate addition, pH control, inductor addition, sampling) were initiated by a priority-based scheduler which weighed the tasks based on their real-time priority to enable optimal process control when more than one task was eligible.
-The detailed description of the scheduler working principle, aim and software engineering may be found in the accompanying manuscript Control of Parallelized Bioreactors I.
+The detailed description of the scheduler working principle, aim and software engineering may be found in Control of Parallelized Bioreactors I.
 The priorities for this application were feed $>$ inductor addition $>$ sampling $>$ pH control.
 
 \subsection{Analytical procedures}
@@ -332,7 +332,7 @@ The conditions for the cell production phase at the L-scale and the cell transfe
 After a process time of 22.75 h, a cell dry weight concentration of $13.35 \pm 1.4\ g\ L^{-1}$ was achieved with four biological replicates.
 This indicates that it was possible to get similar initial conditions for each of the parallel mL-scale protein expression studies.
 
-Cell dry weight concentrations (CDW), pH and DO signals of three fed-btach processes performed on a mL-scale are shown exemplarily.
+Cell dry weight concentrations (CDW), pH and DO signals of three fed-batch processes performed on a mL-scale are shown exemplarily.
 
 \begin{figure}[H]
     \centering
@@ -397,7 +397,7 @@ Due to the intermittent dosage by the LHS and due to the limited LHS time assign
 
 After 18 h process time on the mL-scale (17 hours protein expression) a biotransformation was prepared for each bioreactor to determine the final enzymatic activity in each bioreactor.
 Additionally, a calibration curve with a total of 18 positions was prepared based with the biomass from the first mL-scale bioreactor in the current experiment (A1).
-From the biotransformation in the Deep-Well-Plate (DWP) Samples were taken every 1.1 h to measure the product concentration (360 nm) and biomass growth (600 nm) photometrically.
+From the biotransformation in the Deep-Well-Plate (DWP), samples were taken every 1.1 h to measure the product concentration (360 nm) and biomass growth (600 nm) photometrically.
 
 \subsection{Challenges in data analysis}
 A sophisticated data analysis workflow is needed to gain quantitative insight from a dataset that is not only heterogeneous due to the number of investigated conditions and observed variables, but also grows over time as more experiments are conducted.
@@ -428,7 +428,7 @@ In the following sections, we will introduce various components of and results f
 
 \subsubsection{Biomass concentration}
 
-A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig.~\ref{fig_cmXA360},Fig.~\ref{cmXA600}). The calibration at 360 nm is required to counteract potential interference with the product determination at the same wavelength.
+A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig.~\ref{fig_cmXA360},Fig.~\ref{fig_cmXA600}). The calibration at 360 nm is required to counteract potential interference with the product determination at the same wavelength.
 
 \begin{figure}[H]
     \centering
@@ -864,7 +864,7 @@ It would be interesting for further studies to investigate parameter combination
 \bmhead{Acknowledgments}
 The authors gratefully acknowledge funding by the German Ministry of Education and Research (BMBF) within the national joint research project DigInBio [Grant number 031B0463B].
 Nikolas von den Eichen and Lukas Bromig thank for the support provided by the TUM Graduate School (Technical University of Munich, Germany).
-Open Access publication funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) - 491111487.
+
 
 
 \bibliography{literature}% common bib file
