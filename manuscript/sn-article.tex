@@ -210,7 +210,7 @@ The recombinant \textit{E. coli} cells were stored as cryo-cultures at -80 °C a
 
 Seed cultures were grown at 37 °C with LB-Medium ($5\ g\ L^{-1}$ yeast extract, $10\ g\ L^{-1}$ peptone, $5\ g\ L^{-1}$ NaCl, $50\ mg\ L^{-1}$ Ampicillin, pH 7.5) in 1 L shake flasks with baffles at 150 rpm with a working volume of 100 mL.
 The pH of the LB-Medium was adjusted with 2 M NaOH prior to autoclaving (20 min at 121 °C).
-Sterile-filtered ampicillin  was added aseptically after autoclaving the LB-Medium.
+Sterile-filtered ampicillin was added aseptically after autoclaving the LB-Medium.
 
 All cultivations on the mL- and L-scales were carried out with a defined minimal medium \cite{riesenberg1991high}.
 The final concentrations in the medium were as follows:
@@ -406,7 +406,7 @@ The initially reduced metabolic activity of the recombinant \textit{E. coli} obs
 
 The pH-setpoint for the proportional controller was pH 7.0.
 Due to the nature of a proportional controller, a small deviation (approx. pH 0.1) from the setpoint was observed (Fig.~\ref{fig_pHoverview}).
-Apart from that, the pH oscillates in a very narror window of approximately pH 0.15 due to the intermittent pH correction by the LHS and the intermittent metabolic activity of the cells due to the intermittent feeding \cite{kim2004high}.
+Apart from that, the pH oscillates in a very narrow window of approximately pH 0.15 due to the intermittent pH correction by the LHS and the intermittent metabolic activity of the cells due to the intermittent feeding \cite{kim2004high}.
 Overall, the pH was tightly controlled at about pH 6.9.
 The small pH deviations from that value will most likely be too small to have biological impact on \textit{E. coli} growth \cite{presser1997modelling,gale1942effect}.
 However, there might be an influence on protein expression and enzyme activity \cite{cui2009influence,strandberg1991factors}.
@@ -445,7 +445,8 @@ In the following sections, we will introduce various components of and results f
 
 \subsubsection{Biomass concentration}
 
-A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig.~\ref{fig_cmXA360},Fig.~\ref{fig_cmXA600}). The calibration at 360 nm is required to counteract potential interference with the product determination at the same wavelength.
+A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig.~\ref{fig_cmXA360},Fig.~\ref{fig_cmXA600}).
+The calibration at 360 nm is required to counteract potential interference with the product determination at the same wavelength.
 
 \begin{figure}[H]
     \centering
@@ -453,7 +454,8 @@ A separately acquired biomass calibration dataset was used to fit two models $\p
     \caption{
         \textbf{CDW calibration at 360 nm:}
         The spread of observations (blue dots) is modeled by a \texttt{calibr8.LogIndependentAsymmetricLogisticN} model with \texttt{scale\_degree=1} to account for non-linearity (left) and heteroscedasticity (right). 
-        Green areas depict the intervals of 95~\%, 90~\% and 68~\% probability of observations according to the model. The grey areas depict the experimentally relevant areas of the calibration.
+        Green areas depict the intervals of 95~\%, 90~\% and 68~\% probability of observations according to the model.
+        The gray areas depict the experimentally relevant ranges.
     }
     \label{fig_cmXA360}
 \end{figure}
@@ -464,7 +466,7 @@ A separately acquired biomass calibration dataset was used to fit two models $\p
     \caption{
         \textbf{CDW calibration at 600 nm:}
         Observations (blue dots) at 600~nm indicated lower absorbance compared to 360~nm. Like for 360~nm, the model is a \texttt{calibr8.LogIndependentAsymmetricLogisticN} model with \texttt{scale\_degree=1}.
-        The grey ares depict the experimentally relevant areas of the calibration.
+        The gray ares depict the experimentally relevant ranges.
     }
     \label{fig_cmXA600}
 \end{figure}
@@ -801,7 +803,9 @@ In future investigations, a more evenly distributed localization of tested exper
 In this study, the best rate constant was predicted at a feed rate of $4.8\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 27.6 µM with $0.64\ h^{-1}$, which can be converted to an initial enzymatic activity of $1068\ U\ mL^{-1}$ (mL refers to bioreactor broth).
 The best tested process design was a feed rate of $1.5\ g\ L^{-1} h^{-1}$ and an IPTG concentration of 12 µM with $0.69\ h^{-1}$, translating to a volumetric activity of $1153\ UmL^{-1}$.
 In a previous study, NoCAR was produced with an extremely low growth and expression temperature of 15 °C in a batch process with complex medium in shake flasks with a final volumetric activity of approximately $26\ U\ mL^{-1}$\cite{weber2021production}.
-The low temperature was chosen to avoid the formation of inclusion bodies. Inclusion bodies are aggregates of protein that can form when a heterologous protein is expressed in \textit{E. coli}. As inclusion bodies usually do not show enzymatic activity, they are usually not the desired product of protein expression.
+The low temperature was chosen to avoid the formation of inclusion bodies.
+Inclusion bodies are aggregates of protein that can form when a heterologous protein is expressed in \textit{E. coli}.
+As inclusion bodies usually do not show enzymatic activity, they are usually not the desired product of protein expression.
 The risk of inclusion body formation is correlated to big proteins that are expressed fast in hosts that do not offer the proper environment for correct protein folding \cite{bhatwa2021challenges,neubauer2001expression,fahnert2004inclusion}.
 
 This shows that active NoCAR can be produced at a cultivation temperature of 30 °C in defined medium. Several factors might have aided the production of active NoCAR in this study.
