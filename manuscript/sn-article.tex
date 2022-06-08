@@ -96,7 +96,7 @@
 
 \author[1]{\fnm{Lukas} \sur{Bromig}}
 
-\author[2]{\fnm{Wolfgang} \sur{Wiechert}}
+\author[2,4]{\fnm{Wolfgang} \sur{Wiechert}}
 
 \author[2,3]{\fnm{Marco} \sur{Oldiges}}
 
@@ -116,6 +116,12 @@
 
 \affil[3]{
     \orgdiv{Institute of Biotechnology},
+    \orgname{RWTH Aachen University},
+    \orgaddress{\city{Aachen}, \country{Germany}}
+}
+
+\affil[4]{
+    \orgdiv{Computational Systems Biotechnology (AVT.CSB)},
     \orgname{RWTH Aachen University},
     \orgaddress{\city{Aachen}, \country{Germany}}
 }
@@ -301,7 +307,7 @@ The dataset exported from the laboratory automation platform was processed into 
 Every unique combination of glucose feed rate and IPTG concentration was assigned a unique identifier (\texttt{design\_id}) for identification inside the model.
 Likewise, every biotransformation reaction was assigned a \texttt{replicate\_id}.
 The association between all experimental designs, whole-cell biotransformation reactions and relevant meta information such as assay well positions was tracked in a tabular form ("df\_layout" sheet in \texttt{dataset.xlsx}).
-Reference wells of known product concentration were equally included in the dataset, hence the layout table includes a sparse column for known product concentrations.
+Reference wells of known product concentration were equally included in the dataset, hence the layout table includes a column with product concentration values where available.
 Measurements of absorbance at 360 nm and 600~nm, respectively, were kept in separate tables ("df\_360" and "df\_600" in \texttt{dataset.xlsx}), organized by the previously assigned \texttt{replicate\_id}.
 
 A generative hierarchical Bayesian model of the experimental process was built using the probabilistic programming language PyMC \cite{pymc3,pymcZenodo}.
@@ -483,7 +489,7 @@ A linear calibration model $\phi_\mathrm{cm,P,360\ nm}$ with heteroscedastic, no
 \end{figure}
 
 All calibration model parameters were estimated by maximum likelihood using SciPy optimizers.
-For code and Jupyter notebooks that can be executed to reproduce this analysis we refer to the accompanying GitHub repository.
+For code and Jupyter notebooks that can be executed to reproduce this analysis we refer to the accompanying GitHub repository (https://github.com/JuBiotech/diginbio-car-paper).
 
 
 \subsection{Process model}
@@ -760,7 +766,7 @@ This observation is in line with a previous study on mCherry expression where th
         \textbf{Prediction of specific activity:}
         The surfaces show the median (center surface) and 90~\% highest density interval of the posterior predictive distribution for specific activity as a function of the experimental design parameters.
         The highest specific activities are predicted at high IPTG concentration once in the low and once in the high feed rate regime.
-        However, the uncertainty at lower feed rates is high.
+        However, the uncertainty at lower feed rates is high which can be seen by the comparison of the rear-left with the front-left corners of the visualization.
         Surface color encodes the specific activity using the "Jet" colormap \cite{matplotlibDocs} for easier visibility.
     }
     \label{fig_3Dsdesign}
