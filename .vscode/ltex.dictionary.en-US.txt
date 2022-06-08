@@ -13,6 +13,7 @@ Biocatalysis
 biocatalyst
 biocatalysts
 bioprocess
+Bioprocess
 bioreaction
 Biotek
 biotransformation
