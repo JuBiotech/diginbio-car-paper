@@ -536,7 +536,10 @@ results/**
 *.bbl
 *.blg
 *.out
-manuscript/*.pdf
+*.pdf
+*.fdb_latexmk
+*.fls
+*.synctex.gz
 
 # Custom dictionary of the LTeX spellchecker extension
 !.vscode/ltex.*
