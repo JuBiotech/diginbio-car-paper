@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/456422792.svg)](https://zenodo.org/badge/latestdoi/456422792)
+
 This repository contains the data, code and manuscript of *Control of Parallelized Bioreactors II - Probabilistic Quantification of Carboxylic Acid Reductase Activity for Bioprocess Optimization* (2022), N. von den Eichen, M. Osthege, M. Dölle, L. Bromig, W. Wiechert, M. Oldiges, D. Weuster-Botz.
 
 # Contents
