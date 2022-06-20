@@ -135,10 +135,10 @@
     However, their application is often limited to products with very simple analytics.
     In this study, we investigated enhanced protein expression conditions of a carboxyl reductase from \textit{Nocardia otitidiscaviarum} in \textit{E. coli}.
     Cells were produced with exponential feeding in a L-scale bioreactor.
-    After the desired cell density for protein expression was reached, the cells were automatically transferred to 48 mL-scale bioreactors operated by a liquid handling station where protein expression studies were started.
+    After the desired cell density for protein expression was reached, the cells were automatically transferred to 48 mL-scale bioreactors operated by a liquid handling station where protein expression studies were conducted.
     During protein expression, the feed rate and the inductor concentration was varied.
-    At the end of protein production, the enzymatic activity was estimated by performing automated whole-cell biotransformations in a deep-well-plate.
-    The results were analyzed with hierarchical Bayesian modelling methods to account for the biomass growth during the biotransformations and predict absolute and specific enzyme activities as well as optimal expression conditions.
+    At the end of the protein expression phase, the enzymatic activity was estimated by performing automated whole-cell biotransformations in a deep-well-plate.
+    The results were analyzed with hierarchical Bayesian modelling methods to account for the biomass growth during the biotransformation, biomass interference on the subsequent product assay, and to predict absolute and specific enzyme activities at optimal expression conditions.
     Lower feed rates seemed to be beneficial for high specific and absolute activities.
     At the optimal investigated expression conditions an activity of $1153\ U\ mL^{-1}$ was estimated with a $90\%$ credible interval of $[992, 1321]\ U\ mL^{-1}$.
     This is about 40-fold higher than the highest published data for the enzyme under investigation.
@@ -169,18 +169,19 @@
 \label{sec_intro}
 
 Because of the need to perform time-consuming and labor-intensive experiments for bioprocess development, miniaturized and automated bioreactor systems have been developed with which a variety of process parameters can be screened rapidly \cite{weuster2005parallel,hemmerich2018microbioreactor}.
-Parallel microbioreactor systems are often coupled with a pipetting robot (liquid handling station, LHS) in order to use the flexibility of the LHS for at-line process analysis \cite{haby2019integrated,puskeiler2005development,rohe2012automated}. It has been shown that microbioreactors systems can yield scalable results for both biomass growth and product formation \cite{puskeiler2005development,schmideder2016high,kensy2009scale}.
+Parallel microbioreactor systems are often coupled with a pipetting robot (liquid handling station, LHS) in order to use the flexibility of the LHS for at-line process analysis \cite{haby2019integrated,puskeiler2005development,rohe2012automated}.
+It has been shown that microbioreactor systems can yield scalable results for both biomass growth and product formation \cite{puskeiler2005development,schmideder2016high,kensy2009scale}.
 Heterologous proteins are usually over expressed by cloning the encoding gene downstream from a regulated promoter in a suitable host to allow for cheap and simple protein production \cite{terpe2006overview}.
 To reduce adverse effects on biomass growth due to the formation of the heterologous protein, the cell formation phase is usually separated from the product formation phase \cite{choi2000efficient,schmideder2016high,jahic2006process,neubauer2001expression}.
 This is accomplished by making protein formation controllable by inducers and activating it only after the desired cell density has been reached \cite{neubauer2001expression}.
 
-In order to be able to study these phases separately, we developed a fully automated system with which cells are produced firstly in the L-scale stirred-tank reactor and are transferred secondly to parallel operated mL-scale stirred-tank reactors after reaching the desired cell density for protein expression \cite{von2021automated}.
-Protein expression studies and product analysis are then conducted at the mL scale.
+In order to be able to study these phases separately, we developed a fully automated system with which cells are produced firstly in the L-scale stirred-tank reactor and are transferred secondly to parallelly operated mL-scale stirred-tank reactors after reaching the desired cell density for protein expression \cite{von2021automated}.
+Protein expression studies and product analyses are then conducted at the mL-scale.
 In the past, however, both this system and other microbioreactor systems have predominantly investigated model proteins with highly simplified product analytics \cite{schmideder2017high,von2021automated,huber2009robo} or product analysis involved manual processing steps \cite{haby2019integrated}.
 Manual steps in the context of automated process development carry the risk of merely shifting the effort required for bioprocess development rather than reducing it.
 Therefore, the goal of this study was to apply a fully automated parallel bioreactor system for studies on the expression of a carboxyl reductase (CAR) in \textit{Escherichia coli} (\textit{E. coli}).
 Carboxyl reductases are a class of large enzymes (approximately 130 kDa) used for the selective reduction of aldehydes from carboxylic acids in various applications \cite{weber2021production}.
-Chemicals resulting from those reactions include uses such as cardiovascular, antiparasitic, and anticholinergic drugs\cite{erdmann2017enzymatic,weber2021production,ruff2012biocatalytic}.
+Chemicals resulting from those reactions can be used in the manufacturing of drugs for cardiovascular, antiparasitic, and anticholinergic applications \cite{erdmann2017enzymatic,weber2021production,ruff2012biocatalytic}.
 To quantify the expression success in \textit{E. coli}, whole-cell biotransformations were performed in deep-well-plates (DWP) for the determination of enzyme activity \cite{schwendenwein2019random}.
 To keep the necessary robotic equipment as simple as possible, the analysis of the biotransformation was carried out without prior separation of the cells.
 However, this necessitated the model-based evaluation of the enzyme activity, since the photometric detection of the biotransformation product is disturbed by the growing cells.
@@ -208,21 +209,22 @@ The recombinant \textit{E. coli} cells were stored as cryo-cultures at -80 °C a
 
 \subsection{Media}
 
-Seed cultures were grown at 37 °C with LB-Medium ($5\ g\ L^{-1}$ yeast extract, $10\ g\ L^{-1}$ peptone, $5\ g\ L^{-1}$ NaCl, $50\ mg\ L^{-1}$ Ampicillin, pH 7.5) in 1 L shake flasks with baffles at 150 rpm with a working volume of 100 mL.
-The pH of the LB-Medium was adjusted with 2 M NaOH prior to autoclaving (20 min at 121 °C).
-Sterile-filtered ampicillin was added aseptically after autoclaving the LB-Medium.
+Seed cultures were grown at 37 °C with LB-medium ($5\ g\ L^{-1}$ yeast extract, $10\ g\ L^{-1}$ peptone, $5\ g\ L^{-1}$ NaCl, $50\ mg\ L^{-1}$ ampicillin, pH 7.5) in 1 L shake flasks with baffles at 150 rpm with a working volume of 100 mL.
+The pH of the LB-medium was adjusted with 2 M NaOH prior to autoclaving (20 min at 121 °C).
+Sterile-filtered ampicillin was added aseptically after autoclaving the LB-medium.
 
 All cultivations on the mL- and L-scales were carried out with a defined minimal medium \cite{riesenberg1991high}.
 The final concentrations in the medium were as follows:
 $8.4\ mg\ L^{-1}$ ethylenediaminetetraacetic acid (EDTA), $8.4 mg\ L^{-1}$ $CoCl_{2}*6H_{2}O$, $15\ mg\ L^{-1} MnCl_{2}*4H_{2}O$, $1.5\ mg\ L^{-1} CuCl_{2}*2H_{2}O$, $3\ mg\ L^{-1} H_{3}BO_{3}$, $2.5\ mg\ L^{-1} Na_{2}MoO_{4}*2H_{2}O$, $13\ mg\ L^{-1} Zn(CH_{3}COO)_{2}*2H_{2}O$, $100\ mg\ L^{-1}$ Fe(III)citrate, $13.3\ g\ L^{-1} KH_{2}PO_{4}$, $4\ g\ L^{-1} (NH_{4})_{2}HPO_{4}$, $1.7\ g\ L^{-1}\ \mathrm{citric\ acid}*H_{2}O$, $2.4\ g\ L^{-1}$ NaOH, $1.2\ g\ L^{-1} MgSO_{4}*7H_{2}O$, $50\ mg\ L^{-1}$ ampicillin.
 The pH was not adjusted prior to addition to the bioreactor.
 The initial glucose concentration was $5\ g\ L^{-1}$.
-The feed medium consisted of $500\ g\ L^{-1}$ glucose with $12.5\ g\ L^{-1} MgSO_{4}$ in fed-batch processes on L-scale.
+The feed medium consisted of $500\ g\ L^{-1}$ glucose with $12.5\ g\ L^{-1} MgSO_{4}$ in fed-batch processes on the L-scale.
 For the mL-scale, the feed medium varied depending on the applied feed rate.
 For the experiments with a feed rate of $4.8\ g\ L^{-1} h^{-1}$ the feed medium consisted of $300\ g\ L^{-1}$ glucose with $7.5\ g\ L^{-1} MgSO_{4}$.
 For the experiment with the feed rates varied from 2-4 $g\ L^{-1}h^{-1}$ the feed medium consisted of $200\ g\ L^{-1}$ glucose with $5\ g\ L^{-1} MgSO_{4}$.
 For the experiment with the feed rates varied from 1 - $2\ g\ L^{-1} h^{-1}$ the feed medium consisted of $100\ g\ L ^{-1}$ glucose with $2.5\ g\ L^{-1} MgSO_{4}$.
-The varying feed concentrations were necessary to allow different feed rates with the same feed dosage frequency by the liquid handling system (LHS) without overfilling the mL-scale reactors.
+The varying feed concentrations were necessary to allow different feed rates with the same feed dosage frequency by the liquid handling system (LHS) while maintaining comparable reactor volumes.
+Ignoring the uneven effect of evaporation, the glucose concentration is not proportional to the feed rate.
 
 Prior to transfer of the cells from the L-scale to mL-scale, 0.5~\% (v/v) antifoam agent (Antifoam 204, Sigma-Aldrich / Merck KGaA, Darmstadt, Germany) was added aseptically.
 $MgSO_{4}*7H_{2}O$, glucose and ampicillin were added aseptically after autoclaving of the medium.
@@ -252,7 +254,8 @@ The headspace of each stirred-tank-bioreactor was rinsed with $0.1\ L\ min^{-1}$
 The headspace was cooled to 20 °C to reduce evaporation during operation.
 The stirrer speed was constant at 3000 rpm throughout all cultivations.
 Parallel fed-batch processes with varying constant feeding rates were performed on a mL-scale.
-Substrate solution was added intermittently by the LHS with a frequency of $6\ h^{-1}$.
+Substrate solution was added intermittently by the LHS with a target frequency of $6\ h^{-1}$.
+The precise timing of substrate addition was controlled by a scheduling algorithm and varied based on the occurrence of, for example, sampling events.
 The feed solution consisted of glucose ($100 - 300\ g\ L^{-1}$) and $MgSO_{4}$ ($2.5 - 7.5\ g\ L^{-1}$) with varying concentrations to allow for dosing intervals at a minimum dosage volume of 14 µL.
 The pH was controlled individually at pH 6.9 by the addition of $12.5\ \% (v/v) NH_{4}OH$.
 To save LHS time, the pH correction was applied for all eligible reactors, i.e. when 12 out of 48 bioreactors showed a pH deviation, $12.5\ (v/v) NH_{4}OH$ was added to all 12 reactors.
@@ -265,12 +268,14 @@ IPTG concentrations were calculated based on the initial reaction volume of 10 m
 To ensure sterile operation of the LHS, the pipetting needles of the LHS were washed with an aqueous solution of 70~\% (v/v) ethanol and with sterile filtered deionised water after each pipetting step.
 
 All tasks (substrate addition, pH control, inductor addition, sampling) were initiated by a priority-based scheduler which weighed the tasks based on their real-time priority to enable optimal process control when more than one task was eligible.
-The detailed description of the scheduler working principle, aim and software engineering may be found in Control of Parallelized Bioreactors I.
-The priorities for this application were feed $>$ inductor addition $>$ sampling $>$ pH control.
+The detailed description of the scheduler working principle, aim and software engineering may be found in \textit{Control of Parallelized Bioreactors I} \cite{controlOfParallelizedBioreactorsI}.
+The priorities for this application were feed $>$ inductor addition $>$ sampling $>$ pH control, whereby the sampling step was further split up into sub-tasks to allow for more important tasks to be executed in between.
+This is one of the advantages by the scheduling architecture and allowed for a more stable feeding frequency.
 
 \subsection{Analytical procedures}
 The cultivations on the L-scale were monitored online by sensor data, whereas samples on the mL-scale were generally taken every hour by the LHS, with two exceptions:
 (a) the first and the second sample were taken at 0.083 h and 1.25 h, respectively and (b) the last three samples were taken every two hours.
+Concretely, the OD data was captured by the LHS, while the pH and DO online data was captured via custom SiLA2 service implementations for the Bioreactor 48 block and PreSens sensors.
 
 Sampling for the measurement of the optical density was conducted automatically by the LHS.
 Initially, samples of 150 µL were pipetted in a microtiter plate.
@@ -291,7 +296,7 @@ For detection purposes 2-amino benzamidoxime (ABAO) is added which reacts with t
 For all 48 sample positions, 25 µL cell broth from the stirred-tank bioreactors on the mL-scale were mixed with 250 µL 10 mM 3-Hydroxybenzoic acid dissolved in PBS, 500 µL minimal  medium (see section "Media") with $10\ g\ L^{-1}$ glucose and 225 µL PBS.
 For each sequential cultivation, three identical sets of calibration curves were generated.
 Each calibration set includes six different product concentrations.
-Basically, the educt solution (3-hydroxybenzoic acid) was replaced with different amounts of the product solution (12 mM 3-hydroxybenzoic aldehyde dissolved in PBS) to achieve a final product concentration in the DWP ranging from 0 to 3 mM.
+The educt solution (3-hydroxybenzoic acid) was replaced with different amounts of the product solution (12 mM 3-hydroxybenzoic aldehyde dissolved in PBS) to achieve a final product concentration in the DWP ranging from 0 to 3 mM.
 To have identical volumes in all calibration wells, the wells were filled up to 1 mL with PBS after the addition of cell solution and mineral medium.
 The biomass for all calibration samples was aspirated from the first (A1) bioreactor position of the respective experiment.
 All solutions required for the whole-cell biotransformations were prepared freshly for each experiment.
@@ -302,7 +307,7 @@ The ABAO solution consisted of 10 mM ABAO dissolved in sodium acetate buffer ($3
 Afterwards, the microtiter plate was incubated at room temperature for 45 minutes and measured photometrically at 360 nm and 600 nm in a microtiter plate reader (Synergy HTX, Biotek, Winooski, USA).
 The microtiter plate was washed with a microtiter plate washer (405 LS, Biotek, Winooski, USA) operated by the LHS.
 The sample liquids were initially aspirated and discarded followed by three dispensing and aspiration steps with 300 µL deionised water with 0.1~\% (v/v) tween (Tween 20, Amresco, Solon, USA).
-Finally, the remaining washing solution was aspirated and discarded and the microtiter plate was transferred by the LHS to its origin position.
+Finally, the remaining washing solution was aspirated and discarded and the microtiter plate was transferred by the LHS to its initial position.
 A total of 5 measurements including a measurement directly after biotransformation start were conducted.
 
 \subsection{Data processing}
@@ -328,7 +333,7 @@ Diagnostics and visualizations were prepared using ArviZ and matplotlib \cite{ar
 
 \subsection{Experimental design}
 
-Two variables were investigated during four parallel experiments, the glucose feed rate and the inducer concentration at the mL-scale.
+Two variables were investigated during four parallel experiments: the glucose feed rate and the inducer concentration at the mL-scale.
 In total, 42 unique combinations of inducer concentration (IPTG) and feed rate (Fig.~\ref{fig_expdesign}) were investigated with 4 to 8 biological replicates per unique combination.
 For controlling of the sequential batch to batch reproducibility of the mL-scale experiments, the reaction conditions at the feed rate of 
 $2\ g\ L^{-1}h^{-1}$ were investigated twice in two sequential experiments.
@@ -349,7 +354,7 @@ The conditions for the cell production phase at the L-scale and the cell transfe
 After a process time of 22.75 h, a cell dry weight concentration of $13.35 \pm 1.4\ g\ L^{-1}$ was achieved with four biological replicates.
 This indicates that it was possible to get similar initial conditions for each of the parallel mL-scale protein expression studies.
 
-Cell dry weight concentrations (CDW), pH and DO signals of three fed-batch processes performed on a mL-scale are shown exemplarily.
+Cell dry weight concentrations (CDW), pH and DO signals of three fed-batch processes performed on a mL-scale are shown in Fig.~\ref{fig_btmoverview},~\ref{fig_o2overview}~and~\ref{fig_pHoverview}.
 
 \begin{figure}[H]
     \centering
@@ -357,7 +362,7 @@ Cell dry weight concentrations (CDW), pH and DO signals of three fed-batch proce
     \caption{
         \textbf{CDW concentrations measured in fed-batch operated stirred-tank bioreactors with \textit{E. coli} NoCAR on a mL-scale:}
         CDW concentrations were estimated based on at-line measured $OD_{600}$.
-        The graphs depict a feed rate of (A) 4.8 $ g\ L^{-1} h^{-1}$, (b) 3 $ g\ L^{-1} h^{-1}$ and (C) 1 $ g\ L^{-1} h^{-1}$ at inducer concentrations of (A) 0.48 µM IPTG, (B) 6 µM IPTG and (C) 12 µM IPTG.
+        The graphs depict a feed rate of (A) 4.8 $ g\ L^{-1} h^{-1}$, (B) 3 $ g\ L^{-1} h^{-1}$ and (C) 1 $ g\ L^{-1} h^{-1}$ at inducer concentrations of (A) 0.48 µM IPTG, (B) 6 µM IPTG and (C) 12 µM IPTG.
         The vertical dashed lines indicate the IPTG induction.
         Each graph shows the mean and standard deviation of 4 parallel bioreactors.
         (V = 10 mL, T = 30 °C, n = 3000 rpm)
@@ -367,7 +372,7 @@ Cell dry weight concentrations (CDW), pH and DO signals of three fed-batch proce
 
 As expected, there is a positive correlation between the applied feed rate and the cell growth.
 However, the biomass yields ($0.25\ g_{cells}\ g^{-1}$ glucose, $0.22\ g_{cells}\ g^{-1}$ glucose and $0.28\ g_{cells}\ g^{-1}$ glucose at feed rates of $4.8\ g\ L^{-1} h^{-1}$, $3\ g\ L^{-1} h^{-1}$ and $1\ g\ L^{-1} h^{-1}$, respectively) is lower than expected for \textit{E. coli} growing with glucose as a carbon source \cite{schmideder2015novel}.
-This may be due to the starvation period between intermittent glucose additions with a step-time of approximately 10 min or due to the protein production.
+This may be due to the starvation period between intermittent glucose additions with a frequency of $\approx 6\ h^{-1}$ or due to the protein production \cite{faust2014feeding}.
 
 \begin{figure}[H]
     \centering
@@ -376,7 +381,7 @@ This may be due to the starvation period between intermittent glucose additions 
         \textbf{DO concentrations measured in fed-batch operated stirred-tank bioreactors with \textit{E. coli} NoCAR on a mL-scale:}
         The graphs depict a feed rate of (A) $4.8\ g\ L^{-1} h^{-1}$, (B) $3\ g\ L^{-1} h^{-1}$ and (C) $1\ g\ L^{-1} h^{-1}$ at inducer concentrations of (A) 0.48 µM, (B) 6 µM and (C) 12 µM, respectively.
         The vertical dashed lines indicate the addition of IPTG.
-        The feeding frequency was $6\ h^{-1}$.
+        The feeding frequency was $\approx 6\ h^{-1}$.
         (V = 10 mL, T = 30 °C, n = 3000 rpm)
     }
     \label{fig_o2overview}
@@ -388,7 +393,7 @@ After that, the DO drops to about 40-60~\% air saturation after each substrate a
 After several hours process time, the DO drop seems to be proportional to the glucose feed rate, i.e. the DO minimum after each substrate addition is approximately 40~\% at a feed rate of 4.8 $ g\ L^{-1} h^{-1}$ compared to 60~\% at a feed rate of 1 $ g\ L^{-1} h{-1}$.
 This is probably caused by the higher biomass density at a higher feed rate (see Fig.~\ref{fig_btmoverview}).
 During the first hour at a feed rate of $4.8\ g\ L^{-1} h^{-1}$, there is no increase of the DO signal indicating no limiting substrate concentrations between the substrate additions.
-The initially reduced metabolic activity of the recombinant \textit{E. coli} observed at the highest feed rate may be caused by adapting of the cells to the new cultivation temperature (37 °C in the L-scale, 30 °C in the mL-scale).
+The initially reduced metabolic activity of the recombinant \textit{E. coli} observed at the highest feed rate may be caused by the adaption of the cells to the new cultivation temperature (37 °C in the L-scale, 30 °C in the mL-scale).
 
 \begin{figure}[H]
     \centering
@@ -396,8 +401,8 @@ The initially reduced metabolic activity of the recombinant \textit{E. coli} obs
     \caption{
         \textbf{pH measured in fed-batch operated stirred-tank bioreactors with \textit{E. coli} NoCAR on a mL-scale:}
         The graphs depict a feed rate of (A) $4.8\ g\ L^{-1} h^{-1}$, (B) $3\ g\ L^{-1} h^{-1}$ and (C) $1\ g\ L^{-1} h^{-1}$ at inducer concentrations of (A) 0.48 µM, (B) 6 µM and (C) 12 µM.
-        The feeding frequency was $6\ h^{-1}$.
-        The frequency at which the LHS added 12.5~\% (v/v) $NH_{4}OH$ to adjust the pH was $6\ h^{-1}$.
+        The feeding frequency was $\approx 6\ h^{-1}$.
+        The frequency at which the LHS added 12.5~\% (v/v) $NH_{4}OH$ to adjust the pH was $\approx 6\ h^{-1}$.
         The vertical dashed lines indicate addition of IPTG.
         (V = 10 mL, T = 30 °C, n = 3000 rpm)
     }
@@ -410,10 +415,10 @@ Apart from that, the pH oscillates in a very narrow window of approximately pH 0
 Overall, the pH was tightly controlled at about pH 6.9.
 The small pH deviations from that value will most likely be too small to have biological impact on \textit{E. coli} growth \cite{presser1997modelling,gale1942effect}.
 However, there might be an influence on protein expression and enzyme activity \cite{cui2009influence,strandberg1991factors}.
-Due to the intermittent dosage by the LHS and due to the limited LHS time assigned for such tasks, those pH oscillations can not be avoided with this setup.
+Due to the intermittent dosage by the LHS, and the lower priority assigned for such tasks, those pH oscillations can not be avoided with this setup.
 
-After 18 h process time on the mL-scale (17 hours protein expression) a biotransformation was prepared for each bioreactor to determine the final enzymatic activity in each bioreactor.
-Additionally, a calibration curve with a total of 18 positions was prepared based with the biomass from the first mL-scale bioreactor in the current experiment (A1).
+After 18 h of process time on the mL-scale (17 hours of protein expression) a biotransformation was prepared for each bioreactor to determine the final enzymatic activity in each bioreactor.
+Additionally, a calibration curve with a total of 18 positions was prepared based on the biomass from the first mL-scale bioreactor in the current experiment (A1).
 From the biotransformation in the Deep-Well-Plate (DWP), samples were taken every 1.1 h to measure the product concentration (360 nm) and biomass growth (600 nm) photometrically.
 
 \subsection{Challenges in data analysis}
@@ -437,8 +442,8 @@ On the other hand, the analysis must deal with a variety of experimental effects
     \label{fig_a600kinetics}
 \end{figure}
 
-To account for all these effects simultaneously, we developed a computational model.
-In the following sections, we will introduce various components of and results from the computational model, starting with the calibration models needed to explain observed absorbance at 360 and 600 nm given predicted CDW and product concentrations.
+To account for all these effects simultaneously, a computational model was developed.
+In the following sections, various model components and results from the computational model will be introduced, starting with the calibration models needed to explain observed absorbance at 360 and 600 nm given predicted CDW and product concentrations.
 
 \subsection{Calibration models}
 \label{sec_calibrations}
@@ -446,7 +451,7 @@ In the following sections, we will introduce various components of and results f
 \subsubsection{Biomass concentration}
 
 A separately acquired biomass calibration dataset was used to fit two models $\phi_\mathrm{cm,X,600\ nm}$ and $\phi_\mathrm{cm,X,360\ nm}$ describing the relationship between CDW concentrations and absorbance at 360 nm, and 600 nm respectively (Fig.~\ref{fig_cmXA360},Fig.~\ref{fig_cmXA600}).
-The calibration at 360 nm is required to counteract potential interference with the product determination at the same wavelength.
+The calibration at 360 nm is required to account for interference with the ABAO reaction product measurements at the same wavelength.
 
 \begin{figure}[H]
     \centering
@@ -466,7 +471,7 @@ The calibration at 360 nm is required to counteract potential interference with 
     \caption{
         \textbf{CDW calibration at 600 nm:}
         Observations (blue dots) at 600~nm indicated lower absorbance compared to 360~nm. Like for 360~nm, the model is a \texttt{calibr8.LogIndependentAsymmetricLogisticN} model with \texttt{scale\_degree=1}.
-        The gray ares depict the experimentally relevant ranges.
+        The gray areas depict the experimentally relevant ranges.
     }
     \label{fig_cmXA600}
 \end{figure}
@@ -488,7 +493,7 @@ A linear calibration model $\phi_\mathrm{cm,P,360\ nm}$ with heteroscedastic, no
     \includegraphics[width=1.0\textwidth]{figures/cm_product_A360.png}
     \caption{
         \textbf{Product calibration at 360 nm:}
-        In the observed range, the absorbance at 360~nm (blue dots) followed a linear trend in dependence on the 3-hydroxy benzaldehyde concentration.
+        In the observed range, the absorbance at 360~nm (blue dots) followed a linear trend depending on on the 3-hydroxy benzaldehyde concentration.
         The model was built from a \texttt{calibr8.BasePolynomialModelN} model with \texttt{mu\_degree=1} and \texttt{scale\_degree=1}. 
         The grey areas depict the experimentally relevant areas of the calibration.
     }
@@ -501,9 +506,9 @@ For code and Jupyter notebooks that can be executed to reproduce this analysis w
 
 \subsection{Process model}
 This model closely resembles the biotechnological process that generated the dataset, therefore we call it \textit{process model} henceforth.
-Starting from input parameters such as specific biotransformation activity, random effects or dependence of final 10~mL reactor CDW concentration on glucose feed rate, the process model simulates CDW and 3-hydroxy benzaldehyde concentrations in each biotransformation well across all experiments.
+Starting from input parameters such as specific biotransformation activity, random effects, or dependence of final 10~mL reactor CDW concentration on glucose feed rate, the process model simulates CDW and 3-hydroxy benzaldehyde concentrations in each biotransformation well across all experiments.
 
-Tab.~\ref{tab_abbreviations} summarizes the symbols, meaning and units used in the context of the process model.
+Tab.~\ref{tab_abbreviations} summarizes the symbols, meaning, and units used in the context of the process model.
 
 
 \begin{table}[h]
@@ -529,9 +534,9 @@ $\mathcal{L}$ & - & likelihood\\
 $\ell$ & - & lengthscale of fluctuations in dependence on $d$\\
 $GP$ & n.a. & Gaussian process distribution\\
 $d$ & - & $log_{10}$ of the process design (feed rate, IPTG conc. or both)\\
-$k(d, d')$ & n.a. & Covariance function to obtain the kernel of a Gaussian process\\
-$s$ & $h^{-1}/(g_{CDW}\ L^{-1})$ & Specific biocatalyst rate constant\\
-$k$ & $h^{-1}$ & Absolute biocatalyst rate constant ($\frac{n_{product}}{n_{substrate}}\ h^{-1}$)\\
+$k(d, d')$ & n.a. & covariance function to obtain the kernel of a Gaussian process\\
+$s$ & $h^{-1}/(g_{CDW}\ L^{-1})$ & specific biocatalyst rate constant\\
+$k$ & $h^{-1}$ & absolute biocatalyst rate constant ($\frac{n_{product}}{n_{substrate}}\ h^{-1}$)\\
 \botrule
     \end{tabular}
     \end{minipage}
@@ -562,7 +567,7 @@ For simplicity, we therefore use the symbol $P$ to refer to the product of inter
 \end{equation}
 
 The above observation model applies to biomass $X$ and 3-hydroxy benzaldehyde concentration $P$ \textit{at every time point}, \textit{in every replicate} of either a biotransformation reaction or reference sample~\eqref{eq_XandP}.
-Reference wells of known product concentrations, but without 3-hydroxy benzoic acid are also included in the model, albeit with the assumption that the 3-hydroxy benzaldehyde concentration remains constant over time.
+Reference wells of known product concentrations, but without 3-hydroxy benzoic acid, are also included in the model, albeit with the assumption that the 3-hydroxy benzaldehyde concentration remains constant over time.
 
 \begin{equation}
 \begin{aligned}
@@ -588,14 +593,14 @@ The meanings of dimension symbols is summarized in Tab.~\ref{tab_dimensions}.
 \toprule
 Symbol & Dimension length & Variable has elements for each of the..\\
 \midrule
-$\vec{BTR}$ & 4 & L-scale batches.\\
-$\vec{MBR}$ & 191 & mL-scale reactor vessels.\\
-$\vec{DWP}$ & 191 & DWP wells with active biotransformations.\\
-$\vec{replicate}$ & 263 & DWP wells, which includes biotransformation and reference wells.\\
-$\vec{t}$ & 5 & time points at which observations were made.\\
-$\vec{glc}$ & 6 & glucose feed rates investigated.\\
-$\vec{IPTG}$ & 25 & IPTG concentrations investigated.\\
-$\vec{design}$ & 42 & unique combinations of glucose feed rate \& IPTG concentration.\\
+$\vec{BTR}$ & 4 & L-scale batches\\
+$\vec{MBR}$ & 191 & mL-scale reactor vessels\\
+$\vec{DWP}$ & 191 & DWP wells with active biotransformations\\
+$\vec{replicate}$ & 263 & DWP wells, which includes biotransformation and reference wells\\
+$\vec{t}$ & 5 & time points at which observations were made\\
+$\vec{glc}$ & 6 & glucose feed rates investigated\\
+$\vec{IPTG}$ & 25 & IPTG concentrations investigated\\
+$\vec{design}$ & 42 & unique combinations of glucose feed rate \& IPTG concentration\\
 \botrule
     \end{tabular}
     \end{minipage}
@@ -606,11 +611,11 @@ $\vec{design}$ & 42 & unique combinations of glucose feed rate \& IPTG concentra
 \label{sec_biomass_model}
 
 The biomass in the whole-cell biotransformation experiment is sourced from a "seed train" of cultivations in three different scales and operating modes:
-(a) $1\ L$ L-scale fed-batch stirred-tank bioreactor with 1 per experimental run.
-(b) $10\ mL$ mL-scale fed-batch stirred-tank bioreactor with 48 per experimental run.
-(c) $1\ mL$ biotransformation in square deep-well plate with 66 per experimental run.
+(a) $1\ L$ L-scale fed-batch stirred-tank bioreactor with 1 per round of experimentation.
+(b) $10\ mL$ mL-scale fed-batch stirred-tank bioreactor with 48 per round of experimentation.
+(c) $1\ mL$ biotransformation in square deep-well plate with 66 per round of experimentation.
 
-The process model must describe biomass in each biotransformation well, so it can be accounted for in the 360~nm absorbance.
+The process model must describe biomass in each well of the biotransformation, so it can be accounted for in the 360~nm absorbance.
 A universally applicable activity metric, that can be interpreted independently of experimental batch effects, is desired.
 Therefore, the model must additionally describe biomass in a way that excludes random experimental batch effects.
 The first process stage at which such an experiment-independent prediction is needed, is the final biomass concentration of the 1~L batch cultivation.
@@ -708,7 +713,7 @@ Here we assume an initial product concentration $P_0=0$ and model the biotransfo
 This well-wise rate coefficient $\vec{k}_{\vec{t},\vec{DWP}}\ [h^{-1}]$ from \eqref{eq_productformation} depends on three factors.
 The first is the concentration of the whole-cell biocatalyst $\vec{X}_{\vec{t},\vec{DWP}}\ [g_{CDW}/L]$ as obtained from the biomass model described above.
 The second factor is the biocatalyst' specific rate coefficient $\vec{s}_\mathrm{\vec{design}}\ [\frac{1}{h} / \frac{g_{CDW}}{L}]$ that depends on the experimental design of the expression phase.
-The third factor is a batch-wise random effect $\vec{F}_{\vec{BTR}}\ [-]$ to account remaining experimental variability~\eqref{eq_kdwp}.
+The third factor is a batch-wise random effect $\vec{F}_{\vec{BTR}}\ [-]$ to account for remaining experimental variability~\eqref{eq_kdwp}.
 
 \begin{equation}
 \begin{aligned}
@@ -756,8 +761,8 @@ Finally, the initial rate coefficient metric $\vec{k}_{0,\vec{design}}\ [h^{-1}]
 
 
 \subsection{Modelling results}
-The previous three chapters outlined how trajectories of CDW concentration Section \ref{sec_biomass_model} and product concentration (Section \ref{sec_product_model}) were predicted and how these trajectories were fed into the three calibration models (Section \ref{sec_calibrations}) relating them to observed data.
-Because this entire model was implemented as a symbolic computation graph, the PyMC and Aesara frameworks can auto-differentiate the likelihood \eqref{eq_likelihood} to obtain gradients needed for efficient MCMC sampling (Section \ref{sec_mm_computational}).
+The previous three chapters outlined how trajectories of CDW concentration (Sec.~\ref{sec_biomass_model}) and product concentration (Sec.~\ref{sec_product_model}) were predicted and how these trajectories were fed into the three calibration models (Sec.~\ref{sec_calibrations}) relating them to the observed data.
+Because this entire model was implemented as a symbolic computation graph, the PyMC and Aesara frameworks can auto-differentiate the likelihood \eqref{eq_likelihood} to obtain gradients needed for efficient MCMC sampling (Sec.~\ref{sec_mm_computational}).
 
 After MCMC sampling of the process model parameters, a variety of diagnostics, predictions and visualizations were prepared from the result.
 Similar to the posterior predictive distribution of the biomass/feed rate relationship (Fig.~\ref{fig_gpXfactor}), the 2-dimensional Gaussian process component of the model was used to predict inter- and extrapolated specific biotransformation activity in dependence on the experimental design parameters.
@@ -781,7 +786,7 @@ This observation is in line with a previous study on mCherry expression where th
 
 
 The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG.
-This is more than two-fold higher that at a feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such low feed rate.
+This is more than two-fold higher than that at a feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such a low feed rate.
 Consequently, a benefit of lower feed rate during protein expression cannot be ruled out for this protein.
 
 
@@ -848,11 +853,11 @@ Our model found lower feed rates to be possibly beneficial for specific activity
 At the same time, the model is still undecided about the lengthscale of IPTG dependency (Fig.~\ref{fig_expdesign}3, inset plot).
 At short lengthscale the functions drawn from the Gaussian process are rougher (fluctuate faster) which widens the uncertainty faster as the distance to a tested  process design increases.
 With long lengthscale on the other hand the functions are smoother, and fluctuate less between the designs.
-The Gaussian process in makes an uncertain extrapolation of this trend towards lower feed rates where the density of observations was much lower.
+The Gaussian process in Fig.~\ref{fig_3Dkdesign} makes an uncertain extrapolation of this trend towards lower feed rates where the density of observations was much lower.
 Counterintuitively this leads to a vague prediction that the optimal process design could be at lower feed rates and moderately high IPTG concentration.
 
-The probability map (Fig.~\ref{fig_expdesign}4) is a more direct visualization out this prediction.
-The overlaid coordinates of experimentally tested process parameters show that this part of the parameter spaces was not extensively investigated yet.
+The probability map (Fig.~\ref{fig_expdesign}4) is a more direct visualization of this prediction.
+The overlaid coordinates of experimentally tested process parameters show that this part of the parameter spaces has not been extensively investigated yet.
 
 \begin{figure}[H]
     \centering
@@ -861,7 +866,7 @@ The overlaid coordinates of experimentally tested process parameters show that t
         \textbf{Probability landscape of the rate constant optimum within the investigated design space:}
         For each process design in a 50x50 grid of process parameters the probabilistic prediction of the rate constant metric was translated into a probability.
         The intensity of the pixel indicates the probability that this particular design is the best among all 2500 combinations.
-        Most probability is concentrated in a region of low glucose feed rates combined and high IPTG concentrations.
+        Most probability is concentrated in a region of low glucose feed rates combined with high IPTG concentrations.
         The red circle marks the combination that was predicted to be optimal with the highest probability.
     }
     \label{fig_kdesign_probs}
