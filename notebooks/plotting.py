@@ -87,7 +87,13 @@ def _labelformat_tum(olabel: Optional[str]) -> str:
     label = label.replace("P(", "p(")
     label = label.replace("3-Hydroxy\ benzaldehyde", "Product")
 
-    # NoChange: Original unit formatting is with brackes (easier to RegEx match)
+    # Reformatting of the unit
+    label = re.sub(
+        pattern=r"\\ \[(.*?)\]",
+        repl="\ /\ {\g<1>}",
+        string=label,
+    )
+
     # NoChange: Biomass vs. CDW wording (original in TUM style)
 
     _log.info("Labelconversion TUM\n\t>>>%s<<<\n\t>>>%s<<<", olabel, label)

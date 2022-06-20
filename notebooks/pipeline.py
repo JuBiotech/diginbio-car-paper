@@ -449,7 +449,7 @@ def plot_kinetics(wd: pathlib.Path):
     return
 
 
-def plot_gp_X_factor(wd: pathlib.Path):
+def sample_gp_X_factor_pp(wd: pathlib.Path):
     idata = arviz.from_netcdf(wd / "trace.nc")
 
     _log.info("Creating the model")
@@ -459,10 +459,6 @@ def plot_gp_X_factor(wd: pathlib.Path):
     dense = numpy.linspace(0.01, 6, 300)
     with pmodel:
         _log.info("Adding variables for high-quality predictives")
-
-        if "cycle_segment" not in idata.posterior.coords:
-            # The plotting code below only works for models >= 2f12066bcea31f91c26cfe9aac6ec16aeaf58679.
-            raise NotImplementedError("This is an outdated InferenceData file!")
         log_X_factor = pmodel.gp_log_X_factor.conditional(
             "dense_log_X_factor",
             Xnew=numpy.log10(dense[:, None]),
@@ -479,7 +475,6 @@ def plot_gp_X_factor(wd: pathlib.Path):
             dims="dense_glucose",
         )
 
-        _log.info("Sampling posterior predictive")
         _log.info("Sampling prior predictive")
         samples = 1500
         pprior = pm.sample_prior_predictive(
@@ -496,7 +491,14 @@ def plot_gp_X_factor(wd: pathlib.Path):
         )
         _log.info("Converting to InferenceData")
         pp = pm.to_inference_data(prior=pprior, posterior_predictive=pposterior)
-        del pprior, pposterior
+        pp.to_netcdf(wd / "pp_gp_X_factor.nc")
+        numpy.save(wd / "pp_gp_X_factor_dense.npy", dense)
+    return
+
+
+def plot_gp_X_factor_pp(wd: pathlib.Path):
+    pp = arviz.from_netcdf(wd / "pp_gp_X_factor.nc")
+    dense = numpy.load(wd / "pp_gp_X_factor_dense.npy")
 
     _log.info("Plotting")
     fig, axs = pyplot.subplots(dpi=200, ncols=2, figsize=(12, 6), sharey=True)
@@ -523,7 +525,6 @@ def plot_gp_X_factor(wd: pathlib.Path):
         ylim=(0, 1),
     )
     plotting.savefig(fig, "plot_gp_X_factor", wd=wd)
-    pyplot.close()
     return
 
 
