@@ -132,7 +132,7 @@
 
 \abstract{
     Autonomously operated parallelized mL-scale bioreactors are considered the key to reduce bioprocess development cost and time.
-    However, their application is often limited to products with very non-complex analytics.
+    However, their application is often limited to products with very simple analytics.
     In this study, we investigated enhanced protein expression conditions of a carboxyl reductase from \textit{Nocardia otitidiscaviarum} in \textit{E. coli}.
     Cells were produced with exponential feeding in a L-scale bioreactor.
     After the desired cell density for protein expression was reached, the cells were automatically transferred to 48 mL-scale bioreactors operated by a liquid handling station where protein expression studies were conducted.
@@ -313,7 +313,7 @@ A total of 5 measurements including a measurement directly after biotransformati
 \subsection{Data processing}
 \label{sec_mm_computational}
 
-The dataset exported from the laboratory automation platform presented in \textit{Control of Parallelized Bioreactors I} \cite{controlOfParallelizedBioreactorsI} was processed into a set of tabular \texttt{DataFrame} structures using \texttt{pandas} \cite{pandasSoftware,pandasPaper}.
+The dataset exported from the laboratory automation platform was processed into a set of tabular \texttt{DataFrame} structures using \texttt{pandas} \cite{pandasSoftware,pandasPaper}.
 Every unique combination of glucose feed rate and IPTG concentration was assigned a unique identifier (\texttt{design\_id}) for identification inside the model.
 Likewise, every biotransformation reaction was assigned a \texttt{replicate\_id}.
 The association between all experimental designs, whole-cell biotransformation reactions and relevant meta information such as assay well positions was tracked in a tabular form ("df\_layout" sheet in \texttt{dataset.xlsx}).
