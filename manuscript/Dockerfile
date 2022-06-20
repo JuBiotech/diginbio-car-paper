@@ -11,17 +11,15 @@ RUN apt-get install -y \
     texlive-bibtex-extra \
     biber \
     texlive-xetex \
-    latexmk \
-    pandoc \
-    pandoc-citeproc
+    latexmk
 RUN apt-get install ttf-mscorefonts-installer -y
 RUN mkdir /wd
 WORKDIR /wd
 
-
-# See documentation here: https://boisgera.github.io/pandoc/markdown/
-# cd manuscript
-# docker build -t pandocstuff .
-# docker run --rm -it -v %cd%:/wd pandocstuff pandoc /wd/main.md -o /wd/main.docx --number-sections --bibliography=literature.bib --csl=literature.csl
-# docker run --rm -it -v %cd%:/wd pandocstuff pandoc /wd/main.md --pdf-engine=xelatex -o /wd/main.pdf --number-sections --bibliography=literature.bib --csl=literature.csl
-# docker run --rm -it -v %cd%:/wd --workdir=/wd/manuscript pandocstuff bash build.sh
+# To build the manuscript locally, one can use a Docker container based on this Dockerfile.
+# Steps:
+#             cd manuscript
+#             docker build -t carcontainer .
+#             cd ..
+# On Windows: docker run --rm -it -v %cd%:/wd --workdir=/wd/manuscript carcontainer bash build.sh
+# On Linux:   docker run --rm -it -v $(pwd):/wd --workdir=/wd/manuscript carcontainer bash build.sh

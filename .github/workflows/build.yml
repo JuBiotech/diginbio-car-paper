@@ -36,14 +36,6 @@ jobs:
           pandoc \
           pandoc-citeproc
         sudo apt-get install ttf-mscorefonts-installer -y
-    - name: Build DOCX
-      run: |
-        cd manuscript
-        pandoc main.md  --number-sections --bibliography=literature.bib --csl=literature.csl -o ../main.docx
-    - name: Build PDF
-      run: |
-        cd manuscript
-        pandoc main.md --number-sections --bibliography=literature.bib --csl=literature.csl --pdf-engine=xelatex -o ../main.pdf
     - name: Build LaTeX template
       run: |
         cd manuscript
