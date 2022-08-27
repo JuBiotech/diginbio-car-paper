@@ -27,7 +27,7 @@ DP_RESULTS.mkdir(exist_ok=True)
 
 _log = logging.getLogger(__file__)
 
-pyplot.style.use(DP_ROOT / "notebooks" / "DigInBio.mplstyle")
+pyplot.style.use(DP_ROOT / "code" / "DigInBio.mplstyle")
 
 
 def _apply_to_first_letter(label: str, action) -> str:
