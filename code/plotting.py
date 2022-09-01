@@ -1,5 +1,7 @@
 import arviz
+import shutil
 import itertools
+import subprocess
 import pathlib
 import calibr8
 import fastprogress
@@ -27,7 +29,7 @@ DP_RESULTS.mkdir(exist_ok=True)
 
 _log = logging.getLogger(__file__)
 
-pyplot.style.use(DP_ROOT / "notebooks" / "DigInBio.mplstyle")
+pyplot.style.use(DP_ROOT / "code" / "DigInBio.mplstyle")
 
 
 def _apply_to_first_letter(label: str, action) -> str:
@@ -198,6 +200,31 @@ def _savefig(fig, name: str, *, wd, **kwargs):
 
     img = pyplot.imread(str(wd / f"{name}.tif"))
     pyplot.imsave(str(wd / f"{name}.png"), img)
+    return
+
+
+def copy_convert_figure(fp_src: pathlib.Path, fp_dst: pathlib.Path, exist_ok: bool):
+    """Copies and or converts a figure using Pillow or Inkscape."""
+    if fp_dst.exists():
+        if exist_ok:
+            return
+        else:
+            raise Exception(f"Target {fp_dst} already exists!")
+    ext_src = fp_src.name.split(".")[-1].lower()
+    ext_dst = fp_dst.name.split(".")[-1].lower()
+    if ext_src == ext_dst:
+        # Just copy it
+        shutil.copy(fp_src, fp_dst)
+    elif ext_src == "pdf" and ext_dst == "eps":
+        # Convert with Inkscape
+        subprocess.check_call([f"C:\Program Files\Inkscape\Inkscape.exe", str(fp_src), f"--export-eps={fp_dst}"])
+    elif ext_src in {"png", "tif"} and ext_dst in {"png", "tif"}:
+        # Convert with Pillow
+        img = Image.open(fp_src)
+        img.save(fp_dst)
+    else:
+        raise NotImplementedError(f"Don't know how to process {fp_src} 👉 {fp_dst}.")
+    _log.info(f"Processed {fp_src} 👉 {fp_dst}")
     return
 
 

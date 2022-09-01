@@ -8,6 +8,7 @@ RUN apt-get install -y \
     texlive-latex-extra \
     texlive-science \
     texlive-fonts-extra \
+    texlive-font-utils \
     texlive-bibtex-extra \
     biber \
     texlive-xetex \

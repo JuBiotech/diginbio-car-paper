@@ -1516,34 +1516,42 @@ def copy_results_to_manuscript(wd: pathlib.Path):
     dp_dst = wd.parent.parent / "manuscript" / "figures"
     if not dp_dst.exists():
         raise FileExistsError(dp_dst)
-    figs = [
-        "ExpDesign.png",
-        "btm_overview.png",
-        "O2_overview.png",
-        "pH_overview.png",
-        "plot_A600_kinetics.png",
-        "cm_biomass_A360.png",
-        "cm_biomass_A600.png",
-        "cm_product_A360.png",
-        "plot_gp_X_factor.png",
-        "plot_3d_pp_dense_s_design.png",
-        "plot_3d_pp_dense_k_design.png",
-        "plot_pp_dense_dense_k_design_crossection.png",
-        "plot_pp_dense_dense_k_design_interval.png",
-        "p_best_k_design.png",
-    ]
+
     files = [
         "summary_tested_vs_predicted.txt",
     ]
-    fps_src = [
-        wd / "figs_tum" / fn
-        for fn in figs
-    ] + [
-        wd / fn
-        for fn in files
+    _log.info("Copying files...")
+    for fn in files:
+        fp_src = wd / fn
+        fp_dst = dp_dst / fn
+        _log.info("Copying %s → %s", fp_src, fp_dst)
+        shutil.copy(fp_src, fp_dst)
+
+    figs = [
+        ("ExpDesign.pdf", "Fig1.eps"),
+        ("btm_overview.pdf", "Fig2.eps"),
+        ("O2_overview.pdf", "Fig3.eps"),
+        ("pH_overview.pdf", "Fig4.eps"),
+        ("plot_A600_kinetics.pdf", "Fig5.eps"),
+        ("cm_biomass_A360.pdf", "Fig6.eps"),
+        ("cm_biomass_A600.pdf", "Fig7.eps"),
+        ("cm_product_A360.pdf", "Fig8.eps"),
+        ("plot_gp_X_factor.tif", "Fig9.tif"),
+        ("plot_3d_pp_dense_s_design.tif", "Fig10.tif"),
+        ("plot_3d_pp_dense_k_design.tif", "Fig11.tif"),
+        ("plot_pp_dense_dense_k_design_interval.pdf", "Fig12.eps"),
+        ("plot_pp_dense_dense_k_design_crossection.tif", "Fig13.tif"),
+        ("p_best_k_design.pdf", "Fig14.eps"),
+        # Need PNG versions of the TIF figures because LaTeX doesn't like TIF.
+        ("plot_gp_X_factor.tif", "Fig9.png"),
+        ("plot_3d_pp_dense_s_design.tif", "Fig10.png"),
+        ("plot_3d_pp_dense_k_design.tif", "Fig11.png"),
+        ("plot_pp_dense_dense_k_design_crossection.tif", "Fig13.png"),
     ]
-    fps_dst = [dp_dst / fn for fn in figs + files]
-    for src, dst in zip(fps_src, fps_dst):
-        _log.info("Copying %s → %s", src, dst)
-        shutil.copy(src, dst)
+    _log.info("Converting figures...")
+    for fn_src, fn_dst in figs:
+        fp_src = wd / fn_src
+        fp_dst = dp_dst / fn_dst
+        _log.info("Converting %s → %s", fp_src, fp_dst)
+        plotting.copy_convert_figure(fp_src, fp_dst, exist_ok=True)
     return
