@@ -136,7 +136,7 @@
     In this study, we investigated enhanced protein expression conditions of a carboxyl reductase from \textit{Nocardia otitidiscaviarum} in \textit{E. coli}.
     Cells were produced with exponential feeding in a L-scale bioreactor.
     After the desired cell density for protein expression was reached, the cells were automatically transferred to 48 mL-scale bioreactors operated by a liquid handling station where protein expression studies were conducted.
-    During protein expression, the feed rate and the inductor concentration was varied.
+    During protein expression, the feed rate and the inducer concentration was varied.
     At the end of the protein expression phase, the enzymatic activity was estimated by performing automated whole-cell biotransformations in a deep-well-plate.
     The results were analyzed with hierarchical Bayesian modelling methods to account for the biomass growth during the biotransformation, biomass interference on the subsequent product assay, and to predict absolute and specific enzyme activities at optimal expression conditions.
     Lower feed rates seemed to be beneficial for high specific and absolute activities.
@@ -267,9 +267,9 @@ During the IPTG addition procedure, the LHS opened and closed the reaction tubes
 IPTG concentrations were calculated based on the initial reaction volume of 10 mL.
 To ensure sterile operation of the LHS, the pipetting needles of the LHS were washed with an aqueous solution of 70~\% (v/v) ethanol and with sterile filtered deionised water after each pipetting step.
 
-All tasks (substrate addition, pH control, inductor addition, sampling) were initiated by a priority-based scheduler which weighed the tasks based on their real-time priority to enable optimal process control when more than one task was eligible.
+All tasks (substrate addition, pH control, inducer addition, sampling) were initiated by a priority-based scheduler which weighed the tasks based on their real-time priority to enable optimal process control when more than one task was eligible.
 The detailed description of the scheduler working principle, aim and software engineering may be found in \textit{Control of Parallelized Bioreactors I} \cite{controlOfParallelizedBioreactorsI}.
-The priorities for this application were feed $>$ inductor addition $>$ sampling $>$ pH control, whereby the sampling step was further split up into sub-tasks to allow for more important tasks to be executed in between.
+The priorities for this application were feed $>$ inducer addition $>$ sampling $>$ pH control, whereby the sampling step was further split up into sub-tasks to allow for more important tasks to be executed in between.
 This is one of the advantages by the scheduling architecture and allowed for a more stable feeding frequency.
 
 \subsection{Analytical procedures}
@@ -343,7 +343,7 @@ $2\ g\ L^{-1}h^{-1}$ were investigated twice in two sequential experiments.
     \includegraphics[width=0.5\textwidth]{figures/Fig1.eps}
     \caption{
         \textbf{Experimental design of the experiments to identify enhanced protein production conditions for \textit{E. coli} NoCAR:}
-        Each point depicts one unique combination of feed rate and inductor concentration that was applied during protein expression on the mL-scale.
+        Each point depicts one unique combination of feed rate and inducer concentration that was applied during protein expression on the mL-scale.
         Each combination was tested in 4 to 8 biological replicates in total.
     }
     \label{fig_expdesign}
@@ -393,7 +393,9 @@ After that, the DO drops to about 40-60~\% air saturation after each substrate a
 After several hours process time, the DO drop seems to be proportional to the glucose feed rate, i.e. the DO minimum after each substrate addition is approximately 40~\% at a feed rate of 4.8 $ g\ L^{-1} h^{-1}$ compared to 60~\% at a feed rate of 1 $ g\ L^{-1} h{-1}$.
 This is probably caused by the higher biomass density at a higher feed rate (see Fig.~\ref{fig_btmoverview}).
 During the first hour at a feed rate of $4.8\ g\ L^{-1} h^{-1}$, there is no increase of the DO signal indicating no limiting substrate concentrations between the substrate additions.
-The initially reduced metabolic activity of the recombinant \textit{E. coli} observed at the highest feed rate may be caused by the adaption of the cells to the new cultivation temperature (37 °C in the L-scale, 30 °C in the mL-scale).
+The initially reduced metabolic activity of the recombinant \textit{E. coli} observed at the highest feed rate may be caused by the adaption of the cells to the new cultivation temperature (37 °C in the L-scale, 30 °C in the mL-scale). 
+The impact of DO fluctuations on the cell growth and protein production with \textit{E. coli}  have been studied thoroughly by Faust et al. \cite{faust2014feeding}. It was found that the intermittent substrate feeding did not lead to lower final cell densities, but did reduce heterologous protein productivity for some target proteins.
+Further studies would be necessary to investigate whether the NoCAR expression is susceptible to intermittent substrate feeding. 
 
 \begin{figure}[H]
     \centering
@@ -785,7 +787,7 @@ This observation is in line with a previous study on mCherry expression where th
 \end{figure}
 
 
-The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inductor concentration of 12 µM IPTG.
+The highest investigated experimental design was at a feed rate of $1\ g\ L^{-1} h^{-1}$ and an inducer concentration of 12 µM IPTG.
 This is more than two-fold higher than that at a feed rate of $4.8\ g\ L^{-1} h^{-1}$, yet the model predicts a comparably high specific activity at such a low feed rate.
 Consequently, a benefit of lower feed rate during protein expression cannot be ruled out for this protein.
 
@@ -875,7 +877,7 @@ The overlaid coordinates of experimentally tested process parameters show that t
 
 \section{Conclusion}
 
-The automated cascade of stirred-tank bioreactors enabled screening of 42 different combinations of inductor concentration and feed rate during protein expression of \textit{E.~coli} NoCAR in a scalable bioreactor setup.
+The automated cascade of stirred-tank bioreactors enabled screening of 42 different combinations of inducer concentration and feed rate during protein expression of \textit{E.~coli} NoCAR in a scalable bioreactor setup.
 A total of 192 bioreactor runs were performed during four weeks, showing the high productivity of miniaturized, automated and digitized parallel bioreactors.
 The new automated biotransformation procedure at the end of each process enabled the investigation of the enzymatic activity of each expression condition without manual intervention.
 Due to the sophisticated mechanistic modelling based on Bayesian statistics, the enzymatic activity was estimated without the need of cell separation.
