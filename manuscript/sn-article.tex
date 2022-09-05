@@ -891,7 +891,10 @@ It would be interesting for further studies to investigate parameter combination
 
 The combination of cultivation at L- and mL-scale is a rather generic experimental strategy to produce biomass for whole-cell biocatalysis under varying expression conditions.
 Similarly, the technique to reproduce the structure of an experimental process in a probabilistic model can be transferred to other bioprocess characterization workflows.
-Conducting biotransformations at higher throughput and analyzing the data with Bayesian modeling can result in the identification of improved process conditions, and is therefore a promising technology development for bioprocess optimization.
+For example, one could easily adopt the workflow to optimize other expression conditions such as pH or medium composition, by modifying the Gaussian process model for the $s_\vec{design}$ variable to take other process design parameters as its input.
+Likewise, the biotransformation reaction of interest could be replaced by another 1st order reaction.
+Also higher order reaction kinetics could be incorporated by replacing the 1st order reaction with, for example an ODE model that describes Michaelis-Menten, Hill- or cascade reaction kinetics.
+We conclude that conducting biotransformations at higher throughput and analyzing the data with Bayesian modeling is a versatile and promising approach to accelerate the development of catalytic bioprocesses.
 
 
 \backmatter
